@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      1.0
+// @version      1.1
 // @description  Tools for MilkyWayIdle.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -199,7 +199,7 @@
             }
             appendHTMLStr += `<div style="color: DarkGreen;"">[总价]: ${numberFormatter(totalBidPrice)}</div>`;
 
-            let produceItemPerHour = 60000 / (initData_actionDetailMap[getActionHridFromItemName(itemName)].baseTimeCost / 1000000);
+            let produceItemPerHour = 3600000 / (initData_actionDetailMap[getActionHridFromItemName(itemName)].baseTimeCost / 1000000);
             appendHTMLStr += `<div style="color: DarkGreen;"">----------</div>`;
             appendHTMLStr += `<div style="color: DarkGreen;"">生产利润(不包含任何加成；卖单价进、买单价出)：</div>`;
             appendHTMLStr += `<div style="color: DarkGreen;"">每个: ${numberFormatter(bid - totalAskPrice)}</div>`;
@@ -207,7 +207,7 @@
             appendHTMLStr += `<div style="color: DarkGreen;"">每天: ${numberFormatter(24 * produceItemPerHour * (bid - totalAskPrice))}</div>`;
         } else if (getActionHridFromItemName(itemName) && initData_actionDetailMap[getActionHridFromItemName(itemName)].inputItems === null && initData_actionDetailMap && initData_itemDetailMap) {
             // 采集
-            let produceItemPerHour = 60000 / (initData_actionDetailMap[getActionHridFromItemName(itemName)].baseTimeCost / 1000000);
+            let produceItemPerHour = 3600000 / (initData_actionDetailMap[getActionHridFromItemName(itemName)].baseTimeCost / 1000000);
             appendHTMLStr += `<div style="color: DarkGreen;"">----------</div>`;
             appendHTMLStr += `<div style="color: DarkGreen;"">生产利润(不包含任何加成；卖单价进、买单价出)：</div>`;
             appendHTMLStr += `<div style="color: DarkGreen;"">每个: ${numberFormatter(bid)}</div>`;
@@ -294,6 +294,7 @@
         newName = newName.replace("Log", "Tree");
         newName = newName.replace("Cowing", "Milking");
         if (!initData_actionDetailMap) {
+            console.error("getActionHridFromItemName no initData_actionDetailMap: " + name);
             return null;
         }
         for (const action of Object.values(initData_actionDetailMap)) {
@@ -301,6 +302,7 @@
                 return action.hrid;
             }
         }
+        console.error("getActionHridFromItemName not found: " + name);
         return null;
     }
 
@@ -402,7 +404,7 @@
                     let needExp = initData_levelExperienceTable[targetLevel] - currentExp;
                     let needNumOfActions = Math.round(needExp / exp);
                     let needTime = timeReadable(needNumOfActions * duration);
-                    tillLevelNumber.textContent = `${needNumOfActions} 次 (${needTime})`;
+                    tillLevelNumber.textContent = `${needNumOfActions} 次 [${needTime}] (刷新网页更新当前等级)`;
                 } else {
                     tillLevelNumber.textContent = "Error";
                 }
@@ -441,4 +443,36 @@
         }
         inputElem.dispatchEvent(event);
     }
+
+    /* 左侧栏显示技能百分比 */
+    const waitForProgressBar = () => {
+        const elements = document.querySelectorAll(".NavigationBar_currentExperience__3GDeX");
+        if (elements.length) {
+            removeInsertedDivs();
+            elements.forEach((element) => {
+                let text = element.style.width;
+                text = Number(text.replace("%", "")).toFixed(2) + "%";
+
+                const span = document.createElement("span");
+                span.textContent = text;
+                span.classList.add("insertedSpan");
+                span.style.fontSize = "13px";
+                span.style.color = "green";
+
+                element.parentNode.parentNode.querySelector("span.NavigationBar_level__3C7eR").style.width = "auto";
+
+                const insertParent = element.parentNode.parentNode.children[0];
+                insertParent.insertBefore(span, insertParent.children[1]);
+            });
+        } else {
+            setTimeout(waitForProgressBar, 200);
+        }
+    };
+
+    const removeInsertedDivs = () => document.querySelectorAll("span.insertedSpan").forEach((div) => div.parentNode.removeChild(div));
+
+    window.setInterval(() => {
+        removeInsertedDivs();
+        waitForProgressBar();
+    }, 1000);
 })();
