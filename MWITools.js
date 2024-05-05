@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      1.1
+// @version      1.2
 // @description  Tools for MilkyWayIdle.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -13,6 +13,7 @@
     "use strict";
 
     let initData_characterSkills = null;
+    let initData_characterItems = null;
     let initData_actionDetailMap = null;
     let initData_levelExperienceTable = null;
     let initData_itemDetailMap = null;
@@ -46,10 +47,11 @@
     function handleMessage(message) {
         let obj = JSON.parse(message);
         if (obj && obj.type === "init_character_data") {
-            console.log(obj.characterSkills);
+            console.log(obj.characterItems);
             initData_characterSkills = obj.characterSkills;
+            initData_characterItems = obj.characterItems;
         } else if (obj && obj.type === "init_client_data") {
-            console.log(obj.actionDetailMap);
+            console.log(obj.itemDetailMap);
             initData_actionDetailMap = obj.actionDetailMap;
             initData_levelExperienceTable = obj.levelExperienceTable;
             initData_itemDetailMap = obj.itemDetailMap;
@@ -128,6 +130,28 @@
     });
     tooltipObserver.observe(document.body, { attributes: false, childList: true, characterData: false });
 
+    const actionHridToToolsSpeedBuffNamesMap = {
+        "/action_types/brewing": "brewingSpeed",
+        "/action_types/cheesesmithing": "cheesesmithingSpeed",
+        "/action_types/cooking": "cookingSpeed",
+        "/action_types/crafting": "craftingSpeed",
+        "/action_types/foraging": "foragingSpeed",
+        "/action_types/milking": "milkingSpeed",
+        "/action_types/tailoring": "tailoringSpeed",
+        "/action_types/woodcutting": "woodcuttingSpeed",
+    };
+
+    function getToolsSpeedBuffByActionHrid(actionHrid) {
+        let buff = 0;
+        for (const item of initData_characterItems) {
+            if (item.itemLocationHrid.includes("_tool")) {
+                const buffName = actionHridToToolsSpeedBuffNamesMap[initData_actionDetailMap[actionHrid].type];
+                buff += initData_itemDetailMap[item.itemHrid].equipmentDetail.noncombatStats[buffName];
+            }
+        }
+        return buff * 100;
+    }
+
     async function handleTooltipItem(tooltip) {
         const itemName = tooltip.querySelector("div.ItemTooltipText_name__2JAHA").textContent;
         const amountSpan = tooltip.querySelectorAll("span")[1];
@@ -151,6 +175,9 @@
                 `
             );
             return;
+        }
+        if (!jsonObj.market[itemName]) {
+            console.error("itemName not found in market API json: " + itemName);
         }
 
         let appendHTMLStr = "";
@@ -199,20 +226,62 @@
             }
             appendHTMLStr += `<div style="color: DarkGreen;"">[总价]: ${numberFormatter(totalBidPrice)}</div>`;
 
+            // 基础每小时生产数量
             let produceItemPerHour = 3600000 / (initData_actionDetailMap[getActionHridFromItemName(itemName)].baseTimeCost / 1000000);
+            // 采集类技能掉率
+            let droprate = 1;
+            // 等级碾压提高效率
+            const requiredLevel = initData_actionDetailMap[getActionHridFromItemName(itemName)].levelRequirement.level;
+            let currentLevel = requiredLevel;
+            for (const skill of initData_characterSkills) {
+                if (skill.skillHrid === initData_actionDetailMap[getActionHridFromItemName(itemName)].levelRequirement.skillHrid) {
+                    currentLevel = skill.level;
+                    break;
+                }
+            }
+            produceItemPerHour *= 1 + (currentLevel - requiredLevel) / 100;
+            // 工具提高速度
+            let toolPercent = getToolsSpeedBuffByActionHrid(getActionHridFromItemName(itemName));
+            produceItemPerHour *= 1 + toolPercent / 100;
+
             appendHTMLStr += `<div style="color: DarkGreen;"">----------</div>`;
-            appendHTMLStr += `<div style="color: DarkGreen;"">生产利润(不包含任何加成；卖单价进、买单价出)：</div>`;
-            appendHTMLStr += `<div style="color: DarkGreen;"">每个: ${numberFormatter(bid - totalAskPrice)}</div>`;
-            appendHTMLStr += `<div style="color: DarkGreen;"">每小时: ${numberFormatter(produceItemPerHour * (bid - totalAskPrice))}</div>`;
-            appendHTMLStr += `<div style="color: DarkGreen;"">每天: ${numberFormatter(24 * produceItemPerHour * (bid - totalAskPrice))}</div>`;
+            appendHTMLStr += `<div style="color: DarkGreen;"">生产利润(包括工具提速、等级效率，刷新网页更新数据；不包括饮料、房子、社区buff、稀有掉落；卖单价进、买单价出)：</div>`;
+            appendHTMLStr += `<div style="color: DarkGreen;"">每小时生产 ${Number(produceItemPerHour).toFixed(1)} 个 (x${droprate}基础掉率 +${
+                currentLevel - requiredLevel
+            }%等级效率 +${toolPercent}%工具加速)</div>`;
+            appendHTMLStr += `<div style="color: DarkGreen;"">每个利润: ${numberFormatter(bid - totalAskPrice)}</div>`;
+            appendHTMLStr += `<div style="color: DarkGreen;"">每小时利润: ${numberFormatter(produceItemPerHour * (bid - totalAskPrice))}</div>`;
+            appendHTMLStr += `<div style="color: DarkGreen;"">每天利润: ${numberFormatter(24 * produceItemPerHour * (bid - totalAskPrice))}</div>`;
         } else if (getActionHridFromItemName(itemName) && initData_actionDetailMap[getActionHridFromItemName(itemName)].inputItems === null && initData_actionDetailMap && initData_itemDetailMap) {
             // 采集
+            // 基础每小时生产数量
             let produceItemPerHour = 3600000 / (initData_actionDetailMap[getActionHridFromItemName(itemName)].baseTimeCost / 1000000);
+            // 采集类技能掉率
+            let droprate =
+                (initData_actionDetailMap[getActionHridFromItemName(itemName)].dropTable[0].minCount + initData_actionDetailMap[getActionHridFromItemName(itemName)].dropTable[0].maxCount) / 2;
+            produceItemPerHour *= droprate;
+            // 等级碾压提高效率
+            const requiredLevel = initData_actionDetailMap[getActionHridFromItemName(itemName)].levelRequirement.level;
+            let currentLevel = requiredLevel;
+            for (const skill of initData_characterSkills) {
+                if (skill.skillHrid === initData_actionDetailMap[getActionHridFromItemName(itemName)].levelRequirement.skillHrid) {
+                    currentLevel = skill.level;
+                    break;
+                }
+            }
+            produceItemPerHour *= 1 + (currentLevel - requiredLevel) / 100;
+            // 工具提高速度
+            let toolPercent = getToolsSpeedBuffByActionHrid(getActionHridFromItemName(itemName));
+            produceItemPerHour *= 1 + toolPercent / 100;
+
             appendHTMLStr += `<div style="color: DarkGreen;"">----------</div>`;
-            appendHTMLStr += `<div style="color: DarkGreen;"">生产利润(不包含任何加成；卖单价进、买单价出)：</div>`;
-            appendHTMLStr += `<div style="color: DarkGreen;"">每个: ${numberFormatter(bid)}</div>`;
-            appendHTMLStr += `<div style="color: DarkGreen;"">每小时: ${numberFormatter(produceItemPerHour * bid)}</div>`;
-            appendHTMLStr += `<div style="color: DarkGreen;"">每天: ${numberFormatter(24 * produceItemPerHour * bid)}</div>`;
+            appendHTMLStr += `<div style="color: DarkGreen;"">生产利润(包括工具提速、等级效率，刷新网页更新数据；不包括饮料、房子、社区buff、稀有掉落；卖单价进、买单价出)：</div>`;
+            appendHTMLStr += `<div style="color: DarkGreen;"">每小时生产 ${Number(produceItemPerHour).toFixed(1)} 个 (x${droprate}基础掉率 +${
+                currentLevel - requiredLevel
+            }%等级效率 +${toolPercent}%工具加速)</div>`;
+            appendHTMLStr += `<div style="color: DarkGreen;"">每个利润: ${numberFormatter(bid)}</div>`;
+            appendHTMLStr += `<div style="color: DarkGreen;"">每小时利润: ${numberFormatter(produceItemPerHour * bid)}</div>`;
+            appendHTMLStr += `<div style="color: DarkGreen;"">每天利润: ${numberFormatter(24 * produceItemPerHour * bid)}</div>`;
         }
 
         appendHTMLStr += `<div style="color: DarkGreen;"">----------</div>`;
@@ -224,6 +293,7 @@
             return JSON.parse(localStorage.getItem("MWITools_marketAPI_json"));
         }
 
+        console.log("fetchMarketJSON fetch");
         const jsonStr = await new Promise((resolve, reject) => {
             GM.xmlHttpRequest({
                 url: `https://raw.githubusercontent.com/holychikenz/MWIApi/main/medianmarket.json`,
@@ -231,6 +301,7 @@
                 synchronous: true,
                 onload: async (response) => {
                     if (response.status == 200) {
+                        console.log("fetchMarketJSON fetch success 200");
                         resolve(response.responseText);
                     } else {
                         console.error("MWITools: fetchMarketJSON onload with HTTP status " + response.status);
@@ -261,6 +332,7 @@
             localStorage.setItem("MWITools_marketAPI_json", JSON.stringify(jsonObj));
             return jsonObj;
         }
+        console.error("MWITools: fetchMarketJSON JSON.parse error");
         localStorage.setItem("MWITools_marketAPI_timestamp", 0);
         localStorage.setItem("MWITools_marketAPI_json", "");
         return null;
@@ -293,6 +365,7 @@
         let newName = name.replace("Milk", "Cow");
         newName = newName.replace("Log", "Tree");
         newName = newName.replace("Cowing", "Milking");
+        newName = newName.replace("Rainbow Cow", "Unicow");
         if (!initData_actionDetailMap) {
             console.error("getActionHridFromItemName no initData_actionDetailMap: " + name);
             return null;
@@ -302,7 +375,6 @@
                 return action.hrid;
             }
         }
-        console.error("getActionHridFromItemName not found: " + name);
         return null;
     }
 
@@ -394,7 +466,7 @@
             let needNumOfActions = Math.round(needExp / exp);
             let needTime = timeReadable(needNumOfActions * duration);
 
-            hTMLStr = `<div id="tillLevel" style="color: Green; text-align: left;">到 <input id="tillLevelInput" type="number" style="background-color: Green;" value="${targetLevel}" min="${targetLevel}" max="200"> 级还需做 <span id="tillLevelNumber">${needNumOfActions} 次[${needTime}] (刷新网页更新当前等级)</span></div>`;
+            hTMLStr = `<div id="tillLevel" style="color: Green; text-align: left;">到 <input id="tillLevelInput" type="number" style="background-color: Green;" value="${targetLevel}" min="${targetLevel}" max="200"> 级还需做 <span id="tillLevelNumber">${needNumOfActions} 次[${needTime}] (刷新网页更新当前等级；可能不包含所有buff)</span></div>`;
             quickInputButtonsDiv.insertAdjacentHTML("afterend", hTMLStr);
             const tillLevelInput = panel.querySelector("input#tillLevelInput");
             const tillLevelNumber = panel.querySelector("span#tillLevelNumber");
@@ -404,7 +476,7 @@
                     let needExp = initData_levelExperienceTable[targetLevel] - currentExp;
                     let needNumOfActions = Math.round(needExp / exp);
                     let needTime = timeReadable(needNumOfActions * duration);
-                    tillLevelNumber.textContent = `${needNumOfActions} 次 [${needTime}] (刷新网页更新当前等级)`;
+                    tillLevelNumber.textContent = `${needNumOfActions} 次 [${needTime}] (刷新网页更新当前等级；可能不包含所有buff)`;
                 } else {
                     tillLevelNumber.textContent = "Error";
                 }
@@ -415,7 +487,7 @@
                     let needExp = initData_levelExperienceTable[targetLevel] - currentExp;
                     let needNumOfActions = Math.round(needExp / exp);
                     let needTime = timeReadable(needNumOfActions * duration);
-                    tillLevelNumber.textContent = `${needNumOfActions} 次 [${needTime}] (刷新网页更新当前等级)`;
+                    tillLevelNumber.textContent = `${needNumOfActions} 次 [${needTime}] (刷新网页更新当前等级；可能不包含所有buff)`;
                 } else {
                     tillLevelNumber.textContent = "Error";
                 }
