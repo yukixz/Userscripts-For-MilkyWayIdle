@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      1.5
+// @version      1.6
 // @description  Tools for MilkyWayIdle.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -217,7 +217,7 @@
                 buff += initData_itemDetailMap[item.itemHrid].equipmentDetail.noncombatStats[buffName] * enhanceBonus;
             }
         }
-        return buff * 100;
+        return Number(buff * 100).toFixed(1);
     }
 
     function getHousesEffBuffByActionHrid(actionHrid) {
@@ -418,7 +418,7 @@
             )}/天</div>`;
         }
 
-        amountSpan.parentNode.insertAdjacentHTML("afterend", appendHTMLStr);
+        amountSpan.parentNode.nextSibling.insertAdjacentHTML("afterend", appendHTMLStr);
     }
 
     async function fetchMarketJSON(forceFetch = false) {
@@ -564,7 +564,7 @@
     };
     waitForActionPanelParent();
 
-    function handleActionPanel(panel) {
+    async function handleActionPanel(panel) {
         const actionName = panel.querySelector("div.SkillActionDetail_name__3erHV").textContent;
         const exp = Number(panel.querySelector("div.SkillActionDetail_expGain__F5xHu").textContent);
         const duration = Number(panel.querySelectorAll("div.SkillActionDetail_value__dQjYH")[4].textContent.replace("s", ""));
@@ -659,7 +659,50 @@
         }
 
         // 显示每小时经验
-        panel.querySelector("div#tillLevel").insertAdjacentHTML("afterend", `<div style="color: Green; text-align: left;">每小时经验: ${numberFormatter(Math.round((3600 / duration) * exp))}</div>`);
+        panel
+            .querySelector("div#tillLevel")
+            .insertAdjacentHTML("afterend", `<div id="expPerHour" style="color: Green; text-align: left;">每小时经验: ${numberFormatter(Math.round((3600 / duration) * exp))}</div>`);
+
+        // 显示Foraging最后一个图综合收益
+        if (panel.querySelector("div.SkillActionDetail_dropTable__3ViVp").children.length > 1) {
+            const jsonObj = await fetchMarketJSON();
+            const actionHrid = "/actions/foraging/" + actionName.toLowerCase().replaceAll(" ", "_");
+            let numOfActionsPerHour = 3600000 / (initData_actionDetailMap[actionHrid].baseTimeCost / 1000000);
+            let dropTable = initData_actionDetailMap[actionHrid].dropTable;
+            let virtualItemBid = 0;
+            for (const drop of dropTable) {
+                const bid = jsonObj?.market[initData_itemDetailMap[drop.itemHrid].name]?.bid;
+                const amount = drop.dropRate * ((drop.maxCount + drop.maxCount) / 2);
+                virtualItemBid += bid * amount;
+            }
+
+            // 工具提高速度
+            let toolPercent = getToolsSpeedBuffByActionHrid(actionHrid);
+            numOfActionsPerHour *= 1 + toolPercent / 100;
+            // 等级碾压效率
+            const requiredLevel = initData_actionDetailMap[actionHrid].levelRequirement.level;
+            let currentLevel = requiredLevel;
+            for (const skill of initData_characterSkills) {
+                if (skill.skillHrid === initData_actionDetailMap[actionHrid].levelRequirement.skillHrid) {
+                    currentLevel = skill.level;
+                    break;
+                }
+            }
+            const levelEffBuff = currentLevel - requiredLevel;
+            // 房子效率
+            const houseEffBuff = getHousesEffBuffByActionHrid(actionHrid);
+            // 茶
+            const teaBuffs = getTeaBuffsByActionHrid(actionHrid);
+            // 总效率
+            numOfActionsPerHour *= 1 + (levelEffBuff + houseEffBuff + teaBuffs.efficiency) / 100;
+            // 茶额外数量
+            let extraQuantityPerHour = (numOfActionsPerHour * teaBuffs.quantity) / 100;
+
+            let htmlStr = `<div id="totalProfit"  style="color: Green; text-align: left;">综合利润: ${numberFormatter(
+                numOfActionsPerHour * virtualItemBid + extraQuantityPerHour * virtualItemBid
+            )}/小时, ${numberFormatter(24 * numOfActionsPerHour * virtualItemBid + extraQuantityPerHour * virtualItemBid)}/天</div>`;
+            panel.querySelector("div#expPerHour").insertAdjacentHTML("afterend", htmlStr);
+        }
     }
 
     function getTotalTimeStr(input, duration) {
