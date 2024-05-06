@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      1.6
+// @version      1.7
 // @description  Tools for MilkyWayIdle.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -630,7 +630,7 @@
             let needNumOfActions = Math.round(needExp / exp);
             let needTime = timeReadable(needNumOfActions * duration);
 
-            hTMLStr = `<div id="tillLevel" style="color: Green; text-align: left;">到 <input id="tillLevelInput" type="number" value="${targetLevel}" min="${targetLevel}" max="200"> 级还需做 <span id="tillLevelNumber">${needNumOfActions} 次[${needTime}] (刷新网页更新当前等级；可能不包含所有buff)</span></div>`;
+            hTMLStr = `<div id="tillLevel" style="color: Green; text-align: left;">到 <input id="tillLevelInput" type="number" value="${targetLevel}" min="${targetLevel}" max="200"> 级还需做 <span id="tillLevelNumber">${needNumOfActions} 次[${needTime}] (刷新网页更新当前等级；不包含效率buff)</span></div>`;
             quickInputButtonsDiv.insertAdjacentHTML("afterend", hTMLStr);
             const tillLevelInput = panel.querySelector("input#tillLevelInput");
             const tillLevelNumber = panel.querySelector("span#tillLevelNumber");
@@ -672,7 +672,7 @@
             let virtualItemBid = 0;
             for (const drop of dropTable) {
                 const bid = jsonObj?.market[initData_itemDetailMap[drop.itemHrid].name]?.bid;
-                const amount = drop.dropRate * ((drop.maxCount + drop.maxCount) / 2);
+                const amount = drop.dropRate * ((drop.minCount + drop.maxCount) / 2);
                 virtualItemBid += bid * amount;
             }
 
