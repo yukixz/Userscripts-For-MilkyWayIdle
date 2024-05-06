@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      1.3
+// @version      1.4
 // @description  Tools for MilkyWayIdle.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -56,6 +56,7 @@
             initData_characterItems = obj.characterItems;
             initData_characterHouseRoomMap = obj.characterHouseRoomMap;
             initData_actionTypeDrinkSlotsMap = obj.actionTypeDrinkSlotsMap;
+            calculateNetworth();
         } else if (obj && obj.type === "init_client_data") {
             console.log(obj.itemDetailMap);
             initData_actionDetailMap = obj.actionDetailMap;
@@ -63,6 +64,31 @@
             initData_itemDetailMap = obj.itemDetailMap;
         }
         return message;
+    }
+
+    /* 计算Networth */
+    async function calculateNetworth() {
+        const marketAPIJson = await fetchMarketJSON();
+        let networthAsk = 0;
+        let networthBid = 0;
+        for (const item of initData_characterItems) {
+            const itemName = initData_itemDetailMap[item.itemHrid].name;
+            const marketPrices = marketAPIJson.market[itemName];
+            if (marketPrices) {
+                networthAsk += marketPrices.ask > 0 ? marketPrices.ask : 0;
+                networthBid += marketPrices.bid > 0 ? marketPrices.bid : 0;
+            }
+        }
+
+        const waitForHeader = () => {
+            const targetNode = document.querySelector("div.Header_totalLevel__8LY3Q");
+            if (targetNode) {
+                targetNode.insertAdjacentHTML("afterend", `<div style="text-align: left;">Networth: ${numberFormatter(networthAsk)} / ${numberFormatter(networthBid)}</div>`);
+            } else {
+                setTimeout(waitForHeader, 200);
+            }
+        };
+        waitForHeader();
     }
 
     /* 显示当前动作总时间 */
@@ -289,10 +315,10 @@
         // 市场价格
         const ask = jsonObj?.market[itemName]?.ask;
         const bid = jsonObj?.market[itemName]?.bid;
-        appendHTMLStr += `<div style="color: DarkGreen;"">----------</div>`;
         appendHTMLStr += `
-        <div style="color: DarkGreen;"">日均卖单价: ${numberFormatter(ask)} ${ask && ask > 0 ? "(" + numberFormatter(ask * amount) + ")" : ""}</div>
-        <div style="color: DarkGreen;"">日均买单价: ${numberFormatter(bid)} ${bid && bid > 0 ? "(" + numberFormatter(bid * amount) + ")" : ""}</div>
+        <div style="color: DarkGreen;"">日均价: ${numberFormatter(ask)} / ${numberFormatter(bid)} (${ask && ask > 0 ? numberFormatter(ask * amount) : ""} / ${
+            bid && bid > 0 ? numberFormatter(bid * amount) : ""
+        })</div>
         `;
 
         if (
@@ -315,17 +341,10 @@
                 totalBidPrice += item.perBidPrice * item.count;
             }
 
-            appendHTMLStr += `<div style="color: DarkGreen;">----------</div>`;
-            appendHTMLStr += `<div style="color: DarkGreen; font-size: 10px;">原料卖单价： ${numberFormatter(totalAskPrice)}</div>`;
+            appendHTMLStr += `<div style="color: DarkGreen; font-size: 10px;">原料价： ${numberFormatter(totalAskPrice)}  / ${numberFormatter(totalBidPrice)}</div>`;
             for (const item of inputItems) {
                 appendHTMLStr += `
-                <div style="color: DarkGreen; font-size: 10px;"> [${item.name} x ${item.count}]: ${numberFormatter(item.perAskPrice)} (${numberFormatter(item.perAskPrice * item.count)})</div>
-                `;
-            }
-            appendHTMLStr += `<div style="color: DarkGreen; font-size: 10px;">原料买单价：${numberFormatter(totalBidPrice)}</div>`;
-            for (const item of inputItems) {
-                appendHTMLStr += `
-                <div style="color: DarkGreen; font-size: 10px;"> [${item.name} x ${item.count}]: ${numberFormatter(item.perBidPrice)} (${numberFormatter(item.perBidPrice * item.count)})</div>
+                <div style="color: DarkGreen; font-size: 10px;"> ${item.name} x${item.count}: ${numberFormatter(item.perAskPrice)} / ${numberFormatter(item.perBidPrice)}</div>
                 `;
             }
 
@@ -355,17 +374,12 @@
             // 茶额外数量
             let extraQuantityPerHour = (produceItemPerHour * teaBuffs.quantity) / 100;
 
-            appendHTMLStr += `<div style="color: DarkGreen;">----------</div>`;
             appendHTMLStr += `<div style="color: DarkGreen; font-size: 10px;">生产利润(卖单价进、买单价出；不包括Processing Tea、社区buff、稀有掉落；刷新网页更新人物数据)：</div>`;
-            appendHTMLStr += `<div style="color: DarkGreen;">x${droprate}基础掉率 +${toolPercent}%工具速度 +${levelEffBuff}%等级效率 +${houseEffBuff}%房子效率 +${teaBuffs.efficiency}%茶效率 +${teaBuffs.quantity}%茶额外数量 +${teaBuffs.lessResource}%茶减少消耗</div>`;
-            appendHTMLStr += `<div style="color: DarkGreen;">每小时生产 ${Number(produceItemPerHour + extraQuantityPerHour).toFixed(1)} 个</div>`;
-            appendHTMLStr += `<div style="color: DarkGreen;">每个利润: ${numberFormatter(bid - totalAskPrice * (1 - teaBuffs.lessResource / 100))}</div>`;
-            appendHTMLStr += `<div style="color: DarkGreen;">每小时利润: ${numberFormatter(
+            appendHTMLStr += `<div style="color: DarkGreen; font-size: 10px;">x${droprate}基础掉率 +${toolPercent}%工具速度 +${levelEffBuff}%等级效率 +${houseEffBuff}%房子效率 +${teaBuffs.efficiency}%茶效率 +${teaBuffs.quantity}%茶额外数量 +${teaBuffs.lessResource}%茶减少消耗</div>`;
+            appendHTMLStr += `<div style="color: DarkGreen; font-size: 10px;">每小时生产 ${Number(produceItemPerHour + extraQuantityPerHour).toFixed(1)} 个</div>`;
+            appendHTMLStr += `<div style="color: DarkGreen;">利润: ${numberFormatter(bid - totalAskPrice * (1 - teaBuffs.lessResource / 100))}/个, ${numberFormatter(
                 produceItemPerHour * (bid - totalAskPrice * (1 - teaBuffs.lessResource / 100)) + extraQuantityPerHour * bid
-            )}</div>`;
-            appendHTMLStr += `<div style="color: DarkGreen;"">每天利润: ${numberFormatter(
-                24 * produceItemPerHour * (bid - totalAskPrice * (1 - teaBuffs.lessResource / 100)) + extraQuantityPerHour * bid
-            )}</div>`;
+            )}/小时, ${numberFormatter(24 * produceItemPerHour * (bid - totalAskPrice * (1 - teaBuffs.lessResource / 100)) + extraQuantityPerHour * bid)}/天</div>`;
         } else if (getActionHridFromItemName(itemName) && initData_actionDetailMap[getActionHridFromItemName(itemName)].inputItems === null && initData_actionDetailMap && initData_itemDetailMap) {
             // 采集类技能
             const actionHrid = getActionHridFromItemName(itemName);
@@ -396,16 +410,14 @@
             // 茶额外数量
             let extraQuantityPerHour = (produceItemPerHour * teaBuffs.quantity) / 100;
 
-            appendHTMLStr += `<div style="color: DarkGreen;">----------</div>`;
             appendHTMLStr += `<div style="color: DarkGreen; font-size: 10px;">生产利润(卖单价进、买单价出；不包括Processing Tea、社区buff、稀有掉落；刷新网页更新人物数据)：</div>`;
-            appendHTMLStr += `<div style="color: DarkGreen;">x${droprate}基础掉率 +${toolPercent}%工具速度 +${levelEffBuff}%等级效率 +${houseEffBuff}%房子效率 +${teaBuffs.efficiency}%茶效率 +${teaBuffs.quantity}%茶额外数量 +${teaBuffs.lessResource}%茶减少消耗</div>`;
-            appendHTMLStr += `<div style="color: DarkGreen;">每小时生产 ${Number(produceItemPerHour + extraQuantityPerHour).toFixed(1)} 个</div>`;
-            appendHTMLStr += `<div style="color: DarkGreen;">每个利润: ${numberFormatter(bid)}</div>`;
-            appendHTMLStr += `<div style="color: DarkGreen;">每小时利润: ${numberFormatter(produceItemPerHour * bid + extraQuantityPerHour * bid)}</div>`;
-            appendHTMLStr += `<div style="color: DarkGreen;">每天利润: ${numberFormatter(24 * produceItemPerHour * bid + extraQuantityPerHour * bid)}</div>`;
+            appendHTMLStr += `<div style="color: DarkGreen; font-size: 10px;">x${droprate}基础掉率 +${toolPercent}%工具速度 +${levelEffBuff}%等级效率 +${houseEffBuff}%房子效率 +${teaBuffs.efficiency}%茶效率 +${teaBuffs.quantity}%茶额外数量 +${teaBuffs.lessResource}%茶减少消耗</div>`;
+            appendHTMLStr += `<div style="color: DarkGreen; font-size: 10px;">每小时生产 ${Number(produceItemPerHour + extraQuantityPerHour).toFixed(1)} 个</div>`;
+            appendHTMLStr += `<div style="color: DarkGreen;">利润: ${numberFormatter(bid)}/个, ${numberFormatter(produceItemPerHour * bid + extraQuantityPerHour * bid)}/小时, ${numberFormatter(
+                24 * produceItemPerHour * bid + extraQuantityPerHour * bid
+            )}/天</div>`;
         }
 
-        appendHTMLStr += `<div style="color: DarkGreen;"">----------</div>`;
         amountSpan.parentNode.insertAdjacentHTML("afterend", appendHTMLStr);
     }
 
@@ -581,7 +593,6 @@
         for (const value of presetHours) {
             const btn = document.createElement("button");
             btn.innerText = value === 0.5 ? 0.5 : numberFormatter(value);
-            btn.style.backgroundColor = "green";
             btn.onclick = () => {
                 reactInputTriggerHack(inputElem, Math.round((value * 60 * 60) / duration));
             };
@@ -595,7 +606,6 @@
         for (const value of presetTimes) {
             const btn = document.createElement("button");
             btn.innerText = numberFormatter(value);
-            btn.style.backgroundColor = "green";
             btn.onclick = () => {
                 reactInputTriggerHack(inputElem, value);
             };
@@ -620,7 +630,7 @@
             let needNumOfActions = Math.round(needExp / exp);
             let needTime = timeReadable(needNumOfActions * duration);
 
-            hTMLStr = `<div id="tillLevel" style="color: Green; text-align: left;">到 <input id="tillLevelInput" type="number" style="background-color: Green;" value="${targetLevel}" min="${targetLevel}" max="200"> 级还需做 <span id="tillLevelNumber">${needNumOfActions} 次[${needTime}] (刷新网页更新当前等级；可能不包含所有buff)</span></div>`;
+            hTMLStr = `<div id="tillLevel" style="color: Green; text-align: left;">到 <input id="tillLevelInput" type="number" value="${targetLevel}" min="${targetLevel}" max="200"> 级还需做 <span id="tillLevelNumber">${needNumOfActions} 次[${needTime}] (刷新网页更新当前等级；可能不包含所有buff)</span></div>`;
             quickInputButtonsDiv.insertAdjacentHTML("afterend", hTMLStr);
             const tillLevelInput = panel.querySelector("input#tillLevelInput");
             const tillLevelNumber = panel.querySelector("span#tillLevelNumber");
@@ -647,6 +657,9 @@
                 }
             });
         }
+
+        // 显示每小时经验
+        panel.querySelector("div#tillLevel").insertAdjacentHTML("afterend", `<div style="color: Green; text-align: left;">每小时经验: ${numberFormatter(Math.round((3600 / duration) * exp))}</div>`);
     }
 
     function getTotalTimeStr(input, duration) {
