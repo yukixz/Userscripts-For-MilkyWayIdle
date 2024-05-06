@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      1.4
+// @version      1.5
 // @description  Tools for MilkyWayIdle.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -75,8 +75,8 @@
             const itemName = initData_itemDetailMap[item.itemHrid].name;
             const marketPrices = marketAPIJson.market[itemName];
             if (marketPrices) {
-                networthAsk += marketPrices.ask > 0 ? marketPrices.ask : 0;
-                networthBid += marketPrices.bid > 0 ? marketPrices.bid : 0;
+                networthAsk += item.count * (marketPrices.ask > 0 ? marketPrices.ask : 0);
+                networthBid += item.count * (marketPrices.bid > 0 ? marketPrices.bid : 0);
             }
         }
 
