@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Mooneycalc-Importer
 // @namespace    http://tampermonkey.net/
-// @version      3.2
+// @version      4.0
 // @description  For the game MilkyWayIdle, https://mooneycalc.vercel.app/, and https://kugandev.github.io/MWICombatSimulator/ (deprecated), and https://mwisim.github.io/. This script imports player info to the websites.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -11,24 +11,20 @@
 // @run-at       document-start
 // @grant        GM_getValue
 // @grant        GM_setValue
-// @grant        GM_setClipboard
 // ==/UserScript==
 
 (function () {
     "use strict";
 
     if (document.URL.includes("milkywayidle.com")) {
-        console.log("Mooneycalc-Importer: This is milkywayidle.com");
         hookWS();
     } else if (document.URL.includes("mooneycalc.vercel.app")) {
-        console.log("Mooneycalc-Importer: This is mooneycalc.vercel.app");
         addImportButton1();
     } else if (document.URL.includes("kugandev.github.io/MWICombatSimulator")) {
-        console.log("Mooneycalc-Importer: This is kugandev.github.io/MWICombatSimulator");
         addImportButton2();
     } else if (document.URL.includes("mwisim.github.io")) {
-        console.log("Mooneycalc-Importer: This is mwisim.github.io");
         addImportButton3();
+        observeResults();
     }
 
     function hookWS() {
@@ -57,9 +53,11 @@
     function handleMessage(message) {
         let obj = JSON.parse(message);
         if (obj && obj.type === "init_character_data") {
-            console.log("Mooneycalc-Importer: Found WS init data");
             console.log(obj);
             GM_setValue("init_character_data", message);
+        } else if (obj && obj.type === "init_client_data") {
+            console.log(obj);
+            GM_setValue("init_client_data", message);
         }
         return message;
     }
@@ -307,7 +305,7 @@
                 console.log("Mooneycalc-Importer: Found elem");
                 let button = document.createElement("button");
                 selectedElement.parentNode.parentElement.parentElement.insertBefore(button, selectedElement.parentElement.parentElement.nextSibling);
-                button.textContent = "复制人物数据到剪贴板 (刷新游戏网页更新人物数据)";
+                button.textContent = "导入人物数据(刷新游戏网页更新人物数据)";
                 button.style.backgroundColor = "green";
                 button.style.padding = "5px";
                 button.onclick = function () {
@@ -331,11 +329,17 @@
 
         let jsonObj = constructImportJsonObj(obj);
         console.log(jsonObj);
-        GM_setClipboard(JSON.stringify(jsonObj));
+        const importInputElem = document.querySelector(`input#inputSet`);
+        importInputElem.value = JSON.stringify(jsonObj);
+        document.querySelector(`button#buttonImportSet`).click();
 
         let timestamp = new Date(obj.currentTimestamp).getTime();
         let now = new Date().getTime();
-        button.textContent = "已复制到剪贴板，点击上方Import/Export按钮，粘贴，然后点击Import按钮。人物数据更新时间：" + timeReadable(now - timestamp) + " 前";
+        button.textContent = "导入成功。人物数据更新时间：" + timeReadable(now - timestamp) + " 前";
+
+        setTimeout(() => {
+            document.querySelector(`button#buttonStartSimulation`).click();
+        }, 500);
     }
 
     function constructImportJsonObj(obj) {
@@ -417,11 +421,16 @@
         exportObj.triggerMap = { ...obj.abilityCombatTriggersMap, ...obj.consumableCombatTriggersMap };
 
         // Zone
+        let hasMap = false;
         for (const action of obj.characterActions) {
             if (action && action.actionHrid.includes("/actions/combat/")) {
+                hasMap = true;
                 exportObj.zone = action.actionHrid;
                 break;
             }
+        }
+        if (!hasMap) {
+            exportObj.zone = "/actions/combat/fly";
         }
 
         // SimulationTime
@@ -434,5 +443,176 @@
         }
 
         return exportObj;
+    }
+
+    function observeResults() {
+        const resultDiv = document.querySelector(`div.row`).querySelectorAll(`div.col-md-5`)[2].querySelector(`div.row > div.col-md-5`);
+        const deathDiv = document.querySelector(`div#simulationResultPlayerDeaths`);
+        const expDiv = document.querySelector(`div#simulationResultExperienceGain`);
+        const consumeDiv = document.querySelector(`div#simulationResultConsumablesUsed`);
+        deathDiv.style.backgroundColor = "#FFEAE9";
+        expDiv.style.backgroundColor = "#CDFFDD";
+        consumeDiv.style.backgroundColor = "#F0F8FF";
+
+        let div = document.createElement("div");
+        div.id = "tillLevel";
+        div.style.backgroundColor = "#FFFFE0";
+        div.textContent = "";
+        resultDiv.append(div);
+
+        new MutationObserver((mutationsList) => {
+            mutationsList.forEach((mutation) => {
+                if (mutation.addedNodes.length >= 6) {
+                    handleResult(mutation.addedNodes, div);
+                }
+            });
+        }).observe(expDiv, { childList: true, subtree: true });
+    }
+
+    function handleResult(expNodes, parentDiv) {
+        console.log(expNodes);
+        let perHourGainExp = {
+            stamina: 0,
+            intelligence: 0,
+            attack: 0,
+            power: 0,
+            defense: 0,
+            ranged: 0,
+            magic: 0,
+        };
+
+        expNodes.forEach((expNodes) => {
+            if (expNodes.textContent.includes("Stamina")) {
+                perHourGainExp.stamina = Number(expNodes.children[1].textContent);
+            } else if (expNodes.textContent.includes("Intelligence")) {
+                perHourGainExp.intelligence = Number(expNodes.children[1].textContent);
+            } else if (expNodes.textContent.includes("Attack")) {
+                perHourGainExp.attack = Number(expNodes.children[1].textContent);
+            } else if (expNodes.textContent.includes("Power")) {
+                perHourGainExp.power = Number(expNodes.children[1].textContent);
+            } else if (expNodes.textContent.includes("Defense")) {
+                perHourGainExp.defense = Number(expNodes.children[1].textContent);
+            } else if (expNodes.textContent.includes("Ranged")) {
+                perHourGainExp.ranged = Number(expNodes.children[1].textContent);
+            } else if (expNodes.textContent.includes("Magic")) {
+                perHourGainExp.magic = Number(expNodes.children[1].textContent);
+            }
+        });
+
+        let data = GM_getValue("init_character_data", null);
+        let obj = JSON.parse(data);
+        if (!obj || !obj.characterSkills || !obj.currentTimestamp) {
+            console.error("handleResult no character localstorage");
+            return;
+        }
+
+        let skillLevels = {};
+        for (const skill of obj.characterSkills) {
+            if (skill.skillHrid.includes("stamina")) {
+                skillLevels.stamina = {};
+                skillLevels.stamina.skillName = "Stamina";
+                skillLevels.stamina.currentLevel = skill.level;
+                skillLevels.stamina.currentExp = skill.experience;
+            } else if (skill.skillHrid.includes("intelligence")) {
+                skillLevels.intelligence = {};
+                skillLevels.intelligence.skillName = "Intelligence";
+                skillLevels.intelligence.currentLevel = skill.level;
+                skillLevels.intelligence.currentExp = skill.experience;
+            } else if (skill.skillHrid.includes("attack")) {
+                skillLevels.attack = {};
+                skillLevels.attack.skillName = "Attack";
+                skillLevels.attack.currentLevel = skill.level;
+                skillLevels.attack.currentExp = skill.experience;
+            } else if (skill.skillHrid.includes("power")) {
+                skillLevels.power = {};
+                skillLevels.power.skillName = "Power";
+                skillLevels.power.currentLevel = skill.level;
+                skillLevels.power.currentExp = skill.experience;
+            } else if (skill.skillHrid.includes("defense")) {
+                skillLevels.defense = {};
+                skillLevels.defense.skillName = "Defense";
+                skillLevels.defense.currentLevel = skill.level;
+                skillLevels.defense.currentExp = skill.experience;
+            } else if (skill.skillHrid.includes("ranged")) {
+                skillLevels.ranged = {};
+                skillLevels.ranged.skillName = "Ranged";
+                skillLevels.ranged.currentLevel = skill.level;
+                skillLevels.ranged.currentExp = skill.experience;
+            } else if (skill.skillHrid.includes("magic")) {
+                skillLevels.magic = {};
+                skillLevels.magic.skillName = "Magic";
+                skillLevels.magic.currentLevel = skill.level;
+                skillLevels.magic.currentExp = skill.experience;
+            }
+        }
+
+        const skillNamesInOrder = ["stamina", "intelligence", "attack", "power", "defense", "ranged", "magic"];
+        let hTMLStr = "";
+        for (const skill of skillNamesInOrder) {
+            hTMLStr += `<div id="${"inputDiv_" + skill}" style="display: flex; justify-content: flex-end">${skillLevels[skill].skillName}到<input id="${"input_" + skill}" type="number" value="${
+                skillLevels[skill].currentLevel + 1
+            }" min="${skillLevels[skill].currentLevel + 1}" max="200">级</div>`;
+        }
+        hTMLStr += `<div id="needDiv"></div>`;
+        hTMLStr += `<div id="needListDiv"></div>`;
+        parentDiv.innerHTML = hTMLStr;
+
+        for (const skill of skillNamesInOrder) {
+            const skillDiv = parentDiv.querySelector(`div#${"inputDiv_" + skill}`);
+            const skillInput = parentDiv.querySelector(`input#${"input_" + skill}`);
+            skillInput.onchange = () => {
+                calculateTill(skill, skillInput, skillLevels, parentDiv, perHourGainExp);
+            };
+            skillInput.addEventListener("keyup", function (evt) {
+                calculateTill(skill, skillInput, skillLevels, parentDiv, perHourGainExp);
+            });
+            skillDiv.onclick = () => {
+                calculateTill(skill, skillInput, skillLevels, parentDiv, perHourGainExp);
+            };
+        }
+    }
+
+    function calculateTill(skillName, skillInputElem, skillLevels, parentDiv, perHourGainExp) {
+        const initData_levelExperienceTable = JSON.parse(GM_getValue("init_client_data", null)).levelExperienceTable;
+        const targetLevel = Number(skillInputElem.value);
+        parentDiv.querySelector(`div#needDiv`).textContent = `${skillLevels[skillName].skillName} 到 ${targetLevel} 级 还需：`;
+        const listDiv = parentDiv.querySelector(`div#needListDiv`);
+
+        const currentLevel = Number(skillLevels[skillName].currentLevel);
+        const currentExp = Number(skillLevels[skillName].currentExp);
+        if (targetLevel > currentLevel && targetLevel <= 200) {
+            if (perHourGainExp[skillName] === 0) {
+                listDiv.innerHTML = "永远";
+            } else {
+                let needExp = initData_levelExperienceTable[targetLevel] - currentExp;
+                let needHours = needExp / perHourGainExp[skillName];
+                let html = "";
+                html += `<div>[${hoursToReadableString(needHours)}]</div>`;
+
+                const consumeDivs = document.querySelectorAll(`div#simulationResultConsumablesUsed div.row`);
+                for (const elem of consumeDivs) {
+                    const conName = elem.children[0].textContent;
+                    const conPerHour = Number(elem.children[1].textContent);
+                    html += `<div>${conName} ${Number(conPerHour * needHours).toFixed(0)}</div>`;
+                }
+
+                listDiv.innerHTML = html;
+            }
+        } else {
+            listDiv.innerHTML = "输入错误";
+        }
+    }
+
+    function hoursToReadableString(hours) {
+        const sec = hours * 60 * 60;
+        if (sec >= 86400) {
+            return Number(sec / 86400).toFixed(1) + " 天";
+        }
+        const d = new Date(Math.round(sec * 1000));
+        function pad(i) {
+            return ("0" + i).slice(-2);
+        }
+        let str = d.getUTCHours() + "h " + pad(d.getUTCMinutes()) + "m " + pad(d.getUTCSeconds()) + "s";
+        return str;
     }
 })();
