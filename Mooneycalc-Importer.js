@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Mooneycalc-Importer
 // @namespace    http://tampermonkey.net/
-// @version      4.0
+// @version      4.1
 // @description  For the game MilkyWayIdle, https://mooneycalc.vercel.app/, and https://kugandev.github.io/MWICombatSimulator/ (deprecated), and https://mwisim.github.io/. This script imports player info to the websites.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -310,6 +310,11 @@
                 button.style.padding = "5px";
                 button.onclick = function () {
                     console.log("Mooneycalc-Importer: Button onclick");
+                    const getPriceButton = document.querySelector(`button#buttonGetPrices`);
+                    if (getPriceButton) {
+                        console.log("Click getPriceButton");
+                        getPriceButton.click();
+                    }
                     importData3(button);
                     return false;
                 };
@@ -434,7 +439,7 @@
         }
 
         // SimulationTime
-        exportObj.simulationTime = "100";
+        exportObj.simulationTime = "24";
 
         // HouseRooms
         exportObj.houseRooms = {};
@@ -470,7 +475,6 @@
     }
 
     function handleResult(expNodes, parentDiv) {
-        console.log(expNodes);
         let perHourGainExp = {
             stamina: 0,
             intelligence: 0,
@@ -570,6 +574,15 @@
                 calculateTill(skill, skillInput, skillLevels, parentDiv, perHourGainExp);
             };
         }
+
+        // 提取成本和收益
+        const expensesSpan = document.querySelector(`span#expensesSpan`);
+        const revenueSpan = document.querySelector(`span#revenueSpan`);
+        const profitSpan = document.querySelector(`span#profitPreview`);
+        profitSpan.parentNode.insertAdjacentHTML(
+            "beforeend",
+            `<div style="background-color: #DCDCDC;">${expensesSpan.parentNode.textContent}</><div style="background-color: #DCDCDC;">${revenueSpan.parentNode.textContent}</>`
+        );
     }
 
     function calculateTill(skillName, skillInputElem, skillLevels, parentDiv, perHourGainExp) {
