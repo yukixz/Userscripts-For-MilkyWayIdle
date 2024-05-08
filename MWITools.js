@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      1.7
+// @version      1.8
 // @description  Tools for MilkyWayIdle.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -592,6 +592,9 @@
         const presetHours = [0.5, 1, 2, 3, 4, 5, 6, 10, 12, 24];
         for (const value of presetHours) {
             const btn = document.createElement("button");
+            btn.style.backgroundColor = "white";
+            btn.style.padding = "1px 6px 1px 6px";
+            btn.style.margin = "1px";
             btn.innerText = value === 0.5 ? 0.5 : numberFormatter(value);
             btn.onclick = () => {
                 reactInputTriggerHack(inputElem, Math.round((value * 60 * 60) / duration));
@@ -605,6 +608,9 @@
         const presetTimes = [10, 20, 50, 100, 200, 500, 1000, 2000];
         for (const value of presetTimes) {
             const btn = document.createElement("button");
+            btn.style.backgroundColor = "white";
+            btn.style.padding = "1px 6px 1px 6px";
+            btn.style.margin = "1px";
             btn.innerText = numberFormatter(value);
             btn.onclick = () => {
                 reactInputTriggerHack(inputElem, value);
