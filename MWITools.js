@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      1.9
-// @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows skill exp percentages.
+// @version      2.0
+// @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows skill exp percentages. Shows total networth.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
 // @grant        GM_xmlhttpRequest
@@ -126,9 +126,14 @@
             const content = targetNode.innerText;
             const match = content.match(/\((\d+)\)/);
             if (match) {
-                const NumOfTimes = +match[1];
-                const TimePerActionSec = +document.querySelector(".ProgressBar_text__102Yn").textContent.match(/[\d\.]+/)[0];
-                totalTimeStr = " [" + timeReadable(NumOfTimes * TimePerActionSec) + "]";
+                const numOfTimes = +match[1];
+                const timePerActionSec = +document.querySelector(".ProgressBar_text__102Yn").textContent.match(/[\d\.]+/)[0];
+                const string = textNode.textContent;
+                const actionName = string.substring(string.indexOf("- ") + 2, string.indexOf(" ("));
+                const actionHrid = initData_actionDetailMap[getActionHridFromItemName(actionName)].hrid;
+                const effBuff = 1 + getTotalEffiPercentage(actionHrid) / 100;
+                const actualNumberOfTimes = Math.round(numOfTimes / effBuff);
+                totalTimeStr = " [" + timeReadable(actualNumberOfTimes * timePerActionSec) + "]";
             } else {
                 totalTimeStr = " [∞]";
             }
@@ -220,6 +225,20 @@
         return Number(buff * 100).toFixed(1);
     }
 
+    function getItemEffiBuffByActionHrid(actionHrid) {
+        let buff = 0;
+        const propertyName = initData_actionDetailMap[actionHrid].type.replace("/action_types/", "") + "Efficiency";
+        for (const item of initData_characterItems) {
+            const itemDetail = initData_itemDetailMap[item.itemHrid];
+            const stat = itemDetail?.equipmentDetail?.noncombatStats[propertyName];
+            if (stat && stat > 0) {
+                const enhanceBonus = 1 + itemEnhanceLevelToBuffBonusMap[item.enhancementLevel] / 100;
+                buff += stat * enhanceBonus;
+            }
+        }
+        return Number(buff * 100).toFixed(1);
+    }
+
     function getHousesEffBuffByActionHrid(actionHrid) {
         const houseName = actionHridToHouseNamesMap[initData_actionDetailMap[actionHrid].type];
         if (!houseName) {
@@ -262,7 +281,6 @@
                 continue;
             }
             if (tea.itemHrid === "/items/artisan_tea") {
-                teaBuffs.efficiency -= 5;
                 teaBuffs.lessResource += 10;
                 continue;
             }
@@ -364,18 +382,20 @@
                     break;
                 }
             }
-            const levelEffBuff = currentLevel - requiredLevel;
+            const levelEffBuff = currentLevel - requiredLevel > 0 ? currentLevel - requiredLevel : 0;
             // 房子效率
             const houseEffBuff = getHousesEffBuffByActionHrid(actionHrid);
             // 茶效率
             const teaBuffs = getTeaBuffsByActionHrid(actionHrid);
+            // 特殊装备效率
+            const itemEffiBuff = Number(getItemEffiBuffByActionHrid(actionHrid));
             // 总效率
-            produceItemPerHour *= 1 + (levelEffBuff + houseEffBuff + teaBuffs.efficiency) / 100;
+            produceItemPerHour *= 1 + (levelEffBuff + houseEffBuff + teaBuffs.efficiency + itemEffiBuff) / 100;
             // 茶额外数量
             let extraQuantityPerHour = (produceItemPerHour * teaBuffs.quantity) / 100;
 
             appendHTMLStr += `<div style="color: DarkGreen; font-size: 10px;">生产利润(卖单价进、买单价出；不包括Processing Tea、社区buff、稀有掉落；刷新网页更新人物数据)：</div>`;
-            appendHTMLStr += `<div style="color: DarkGreen; font-size: 10px;">x${droprate}基础掉率 +${toolPercent}%工具速度 +${levelEffBuff}%等级效率 +${houseEffBuff}%房子效率 +${teaBuffs.efficiency}%茶效率 +${teaBuffs.quantity}%茶额外数量 +${teaBuffs.lessResource}%茶减少消耗</div>`;
+            appendHTMLStr += `<div style="color: DarkGreen; font-size: 10px;">x${droprate}基础掉率 +${toolPercent}%工具速度 +${levelEffBuff}%等级效率 +${houseEffBuff}%房子效率 +${teaBuffs.efficiency}%茶效率 +${itemEffiBuff}%装备效率 +${teaBuffs.quantity}%茶额外数量 +${teaBuffs.lessResource}%茶减少消耗</div>`;
             appendHTMLStr += `<div style="color: DarkGreen; font-size: 10px;">每小时生产 ${Number(produceItemPerHour + extraQuantityPerHour).toFixed(1)} 个</div>`;
             appendHTMLStr += `<div style="color: DarkGreen;">利润: ${numberFormatter(bid - totalAskPrice * (1 - teaBuffs.lessResource / 100))}/个, ${numberFormatter(
                 produceItemPerHour * (bid - totalAskPrice * (1 - teaBuffs.lessResource / 100)) + extraQuantityPerHour * bid
@@ -400,18 +420,20 @@
                     break;
                 }
             }
-            const levelEffBuff = currentLevel - requiredLevel;
+            const levelEffBuff = currentLevel - requiredLevel > 0 ? currentLevel - requiredLevel : 0;
             // 房子效率
             const houseEffBuff = getHousesEffBuffByActionHrid(actionHrid);
-            // 茶
+            // 茶效率
             const teaBuffs = getTeaBuffsByActionHrid(actionHrid);
+            // 特殊装备效率
+            const itemEffiBuff = Number(getItemEffiBuffByActionHrid(actionHrid));
             // 总效率
-            produceItemPerHour *= 1 + (levelEffBuff + houseEffBuff + teaBuffs.efficiency) / 100;
+            produceItemPerHour *= 1 + (levelEffBuff + houseEffBuff + teaBuffs.efficiency + itemEffiBuff) / 100;
             // 茶额外数量
             let extraQuantityPerHour = (produceItemPerHour * teaBuffs.quantity) / 100;
 
             appendHTMLStr += `<div style="color: DarkGreen; font-size: 10px;">生产利润(卖单价进、买单价出；不包括Processing Tea、社区buff、稀有掉落；刷新网页更新人物数据)：</div>`;
-            appendHTMLStr += `<div style="color: DarkGreen; font-size: 10px;">x${droprate}基础掉率 +${toolPercent}%工具速度 +${levelEffBuff}%等级效率 +${houseEffBuff}%房子效率 +${teaBuffs.efficiency}%茶效率 +${teaBuffs.quantity}%茶额外数量 +${teaBuffs.lessResource}%茶减少消耗</div>`;
+            appendHTMLStr += `<div style="color: DarkGreen; font-size: 10px;">x${droprate}基础掉率 +${toolPercent}%工具速度 +${levelEffBuff}%等级效率 +${houseEffBuff}%房子效率 +${teaBuffs.efficiency}%茶效率 +${itemEffiBuff}%装备效率 +${teaBuffs.quantity}%茶额外数量 +${teaBuffs.lessResource}%茶减少消耗</div>`;
             appendHTMLStr += `<div style="color: DarkGreen; font-size: 10px;">每小时生产 ${Number(produceItemPerHour + extraQuantityPerHour).toFixed(1)} 个</div>`;
             appendHTMLStr += `<div style="color: DarkGreen;">利润: ${numberFormatter(bid)}/个, ${numberFormatter(produceItemPerHour * bid + extraQuantityPerHour * bid)}/小时, ${numberFormatter(
                 24 * produceItemPerHour * bid + extraQuantityPerHour * bid
@@ -570,18 +592,21 @@
         const duration = Number(panel.querySelectorAll("div.SkillActionDetail_value__dQjYH")[4].textContent.replace("s", ""));
         const inputElem = panel.querySelector("div.SkillActionDetail_maxActionCountInput__1C0Pw input");
 
+        const actionHrid = initData_actionDetailMap[getActionHridFromItemName(actionName)].hrid;
+        const effBuff = 1 + getTotalEffiPercentage(actionHrid, true) / 100;
+
         // 显示总时间
-        let hTMLStr = `<div id="showTotalTime" style="color: Green; text-align: left;">${getTotalTimeStr(inputElem.value, duration)}</div>`;
+        let hTMLStr = `<div id="showTotalTime" style="color: Green; text-align: left;">${getTotalTimeStr(inputElem.value, duration, effBuff)}</div>`;
         inputElem.parentNode.insertAdjacentHTML("afterend", hTMLStr);
         const showTotalTimeDiv = panel.querySelector("div#showTotalTime");
 
         panel.addEventListener("click", function (evt) {
             setTimeout(() => {
-                showTotalTimeDiv.textContent = getTotalTimeStr(inputElem.value, duration);
+                showTotalTimeDiv.textContent = getTotalTimeStr(inputElem.value, duration, effBuff);
             }, 50);
         });
         inputElem.addEventListener("keyup", function (evt) {
-            showTotalTimeDiv.textContent = getTotalTimeStr(inputElem.value, duration);
+            showTotalTimeDiv.textContent = getTotalTimeStr(inputElem.value, duration, effBuff);
         });
 
         // 显示快捷按钮
@@ -597,7 +622,7 @@
             btn.style.margin = "1px";
             btn.innerText = value === 0.5 ? 0.5 : numberFormatter(value);
             btn.onclick = () => {
-                reactInputTriggerHack(inputElem, Math.round((value * 60 * 60) / duration));
+                reactInputTriggerHack(inputElem, Math.round((value * 60 * 60 * effBuff) / duration));
             };
             quickInputButtonsDiv.append(btn);
         }
@@ -620,7 +645,6 @@
         quickInputButtonsDiv.append(document.createTextNode(" 次"));
 
         // 还有多久到多少技能等级
-        const actionHrid = initData_actionDetailMap[getActionHridFromItemName(actionName)].hrid;
         const skillHrid = initData_actionDetailMap[getActionHridFromItemName(actionName)].experienceGain.skillHrid;
         let currentExp = null;
         let currentLevel = null;
@@ -634,8 +658,8 @@
         if (currentExp && currentLevel) {
             let targetLevel = currentLevel + 1;
             let needExp = initData_levelExperienceTable[targetLevel] - currentExp;
-            let needNumOfActions = Math.round(needExp / (exp * (1 + getTotalEffiPercentage(actionHrid) / 100)));
-            let needTime = timeReadable(needNumOfActions * duration);
+            let needNumOfActions = Math.round(needExp / exp);
+            let needTime = timeReadable((needNumOfActions / effBuff) * duration);
 
             hTMLStr = `<div id="tillLevel" style="color: Green; text-align: left;">到 <input id="tillLevelInput" type="number" value="${targetLevel}" min="${targetLevel}" max="200"> 级还需做 <span id="tillLevelNumber">${needNumOfActions} 次[${needTime}] (刷新网页更新当前等级)</span></div>`;
             quickInputButtonsDiv.insertAdjacentHTML("afterend", hTMLStr);
@@ -645,8 +669,8 @@
                 let targetLevel = Number(tillLevelInput.value);
                 if (targetLevel > currentLevel && targetLevel <= 200) {
                     let needExp = initData_levelExperienceTable[targetLevel] - currentExp;
-                    let needNumOfActions = Math.round(needExp / (exp * (1 + getTotalEffiPercentage(actionHrid) / 100)));
-                    let needTime = timeReadable(needNumOfActions * duration);
+                    let needNumOfActions = Math.round(needExp / exp);
+                    let needTime = timeReadable((needNumOfActions / effBuff) * duration);
                     tillLevelNumber.textContent = `${needNumOfActions} 次 [${needTime}] (刷新网页更新当前等级)`;
                 } else {
                     tillLevelNumber.textContent = "Error";
@@ -656,8 +680,8 @@
                 let targetLevel = Number(tillLevelInput.value);
                 if (targetLevel > currentLevel && targetLevel <= 200) {
                     let needExp = initData_levelExperienceTable[targetLevel] - currentExp;
-                    let needNumOfActions = Math.round(needExp / (exp * (1 + getTotalEffiPercentage(actionHrid) / 100)));
-                    let needTime = timeReadable(needNumOfActions * duration);
+                    let needNumOfActions = Math.round(needExp / exp);
+                    let needTime = timeReadable((needNumOfActions / effBuff) * duration);
                     tillLevelNumber.textContent = `${needNumOfActions} 次 [${needTime}] (刷新网页更新当前等级)`;
                 } else {
                     tillLevelNumber.textContent = "Error";
@@ -670,9 +694,9 @@
             .querySelector("div#tillLevel")
             .insertAdjacentHTML(
                 "afterend",
-                `<div id="expPerHour" style="color: Green; text-align: left;">每小时经验: ${numberFormatter(
-                    Math.round((3600 / duration) * exp * (1 + getTotalEffiPercentage(actionHrid) / 100))
-                )}</div>`
+                `<div id="expPerHour" style="color: Green; text-align: left;">每小时经验: ${numberFormatter(Math.round((3600 / duration) * exp * effBuff))} (+${Number((effBuff - 1) * 100).toFixed(
+                    1
+                )}%效率)</div>`
             );
 
         // 显示Foraging最后一个图综合收益
@@ -717,7 +741,10 @@
         }
     }
 
-    function getTotalEffiPercentage(actionHrid) {
+    function getTotalEffiPercentage(actionHrid, debug = false) {
+        if (debug) {
+            console.log("----- getTotalEffiPercentage " + actionHrid);
+        }
         // 等级碾压效率
         const requiredLevel = initData_actionDetailMap[actionHrid].levelRequirement.level;
         let currentLevel = requiredLevel;
@@ -727,23 +754,40 @@
                 break;
             }
         }
-        const levelEffBuff = currentLevel - requiredLevel;
+        const levelEffBuff = currentLevel - requiredLevel > 0 ? currentLevel - requiredLevel : 0;
+        if (debug) {
+            console.log("等级碾压 " + levelEffBuff);
+        }
         // 房子效率
         const houseEffBuff = getHousesEffBuffByActionHrid(actionHrid);
+        if (debug) {
+            console.log("房子 " + houseEffBuff);
+        }
         // 茶
         const teaBuffs = getTeaBuffsByActionHrid(actionHrid);
+        if (debug) {
+            console.log("茶 " + teaBuffs.efficiency);
+        }
+        // 特殊装备
+        const itemEffiBuff = getItemEffiBuffByActionHrid(actionHrid);
+        if (debug) {
+            console.log("特殊装备 " + itemEffiBuff);
+        }
         // 总效率
-        const total = levelEffBuff + houseEffBuff + teaBuffs.efficiency;
+        const total = levelEffBuff + houseEffBuff + teaBuffs.efficiency + Number(itemEffiBuff);
+        if (debug) {
+            console.log("总计 " + total);
+        }
         return total;
     }
 
-    function getTotalTimeStr(input, duration) {
+    function getTotalTimeStr(input, duration, effBuff) {
         if (input === "unlimited") {
             return "[∞]";
         } else if (isNaN(input)) {
             return "Error";
         }
-        return "[" + timeReadable(input * duration) + "]";
+        return "[" + timeReadable(Math.round(input / effBuff) * duration) + "]";
     }
 
     function reactInputTriggerHack(inputElem, value) {
