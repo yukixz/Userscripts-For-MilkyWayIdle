@@ -2,7 +2,7 @@
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
 // @version      1.9
-// @description  Tools for MilkyWayIdle.
+// @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows skill exp percentages.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
 // @grant        GM_xmlhttpRequest
