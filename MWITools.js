@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      1.8
+// @version      1.9
 // @description  Tools for MilkyWayIdle.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -620,6 +620,7 @@
         quickInputButtonsDiv.append(document.createTextNode(" 次"));
 
         // 还有多久到多少技能等级
+        const actionHrid = initData_actionDetailMap[getActionHridFromItemName(actionName)].hrid;
         const skillHrid = initData_actionDetailMap[getActionHridFromItemName(actionName)].experienceGain.skillHrid;
         let currentExp = null;
         let currentLevel = null;
@@ -633,10 +634,10 @@
         if (currentExp && currentLevel) {
             let targetLevel = currentLevel + 1;
             let needExp = initData_levelExperienceTable[targetLevel] - currentExp;
-            let needNumOfActions = Math.round(needExp / exp);
+            let needNumOfActions = Math.round(needExp / (exp * (1 + getTotalEffiPercentage(actionHrid) / 100)));
             let needTime = timeReadable(needNumOfActions * duration);
 
-            hTMLStr = `<div id="tillLevel" style="color: Green; text-align: left;">到 <input id="tillLevelInput" type="number" value="${targetLevel}" min="${targetLevel}" max="200"> 级还需做 <span id="tillLevelNumber">${needNumOfActions} 次[${needTime}] (刷新网页更新当前等级；不包含效率buff)</span></div>`;
+            hTMLStr = `<div id="tillLevel" style="color: Green; text-align: left;">到 <input id="tillLevelInput" type="number" value="${targetLevel}" min="${targetLevel}" max="200"> 级还需做 <span id="tillLevelNumber">${needNumOfActions} 次[${needTime}] (刷新网页更新当前等级)</span></div>`;
             quickInputButtonsDiv.insertAdjacentHTML("afterend", hTMLStr);
             const tillLevelInput = panel.querySelector("input#tillLevelInput");
             const tillLevelNumber = panel.querySelector("span#tillLevelNumber");
@@ -644,9 +645,9 @@
                 let targetLevel = Number(tillLevelInput.value);
                 if (targetLevel > currentLevel && targetLevel <= 200) {
                     let needExp = initData_levelExperienceTable[targetLevel] - currentExp;
-                    let needNumOfActions = Math.round(needExp / exp);
+                    let needNumOfActions = Math.round(needExp / (exp * (1 + getTotalEffiPercentage(actionHrid) / 100)));
                     let needTime = timeReadable(needNumOfActions * duration);
-                    tillLevelNumber.textContent = `${needNumOfActions} 次 [${needTime}] (刷新网页更新当前等级；可能不包含所有buff)`;
+                    tillLevelNumber.textContent = `${needNumOfActions} 次 [${needTime}] (刷新网页更新当前等级)`;
                 } else {
                     tillLevelNumber.textContent = "Error";
                 }
@@ -655,9 +656,9 @@
                 let targetLevel = Number(tillLevelInput.value);
                 if (targetLevel > currentLevel && targetLevel <= 200) {
                     let needExp = initData_levelExperienceTable[targetLevel] - currentExp;
-                    let needNumOfActions = Math.round(needExp / exp);
+                    let needNumOfActions = Math.round(needExp / (exp * (1 + getTotalEffiPercentage(actionHrid) / 100)));
                     let needTime = timeReadable(needNumOfActions * duration);
-                    tillLevelNumber.textContent = `${needNumOfActions} 次 [${needTime}] (刷新网页更新当前等级；可能不包含所有buff)`;
+                    tillLevelNumber.textContent = `${needNumOfActions} 次 [${needTime}] (刷新网页更新当前等级)`;
                 } else {
                     tillLevelNumber.textContent = "Error";
                 }
@@ -667,7 +668,12 @@
         // 显示每小时经验
         panel
             .querySelector("div#tillLevel")
-            .insertAdjacentHTML("afterend", `<div id="expPerHour" style="color: Green; text-align: left;">每小时经验: ${numberFormatter(Math.round((3600 / duration) * exp))}</div>`);
+            .insertAdjacentHTML(
+                "afterend",
+                `<div id="expPerHour" style="color: Green; text-align: left;">每小时经验: ${numberFormatter(
+                    Math.round((3600 / duration) * exp * (1 + getTotalEffiPercentage(actionHrid) / 100))
+                )}</div>`
+            );
 
         // 显示Foraging最后一个图综合收益
         if (panel.querySelector("div.SkillActionDetail_dropTable__3ViVp").children.length > 1) {
@@ -709,6 +715,26 @@
             )}/小时, ${numberFormatter(24 * numOfActionsPerHour * virtualItemBid + extraQuantityPerHour * virtualItemBid)}/天</div>`;
             panel.querySelector("div#expPerHour").insertAdjacentHTML("afterend", htmlStr);
         }
+    }
+
+    function getTotalEffiPercentage(actionHrid) {
+        // 等级碾压效率
+        const requiredLevel = initData_actionDetailMap[actionHrid].levelRequirement.level;
+        let currentLevel = requiredLevel;
+        for (const skill of initData_characterSkills) {
+            if (skill.skillHrid === initData_actionDetailMap[actionHrid].levelRequirement.skillHrid) {
+                currentLevel = skill.level;
+                break;
+            }
+        }
+        const levelEffBuff = currentLevel - requiredLevel;
+        // 房子效率
+        const houseEffBuff = getHousesEffBuffByActionHrid(actionHrid);
+        // 茶
+        const teaBuffs = getTeaBuffsByActionHrid(actionHrid);
+        // 总效率
+        const total = levelEffBuff + houseEffBuff + teaBuffs.efficiency;
+        return total;
     }
 
     function getTotalTimeStr(input, duration) {
