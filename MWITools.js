@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      2.0
+// @version      2.1
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows skill exp percentages. Shows total networth.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -63,6 +63,12 @@
             initData_levelExperienceTable = obj.levelExperienceTable;
             initData_itemDetailMap = obj.itemDetailMap;
         }
+        // else if (obj && obj.type === "actions_updated") {
+        //     console.log("actions_updated " + obj.endCharacterActions[0].actionHrid);
+        //     console.log("actions_updated " + obj.endCharacterActions[1]?.actionHrid);
+        // } else if (obj && obj.type === "action_completed") {
+        //     console.log("action_completed" + obj.endCharacterAction.actionHrid + obj.endCharacterAction.isDone);
+        // }
         return message;
     }
 
@@ -232,7 +238,12 @@
             const itemDetail = initData_itemDetailMap[item.itemHrid];
             const stat = itemDetail?.equipmentDetail?.noncombatStats[propertyName];
             if (stat && stat > 0) {
-                const enhanceBonus = 1 + itemEnhanceLevelToBuffBonusMap[item.enhancementLevel] / 100;
+                let enhanceBonus = 1;
+                if (item.itemLocationHrid.includes("earrings") || item.itemLocationHrid.includes("ring") || item.itemLocationHrid.includes("neck")) {
+                    enhanceBonus = 1 + (itemEnhanceLevelToBuffBonusMap[item.enhancementLevel] * 5) / 100;
+                } else {
+                    enhanceBonus = 1 + itemEnhanceLevelToBuffBonusMap[item.enhancementLevel] / 100;
+                }
                 buff += stat * enhanceBonus;
             }
         }
@@ -593,7 +604,7 @@
         const inputElem = panel.querySelector("div.SkillActionDetail_maxActionCountInput__1C0Pw input");
 
         const actionHrid = initData_actionDetailMap[getActionHridFromItemName(actionName)].hrid;
-        const effBuff = 1 + getTotalEffiPercentage(actionHrid, true) / 100;
+        const effBuff = 1 + getTotalEffiPercentage(actionHrid, false) / 100;
 
         // 显示总时间
         let hTMLStr = `<div id="showTotalTime" style="color: Green; text-align: left;">${getTotalTimeStr(inputElem.value, duration, effBuff)}</div>`;
