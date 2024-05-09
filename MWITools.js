@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      2.1
+// @version      2.2
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows skill exp percentages. Shows total networth.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -20,6 +20,8 @@
     let initData_actionDetailMap = null;
     let initData_levelExperienceTable = null;
     let initData_itemDetailMap = null;
+
+    let currentActionsHridList = [];
 
     hookWS();
 
@@ -56,19 +58,28 @@
             initData_characterItems = obj.characterItems;
             initData_characterHouseRoomMap = obj.characterHouseRoomMap;
             initData_actionTypeDrinkSlotsMap = obj.actionTypeDrinkSlotsMap;
+            currentActionsHridList = [...obj.characterActions];
             calculateNetworth();
         } else if (obj && obj.type === "init_client_data") {
             console.log(obj.itemDetailMap);
             initData_actionDetailMap = obj.actionDetailMap;
             initData_levelExperienceTable = obj.levelExperienceTable;
             initData_itemDetailMap = obj.itemDetailMap;
+        } else if (obj && obj.type === "actions_updated") {
+            for (const action of obj.endCharacterActions) {
+                if (action.isDone === false) {
+                    let o = {};
+                    o.id = action.id;
+                    o.actionHrid = action.actionHrid;
+                    currentActionsHridList.push(o);
+                } else {
+                    currentActionsHridList = currentActionsHridList.filter((o) => {
+                        return o.id !== action.id;
+                    });
+                }
+            }
+            console.log(currentActionsHridList);
         }
-        // else if (obj && obj.type === "actions_updated") {
-        //     console.log("actions_updated " + obj.endCharacterActions[0].actionHrid);
-        //     console.log("actions_updated " + obj.endCharacterActions[1]?.actionHrid);
-        // } else if (obj && obj.type === "action_completed") {
-        //     console.log("action_completed" + obj.endCharacterAction.actionHrid + obj.endCharacterAction.isDone);
-        // }
         return message;
     }
 
@@ -134,9 +145,7 @@
             if (match) {
                 const numOfTimes = +match[1];
                 const timePerActionSec = +document.querySelector(".ProgressBar_text__102Yn").textContent.match(/[\d\.]+/)[0];
-                const string = textNode.textContent;
-                const actionName = string.substring(string.indexOf("- ") + 2, string.indexOf(" ("));
-                const actionHrid = initData_actionDetailMap[getActionHridFromItemName(actionName)].hrid;
+                const actionHrid = currentActionsHridList[0].actionHrid;
                 const effBuff = 1 + getTotalEffiPercentage(actionHrid) / 100;
                 const actualNumberOfTimes = Math.round(numOfTimes / effBuff);
                 totalTimeStr = " [" + timeReadable(actualNumberOfTimes * timePerActionSec) + "]";
