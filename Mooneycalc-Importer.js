@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Mooneycalc-Importer
 // @namespace    http://tampermonkey.net/
-// @version      4.1
+// @version      4.2
 // @description  For the game MilkyWayIdle, https://mooneycalc.vercel.app/, and https://kugandev.github.io/MWICombatSimulator/ (deprecated), and https://mwisim.github.io/. This script imports player info to the websites.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -412,13 +412,40 @@
         }
 
         // Abilities
-        exportObj.abilities = [];
+        exportObj.abilities = [
+            {
+                abilityHrid: "",
+                level: "1",
+            },
+            {
+                abilityHrid: "",
+                level: "1",
+            },
+            {
+                abilityHrid: "",
+                level: "1",
+            },
+            {
+                abilityHrid: "",
+                level: "1",
+            },
+            {
+                abilityHrid: "",
+                level: "1",
+            },
+        ];
+        let normalAbillityIndex = 1;
         for (const ability of obj.combatUnit.combatAbilities) {
-            if (ability) {
-                exportObj.abilities.push({
+            if (ability && ability.abilityHrid.includes("aura")) {
+                exportObj.abilities[0] = {
                     abilityHrid: ability.abilityHrid,
                     level: ability.level,
-                });
+                };
+            } else if (ability) {
+                exportObj.abilities[normalAbillityIndex++] = {
+                    abilityHrid: ability.abilityHrid,
+                    level: ability.level,
+                };
             }
         }
 
