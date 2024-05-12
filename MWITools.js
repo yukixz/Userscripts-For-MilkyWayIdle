@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      2.2
+// @version      2.3
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows skill exp percentages. Shows total networth.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -79,6 +79,9 @@
                 }
             }
             console.log(currentActionsHridList);
+        } else if (obj && obj.type === "battle_unit_fetched") {
+            console.log(obj);
+            handleBattleSummary(obj);
         }
         return message;
     }
@@ -853,4 +856,94 @@
         removeInsertedDivs();
         waitForProgressBar();
     }, 1000);
+
+    /* 战斗总结 */
+    async function handleBattleSummary(message) {
+        const marketJson = await fetchMarketJSON();
+        if (!marketJson) {
+            console.error("handleBattleSummary failed because of null marketAPI");
+            return;
+        }
+        let totalPriceAsk = 0;
+        let totalPriceAskBid = 0;
+
+        for (const loot of Object.values(message.unit.totalLootMap)) {
+            const itemName = initData_itemDetailMap[loot.itemHrid].name;
+            const itemCount = loot.count;
+            if (marketJson.market[itemName]) {
+                totalPriceAsk += marketJson.market[itemName].ask * itemCount;
+                totalPriceAskBid += marketJson.market[itemName].bid * itemCount;
+            } else {
+                console.error("handleBattleSummary failed to read price of " + loot.itemHrid);
+            }
+        }
+
+        let totalSkillsExp = 0;
+        for (const exp of Object.values(message.unit.totalSkillExperienceMap)) {
+            totalSkillsExp += exp;
+        }
+
+        let tryTimes = 0;
+        findElem();
+        function findElem() {
+            tryTimes++;
+            let elem = document.querySelector(".BattlePanel_gainedExp__3SaCa");
+            if (elem) {
+                // 战斗时长和次数
+                let battleDurationSec = null;
+                const combatInfoElement = document.querySelector(".BattlePanel_combatInfo__sHGCe");
+                if (combatInfoElement) {
+                    let matches = combatInfoElement.innerHTML.match(
+                        /(战斗时长|Combat Duration): (?:(\d+)d\s*)?(?:(\d+)h\s*)?(?:(\d+)m\s*)?(?:(\d+)s).*?(战斗|Battles): (\d+).*?(死亡次数|Deaths): (\d+)/
+                    );
+                    if (matches) {
+                        let days = parseInt(matches[2], 10) || 0;
+                        let hours = parseInt(matches[3], 10) || 0;
+                        let minutes = parseInt(matches[4], 10) || 0;
+                        let seconds = parseInt(matches[5], 10) || 0;
+                        let battles = parseInt(matches[7], 10);
+                        battleDurationSec = days * 86400 + hours * 3600 + minutes * 60 + seconds;
+                        let efficiencyPerHour = ((battles / battleDurationSec) * 3600).toFixed(1);
+                        elem.insertAdjacentHTML("afterend", `<div id="script_battleNumbers" style="color: Green;">平均每小时战斗 ${efficiencyPerHour} 次</div>`);
+                    }
+                }
+                // 总收入
+                document
+                    .querySelector("div#script_battleNumbers")
+                    .insertAdjacentHTML("afterend", `<div id="script_totalIncome" style="color: Green;">总收入: ${numberFormatter(totalPriceAsk)} / ${numberFormatter(totalPriceAskBid)}</div>`);
+                // 平均收入
+                if (battleDurationSec) {
+                    document
+                        .querySelector("div#script_totalIncome")
+                        .insertAdjacentHTML(
+                            "afterend",
+                            `<div id="script_averageIncome" style="color: Green;">平均每小时收入: ${numberFormatter(totalPriceAsk / (battleDurationSec / 60 / 60))} / ${numberFormatter(
+                                totalPriceAskBid / (battleDurationSec / 60 / 60)
+                            )}</div>`
+                        );
+                } else {
+                    console.error("handleBattleSummary unable to display average income due to null battleDurationSec");
+                }
+                // 总经验
+                document
+                    .querySelector("div#script_averageIncome")
+                    .insertAdjacentHTML("afterend", `<div id="script_totalSkillsExp" style="color: Green;">总经验: ${numberFormatter(totalSkillsExp)}</div>`);
+                // 平均经验
+                if (battleDurationSec) {
+                    document
+                        .querySelector("div#script_totalSkillsExp")
+                        .insertAdjacentHTML(
+                            "afterend",
+                            `<div id="script_averageSkillsExp" style="color: Green;">平均每小时经验: ${numberFormatter(totalSkillsExp / (battleDurationSec / 60 / 60))}</div>`
+                        );
+                } else {
+                    console.error("handleBattleSummary unable to display average exp due to null battleDurationSec");
+                }
+            } else if (tryTimes <= 10) {
+                setTimeout(findElem, 200);
+            } else {
+                console.log("handleBattleSummary: Elem not found after 10 tries.");
+            }
+        }
+    }
 })();
