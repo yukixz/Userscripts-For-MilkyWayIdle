@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Mooneycalc-Importer
 // @namespace    http://tampermonkey.net/
-// @version      4.2
+// @version      4.3
 // @description  For the game MilkyWayIdle, https://mooneycalc.vercel.app/, and https://kugandev.github.io/MWICombatSimulator/ (deprecated), and https://mwisim.github.io/. This script imports player info to the websites.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -494,7 +494,7 @@
 
         new MutationObserver((mutationsList) => {
             mutationsList.forEach((mutation) => {
-                if (mutation.addedNodes.length >= 6) {
+                if (mutation.addedNodes.length >= 3) {
                     handleResult(mutation.addedNodes, div);
                 }
             });
