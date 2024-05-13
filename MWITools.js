@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      2.6
+// @version      2.7
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows skill exp percentages. Shows total networth. Shows combat summary.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -59,6 +59,7 @@
             initData_characterHouseRoomMap = obj.characterHouseRoomMap;
             initData_actionTypeDrinkSlotsMap = obj.actionTypeDrinkSlotsMap;
             currentActionsHridList = [...obj.characterActions];
+            showTotalActionTime();
             calculateNetworth();
         } else if (obj && obj.type === "init_client_data") {
             initData_actionDetailMap = obj.actionDetailMap;
@@ -77,7 +78,7 @@
                     });
                 }
             }
-            console.log(currentActionsHridList);
+            console.log(currentActionsHridList); //todo
         } else if (obj && obj.type === "battle_unit_fetched") {
             handleBattleSummary(obj);
         }
@@ -119,21 +120,19 @@
 
     /* 显示当前动作总时间 */
     const showTotalActionTime = () => {
-        const targetNode = document.querySelector("div.Header_actionName__31-L2 > div.Header_actionName__31-L2");
+        const targetNode = document.querySelector("div.Header_actionName__31-L2");
         if (targetNode) {
+            console.log("start observe action"); //todo
             calculateTotalTime(targetNode);
             new MutationObserver((mutationsList) =>
                 mutationsList.forEach((mutation) => {
-                    if (mutation.type === "characterData") {
-                        calculateTotalTime();
-                    }
+                    calculateTotalTime();
                 })
-            ).observe(targetNode, { characterData: true, subtree: true });
+            ).observe(targetNode, { characterData: true, subtree: true, childList: true });
         } else {
             setTimeout(showTotalActionTime, 200);
         }
     };
-    showTotalActionTime();
 
     function calculateTotalTime() {
         const targetNode = document.querySelector("div.Header_actionName__31-L2 > div.Header_actionName__31-L2");
@@ -144,7 +143,7 @@
         if (textNode.textContent.includes("[")) {
             return;
         }
-
+        console.log(textNode.textContent); //todo
         let totalTimeStr = "Error";
         if (targetNode.childNodes.length === 1) {
             totalTimeStr = " [" + timeReadable(0) + "]";
@@ -331,6 +330,9 @@
 
     async function handleTooltipItem(tooltip) {
         const itemNameElem = tooltip.querySelector("div.ItemTooltipText_name__2JAHA");
+        if (itemNameElem.querySelectorAll("span").length > 1) {
+            return; // 不显示带有强化等级的物品
+        }
         const itemName = itemNameElem.textContent;
         const amountSpan = tooltip.querySelectorAll("span")[1];
         let amount = 0;
@@ -378,6 +380,11 @@
             // 制造类技能
             const actionHrid = getActionHridFromItemName(itemName);
             const inputItems = JSON.parse(JSON.stringify(initData_actionDetailMap[actionHrid].inputItems));
+            const upgradedFromItemHrid = initData_actionDetailMap[actionHrid]?.upgradeItemHrid;
+            if (upgradedFromItemHrid) {
+                inputItems.push({ itemHrid: upgradedFromItemHrid, count: 1 });
+            }
+
             let totalAskPrice = 0;
             let totalBidPrice = 0;
             for (let item of inputItems) {
@@ -428,7 +435,7 @@
             appendHTMLStr += `<div style="color: DarkGreen; font-size: 10px;">每小时生产 ${Number(produceItemPerHour + extraQuantityPerHour).toFixed(1)} 个</div>`;
             appendHTMLStr += `<div style="color: DarkGreen;">利润: ${numberFormatter(bid - totalAskPrice * (1 - teaBuffs.lessResource / 100))}/个, ${numberFormatter(
                 produceItemPerHour * (bid - totalAskPrice * (1 - teaBuffs.lessResource / 100)) + extraQuantityPerHour * bid
-            )}/小时, ${numberFormatter(24 * produceItemPerHour * (bid - totalAskPrice * (1 - teaBuffs.lessResource / 100)) + extraQuantityPerHour * bid)}/天</div>`;
+            )}/小时, ${numberFormatter(24 * (produceItemPerHour * (bid - totalAskPrice * (1 - teaBuffs.lessResource / 100)) + extraQuantityPerHour * bid))}/天</div>`;
         } else if (getActionHridFromItemName(itemName) && initData_actionDetailMap[getActionHridFromItemName(itemName)].inputItems === null && initData_actionDetailMap && initData_itemDetailMap) {
             // 采集类技能
             const actionHrid = getActionHridFromItemName(itemName);
@@ -465,7 +472,7 @@
             appendHTMLStr += `<div style="color: DarkGreen; font-size: 10px;">x${droprate}基础掉率 +${toolPercent}%工具速度 +${levelEffBuff}%等级效率 +${houseEffBuff}%房子效率 +${teaBuffs.efficiency}%茶效率 +${itemEffiBuff}%装备效率 +${teaBuffs.quantity}%茶额外数量 +${teaBuffs.lessResource}%茶减少消耗</div>`;
             appendHTMLStr += `<div style="color: DarkGreen; font-size: 10px;">每小时生产 ${Number(produceItemPerHour + extraQuantityPerHour).toFixed(1)} 个</div>`;
             appendHTMLStr += `<div style="color: DarkGreen;">利润: ${numberFormatter(bid)}/个, ${numberFormatter(produceItemPerHour * bid + extraQuantityPerHour * bid)}/小时, ${numberFormatter(
-                24 * produceItemPerHour * bid + extraQuantityPerHour * bid
+                24 * (produceItemPerHour * bid + extraQuantityPerHour * bid)
             )}/天</div>`;
         }
 
