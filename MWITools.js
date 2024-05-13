@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      2.8
+// @version      2.9
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows skill exp percentages. Shows total networth. Shows combat summary.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -951,4 +951,32 @@
             }
         }
     }
+
+    /* 图标上显示装备等级 */
+    async function addItemLevels() {
+        const iconDivs = document.querySelectorAll("div.Item_itemContainer__x7kH1 div.Item_item__2De2O.Item_clickable__3viV6");
+        for (const div of iconDivs) {
+            const href = div.querySelector("use").getAttribute("href");
+            const hrefName = href.split("#")[1];
+            const itemHrid = "/items/" + hrefName;
+            const itemLevel = initData_itemDetailMap[itemHrid]?.itemLevel;
+            const itemAbilityLevel = initData_itemDetailMap[itemHrid]?.abilityBookDetail?.levelRequirements?.[0]?.level;
+            if (itemLevel && itemLevel > 0) {
+                if (!div.querySelector("div.script_itemLevel")) {
+                    div.insertAdjacentHTML(
+                        "beforeend",
+                        `<div class="script_itemLevel" style="z-index: 1; position: absolute; top: 2px; right: 2px; text-align: right; color: green;">${itemLevel}</div>`
+                    );
+                }
+            } else if (itemAbilityLevel && itemAbilityLevel > 0) {
+                if (!div.querySelector("div.script_itemLevel")) {
+                    div.insertAdjacentHTML(
+                        "beforeend",
+                        `<div class="script_itemLevel" style="z-index: 1; position: absolute; top: 2px; right: 2px; text-align: right; color: green;">${itemAbilityLevel}</div>`
+                    );
+                }
+            }
+        }
+    }
+    setInterval(addItemLevels, 500);
 })();
