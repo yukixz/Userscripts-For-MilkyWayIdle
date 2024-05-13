@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      2.4
+// @version      2.5
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows skill exp percentages. Shows total networth.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -690,7 +690,7 @@
                         needExpToNextLevel = initData_levelExperienceTable[level + 1] - initData_levelExperienceTable[level];
                     }
                     const extraLevelEffBuff = (level - currentLevel) * 0.01; // 升级过程中，每升一级，额外多1%效率
-                    const needNumOfActionsToNextLevel = Math.round(Number(needExpToNextLevel) / exp);
+                    const needNumOfActionsToNextLevel = Math.round(needExpToNextLevel / exp);
                     needTotalNumOfActions += needNumOfActionsToNextLevel;
                     needTotalTimeSec += (needNumOfActionsToNextLevel / (effBuff + extraLevelEffBuff)) * duration;
                 }
@@ -873,21 +873,24 @@
     /* 战斗总结 */
     async function handleBattleSummary(message) {
         const marketJson = await fetchMarketJSON();
+        let hasMarketJson = true;
         if (!marketJson) {
-            console.error("handleBattleSummary failed because of null marketAPI");
-            return;
+            console.error("handleBattleSummary null marketAPI");
+            hasMarketJson = false;
         }
         let totalPriceAsk = 0;
         let totalPriceAskBid = 0;
 
-        for (const loot of Object.values(message.unit.totalLootMap)) {
-            const itemName = initData_itemDetailMap[loot.itemHrid].name;
-            const itemCount = loot.count;
-            if (marketJson.market[itemName]) {
-                totalPriceAsk += marketJson.market[itemName].ask * itemCount;
-                totalPriceAskBid += marketJson.market[itemName].bid * itemCount;
-            } else {
-                console.error("handleBattleSummary failed to read price of " + loot.itemHrid);
+        if (hasMarketJson) {
+            for (const loot of Object.values(message.unit.totalLootMap)) {
+                const itemName = initData_itemDetailMap[loot.itemHrid].name;
+                const itemCount = loot.count;
+                if (marketJson.market[itemName]) {
+                    totalPriceAsk += marketJson.market[itemName].ask * itemCount;
+                    totalPriceAskBid += marketJson.market[itemName].bid * itemCount;
+                } else {
+                    console.error("handleBattleSummary failed to read price of " + loot.itemHrid);
+                }
             }
         }
 
