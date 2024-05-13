@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      2.3
+// @version      2.4
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows skill exp percentages. Shows total networth.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -679,33 +679,46 @@
             }
         }
         if (currentExp && currentLevel) {
-            let targetLevel = currentLevel + 1;
-            let needExp = initData_levelExperienceTable[targetLevel] - currentExp;
-            let needNumOfActions = Math.round(needExp / exp);
-            let needTime = timeReadable((needNumOfActions / effBuff) * duration);
+            const calculateNeedToLevel = (currentLevel, targetLevel, effBuff, duration, exp) => {
+                let needTotalTimeSec = 0;
+                let needTotalNumOfActions = 0;
+                for (let level = currentLevel; level < targetLevel; level++) {
+                    let needExpToNextLevel = null;
+                    if (level === currentLevel) {
+                        needExpToNextLevel = initData_levelExperienceTable[level + 1] - currentExp;
+                    } else {
+                        needExpToNextLevel = initData_levelExperienceTable[level + 1] - initData_levelExperienceTable[level];
+                    }
+                    const extraLevelEffBuff = (level - currentLevel) * 0.01; // 升级过程中，每升一级，额外多1%效率
+                    const needNumOfActionsToNextLevel = Math.round(Number(needExpToNextLevel) / exp);
+                    needTotalNumOfActions += needNumOfActionsToNextLevel;
+                    needTotalTimeSec += (needNumOfActionsToNextLevel / (effBuff + extraLevelEffBuff)) * duration;
+                }
+                return { numOfActions: needTotalNumOfActions, timeSec: needTotalTimeSec };
+            };
 
-            hTMLStr = `<div id="tillLevel" style="color: Green; text-align: left;">到 <input id="tillLevelInput" type="number" value="${targetLevel}" min="${targetLevel}" max="200"> 级还需做 <span id="tillLevelNumber">${needNumOfActions} 次[${needTime}] (刷新网页更新当前等级)</span></div>`;
+            const need = calculateNeedToLevel(currentLevel, currentLevel + 1, effBuff, duration, exp);
+            hTMLStr = `<div id="tillLevel" style="color: Green; text-align: left;">到 <input id="tillLevelInput" type="number" value="${currentLevel + 1}" min="${
+                currentLevel + 1
+            }" max="200"> 级还需做 <span id="tillLevelNumber">${need.numOfActions} 次[${timeReadable(need.timeSec)}] (刷新网页更新当前等级)</span></div>`;
+
             quickInputButtonsDiv.insertAdjacentHTML("afterend", hTMLStr);
             const tillLevelInput = panel.querySelector("input#tillLevelInput");
             const tillLevelNumber = panel.querySelector("span#tillLevelNumber");
             tillLevelInput.onchange = () => {
-                let targetLevel = Number(tillLevelInput.value);
+                const targetLevel = Number(tillLevelInput.value);
                 if (targetLevel > currentLevel && targetLevel <= 200) {
-                    let needExp = initData_levelExperienceTable[targetLevel] - currentExp;
-                    let needNumOfActions = Math.round(needExp / exp);
-                    let needTime = timeReadable((needNumOfActions / effBuff) * duration);
-                    tillLevelNumber.textContent = `${needNumOfActions} 次 [${needTime}] (刷新网页更新当前等级)`;
+                    const need = calculateNeedToLevel(currentLevel, targetLevel, effBuff, duration, exp);
+                    tillLevelNumber.textContent = `${need.numOfActions} 次[${timeReadable(need.timeSec)}] (刷新网页更新当前等级)`;
                 } else {
                     tillLevelNumber.textContent = "Error";
                 }
             };
             tillLevelInput.addEventListener("keyup", function (evt) {
-                let targetLevel = Number(tillLevelInput.value);
+                const targetLevel = Number(tillLevelInput.value);
                 if (targetLevel > currentLevel && targetLevel <= 200) {
-                    let needExp = initData_levelExperienceTable[targetLevel] - currentExp;
-                    let needNumOfActions = Math.round(needExp / exp);
-                    let needTime = timeReadable((needNumOfActions / effBuff) * duration);
-                    tillLevelNumber.textContent = `${needNumOfActions} 次 [${needTime}] (刷新网页更新当前等级)`;
+                    const need = calculateNeedToLevel(currentLevel, targetLevel, effBuff, duration, exp);
+                    tillLevelNumber.textContent = `${need.numOfActions} 次[${timeReadable(need.timeSec)}] (刷新网页更新当前等级)`;
                 } else {
                     tillLevelNumber.textContent = "Error";
                 }
