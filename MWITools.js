@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      2.9
+// @version      3.0
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows skill exp percentages. Shows total networth. Shows combat summary.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -956,6 +956,9 @@
     async function addItemLevels() {
         const iconDivs = document.querySelectorAll("div.Item_itemContainer__x7kH1 div.Item_item__2De2O.Item_clickable__3viV6");
         for (const div of iconDivs) {
+            if (div.querySelector("div.Item_name__2C42x")) {
+                continue;
+            }
             const href = div.querySelector("use").getAttribute("href");
             const hrefName = href.split("#")[1];
             const itemHrid = "/items/" + hrefName;
