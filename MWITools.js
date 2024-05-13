@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      2.7
+// @version      2.8
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows skill exp percentages. Shows total networth. Shows combat summary.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -60,6 +60,7 @@
             initData_actionTypeDrinkSlotsMap = obj.actionTypeDrinkSlotsMap;
             currentActionsHridList = [...obj.characterActions];
             showTotalActionTime();
+            waitForActionPanelParent();
             calculateNetworth();
         } else if (obj && obj.type === "init_client_data") {
             initData_actionDetailMap = obj.actionDetailMap;
@@ -78,7 +79,6 @@
                     });
                 }
             }
-            console.log(currentActionsHridList); //todo
         } else if (obj && obj.type === "battle_unit_fetched") {
             handleBattleSummary(obj);
         }
@@ -122,7 +122,7 @@
     const showTotalActionTime = () => {
         const targetNode = document.querySelector("div.Header_actionName__31-L2");
         if (targetNode) {
-            console.log("start observe action"); //todo
+            console.log("start observe action progress bar");
             calculateTotalTime(targetNode);
             new MutationObserver((mutationsList) =>
                 mutationsList.forEach((mutation) => {
@@ -143,7 +143,6 @@
         if (textNode.textContent.includes("[")) {
             return;
         }
-        console.log(textNode.textContent); //todo
         let totalTimeStr = "Error";
         if (targetNode.childNodes.length === 1) {
             totalTimeStr = " [" + timeReadable(0) + "]";
@@ -583,6 +582,7 @@
     const waitForActionPanelParent = () => {
         const targetNode = document.querySelector("div.GamePage_mainPanel__2njyb");
         if (targetNode) {
+            console.log("start observe action panel");
             const actionPanelObserver = new MutationObserver(async function (mutations) {
                 for (const mutation of mutations) {
                     for (const added of mutation.addedNodes) {
@@ -597,7 +597,6 @@
             setTimeout(waitForActionPanelParent, 200);
         }
     };
-    waitForActionPanelParent();
 
     async function handleActionPanel(panel) {
         const actionName = panel.querySelector("div.SkillActionDetail_name__3erHV").textContent;
