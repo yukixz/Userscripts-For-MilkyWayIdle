@@ -1,10 +1,11 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      3.1
+// @version      3.2
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows skill exp percentages. Shows total networth. Shows combat summary.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
+// @grant        GM_addStyle
 // @grant        GM_xmlhttpRequest
 // @connect      raw.githubusercontent.com
 // ==/UserScript==
@@ -22,6 +23,8 @@
     let initData_levelExperienceTable = null;
     let initData_itemDetailMap = null;
     let initData_actionCategoryDetailMap = null;
+    let initData_abilityDetailMap = null;
+    let initData_characterAbilities = null;
 
     let currentActionsHridList = [];
 
@@ -59,15 +62,18 @@
             initData_characterItems = obj.characterItems;
             initData_characterHouseRoomMap = obj.characterHouseRoomMap;
             initData_actionTypeDrinkSlotsMap = obj.actionTypeDrinkSlotsMap;
+            initData_characterAbilities = obj.characterAbilities;
             currentActionsHridList = [...obj.characterActions];
             showTotalActionTime();
             waitForActionPanelParent();
+            waitForItemDict();
             calculateNetworth();
         } else if (obj && obj.type === "init_client_data") {
             initData_actionDetailMap = obj.actionDetailMap;
             initData_levelExperienceTable = obj.levelExperienceTable;
             initData_itemDetailMap = obj.itemDetailMap;
             initData_actionCategoryDetailMap = obj.actionCategoryDetailMap;
+            initData_abilityDetailMap = obj.abilityDetailMap;
         } else if (obj && obj.type === "actions_updated") {
             for (const action of obj.endCharacterActions) {
                 if (action.isDone === false) {
@@ -157,7 +163,12 @@
                 const actionHrid = currentActionsHridList[0].actionHrid;
                 const effBuff = 1 + getTotalEffiPercentage(actionHrid) / 100;
                 const actualNumberOfTimes = Math.round(numOfTimes / effBuff);
-                totalTimeStr = " [" + timeReadable(actualNumberOfTimes * timePerActionSec) + "]";
+                const totalTimeSeconds = actualNumberOfTimes * timePerActionSec;
+                totalTimeStr = " [" + timeReadable(totalTimeSeconds) + "]";
+
+                const currentTime = new Date();
+                currentTime.setSeconds(currentTime.getSeconds() + totalTimeSeconds);
+                totalTimeStr += ` ${String(currentTime.getHours()).padStart(2, "0")}:${String(currentTime.getMinutes()).padStart(2, "0")}:${String(currentTime.getSeconds()).padStart(2, "0")}`;
             } else {
                 totalTimeStr = " [∞]";
             }
@@ -176,6 +187,10 @@
         let str = d.getUTCHours() + "h " + pad(d.getUTCMinutes()) + "m " + pad(d.getUTCSeconds()) + "s";
         return str;
     }
+
+    GM_addStyle(`div.Header_actionName__31-L2 {
+        overflow: visible !important;
+      }`);
 
     /* 物品 ToolTips */
     const tooltipObserver = new MutationObserver(async function (mutations) {
@@ -588,7 +603,7 @@
             const actionPanelObserver = new MutationObserver(async function (mutations) {
                 for (const mutation of mutations) {
                     for (const added of mutation.addedNodes) {
-                        if (added && added.classList && added.classList.contains("Modal_modalContainer__3B80m") && added.querySelector("div.SkillActionDetail_nonenhancingComponent__1Y-ZY")) {
+                        if (added?.classList?.contains("Modal_modalContainer__3B80m") && added.querySelector("div.SkillActionDetail_nonenhancingComponent__1Y-ZY")) {
                             handleActionPanel(added.querySelector("div.SkillActionDetail_nonenhancingComponent__1Y-ZY"));
                         }
                     }
@@ -602,7 +617,7 @@
 
     async function handleActionPanel(panel) {
         const actionName = panel.querySelector("div.SkillActionDetail_name__3erHV").textContent;
-        const exp = Number(panel.querySelector("div.SkillActionDetail_expGain__F5xHu").textContent);
+        const exp = Number(panel.querySelector("div.SkillActionDetail_expGain__F5xHu").textContent.replaceAll(",", ""));
         const duration = Number(panel.querySelectorAll("div.SkillActionDetail_value__dQjYH")[4].textContent.replace("s", ""));
         const inputElem = panel.querySelector("div.SkillActionDetail_maxActionCountInput__1C0Pw input");
 
@@ -1011,4 +1026,97 @@
         }
     }
     setInterval(handleTaskCard, 500);
+
+    /* 显示战斗地图序号 */
+    function addIndexToMaps() {
+        const buttons = document.querySelectorAll(
+            "div.MainPanel_subPanelContainer__1i-H9 div.CombatPanel_tabsComponentContainer__GsQlg div.MuiTabs-root.MuiTabs-vertical.css-6x4ics button.MuiButtonBase-root.MuiTab-root.MuiTab-textColorPrimary.css-1q2h7u5 span.MuiBadge-root.TabsComponent_badge__1Du26.css-1rzb3uu"
+        );
+        let index = 1;
+        for (const button of buttons) {
+            if (!button.querySelector("span.script_mapIndex")) {
+                button.insertAdjacentHTML("afterbegin", `<span class="script_mapIndex" style="color: green;">${index++}. </span>`);
+            }
+        }
+    }
+    setInterval(addIndexToMaps, 500);
+
+    /* 物品词典窗口显示还需多少技能书到X级 */
+    const waitForItemDict = () => {
+        const targetNode = document.querySelector("div.GamePage_gamePage__ixiPl");
+        if (targetNode) {
+            console.log("start observe item dict");
+            const itemDictPanelObserver = new MutationObserver(async function (mutations) {
+                for (const mutation of mutations) {
+                    for (const added of mutation.addedNodes) {
+                        if (added?.classList?.contains("Modal_modalContainer__3B80m") && added.querySelector("div.ItemDictionary_modalContent__WvEBY")) {
+                            handleItemDict(added.querySelector("div.ItemDictionary_modalContent__WvEBY"));
+                        }
+                    }
+                }
+            });
+            itemDictPanelObserver.observe(targetNode, { attributes: false, childList: true, subtree: true });
+        } else {
+            setTimeout(waitForItemDict, 200);
+        }
+    };
+
+    function handleItemDict(panel) {
+        const itemName = panel.querySelector("div.ItemDictionary_title__27cTd").textContent.toLowerCase().replaceAll(" ", "_");
+        let abilityHrid = null;
+        for (const skillHrid of Object.keys(initData_abilityDetailMap)) {
+            if (skillHrid.includes(itemName)) {
+                abilityHrid = skillHrid;
+            }
+        }
+        if (!abilityHrid) {
+            return;
+        }
+        const itemHrid = "/items/" + itemName;
+        const abilityPerBookExp = initData_itemDetailMap[itemHrid]?.abilityBookDetail?.experienceGain;
+
+        let currentLevel = 0;
+        let currentExp = 0;
+        for (const a of Object.values(initData_characterAbilities)) {
+            if (a.abilityHrid === abilityHrid) {
+                currentLevel = a.level;
+                currentExp = a.experience;
+            }
+        }
+
+        const getNeedBooksToLevel = (currentLevel, currentExp, targetLevel, abilityPerBookExp) => {
+            const needExp = initData_levelExperienceTable[targetLevel] - currentExp;
+            let needBooks = needExp / abilityPerBookExp;
+            if (currentLevel === 0) {
+                needBooks += 1;
+            }
+            return needBooks.toFixed(1);
+        };
+
+        let numBooks = getNeedBooksToLevel(currentLevel, currentExp, currentLevel + 1, abilityPerBookExp);
+        let hTMLStr = `<div id="tillLevel" style="color: Green; text-align: left;">到 <input id="tillLevelInput" type="number" value="${currentLevel + 1}" min="${
+            currentLevel + 1
+        }" max="200"> 级还需 <span id="tillLevelNumber">${numBooks} 本书 (刷新网页更新当前等级)</span></div>`;
+        panel.insertAdjacentHTML("beforeend", hTMLStr);
+        const tillLevelInput = panel.querySelector("input#tillLevelInput");
+        const tillLevelNumber = panel.querySelector("span#tillLevelNumber");
+        tillLevelInput.onchange = () => {
+            const targetLevel = Number(tillLevelInput.value);
+            if (targetLevel > currentLevel && targetLevel <= 200) {
+                let numBooks = getNeedBooksToLevel(currentLevel, currentExp, targetLevel, abilityPerBookExp);
+                tillLevelNumber.textContent = `${numBooks} 本书 (刷新网页更新当前等级)`;
+            } else {
+                tillLevelNumber.textContent = "Error";
+            }
+        };
+        tillLevelInput.addEventListener("keyup", function (evt) {
+            const targetLevel = Number(tillLevelInput.value);
+            if (targetLevel > currentLevel && targetLevel <= 200) {
+                let numBooks = getNeedBooksToLevel(currentLevel, currentExp, targetLevel, abilityPerBookExp);
+                tillLevelNumber.textContent = `${numBooks} 本书 (刷新网页更新当前等级)`;
+            } else {
+                tillLevelNumber.textContent = "Error";
+            }
+        });
+    }
 })();
