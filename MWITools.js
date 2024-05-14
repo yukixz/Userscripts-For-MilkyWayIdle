@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      3.0
+// @version      3.1
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows skill exp percentages. Shows total networth. Shows combat summary.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -21,6 +21,7 @@
     let initData_actionDetailMap = null;
     let initData_levelExperienceTable = null;
     let initData_itemDetailMap = null;
+    let initData_actionCategoryDetailMap = null;
 
     let currentActionsHridList = [];
 
@@ -66,6 +67,7 @@
             initData_actionDetailMap = obj.actionDetailMap;
             initData_levelExperienceTable = obj.levelExperienceTable;
             initData_itemDetailMap = obj.itemDetailMap;
+            initData_actionCategoryDetailMap = obj.actionCategoryDetailMap;
         } else if (obj && obj.type === "actions_updated") {
             for (const action of obj.endCharacterActions) {
                 if (action.isDone === false) {
@@ -953,7 +955,7 @@
     }
 
     /* 图标上显示装备等级 */
-    async function addItemLevels() {
+    function addItemLevels() {
         const iconDivs = document.querySelectorAll("div.Item_itemContainer__x7kH1 div.Item_item__2De2O.Item_clickable__3viV6");
         for (const div of iconDivs) {
             if (div.querySelector("div.Item_name__2C42x")) {
@@ -982,4 +984,31 @@
         }
     }
     setInterval(addItemLevels, 500);
+
+    /* 任务卡片显示战斗地图序号 */
+    function handleTaskCard() {
+        const taskNameDivs = document.querySelectorAll("div.RandomTask_randomTask__3B9fA div.RandomTask_name__1hl1b");
+        for (const div of taskNameDivs) {
+            const taskStr = div.textContent;
+            if (!taskStr.startsWith("Defeat ")) {
+                continue;
+            }
+
+            const monsterName = taskStr.replace("Defeat ", "");
+            let actionObj = null;
+            for (const action of Object.values(initData_actionDetailMap)) {
+                if (action.hrid.includes("/combat/") && action.name === monsterName) {
+                    actionObj = action;
+                }
+            }
+            const actionCategoryHrid = actionObj?.category;
+            const index = initData_actionCategoryDetailMap?.[actionCategoryHrid]?.sortIndex;
+            if (index) {
+                if (!div.querySelector("span.script_taskMapIndex")) {
+                    div.insertAdjacentHTML("beforeend", `<span class="script_taskMapIndex" style="text-align: right; color: green;"> 图 ${index}</span>`);
+                }
+            }
+        }
+    }
+    setInterval(handleTaskCard, 500);
 })();
