@@ -14,3 +14,10 @@ Shows combat summary.
 Shows combat maps index.
 Shows item level on item icons.
 Shows how many ability books are needed to reach a certain level.
+
+# Mooneycalc-Importer
+For the game MilkyWayIdle.
+This script imports player info to the following websites with one click of a button:
+https://mooneycalc.vercel.app/
+https://mwisim.github.io/
+https://cowculator.info/
