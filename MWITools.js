@@ -1,14 +1,21 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      3.2
-// @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows skill exp percentages. Shows total networth. Shows combat summary.
+// @version      3.3
+// @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
 // @grant        GM_addStyle
 // @grant        GM_xmlhttpRequest
 // @connect      raw.githubusercontent.com
 // ==/UserScript==
+
+/* 汉化插件必须使用 bot7420 修改版，否则不支持 */
+/* 市场价格数据是24小时均价，大约每半小时更新一次，需要科学网络，否则使用的是旧数据 */
+/* 如果有问题，关闭其它插件试试，可能有冲突 */
+/* 仅在电脑浏览器上维护，不解决手机使用问题 */
+/* MWITools 版本更新发布在 https://greasyfork.org/en/scripts/494467-mwitools */
+/* 作者的另一个插件 https://greasyfork.org/en/scripts/494468-mooneycalc-importer */
 
 (() => {
     "use strict";
@@ -496,6 +503,21 @@
     }
 
     async function fetchMarketJSON(forceFetch = false) {
+        if (!GM?.xmlHttpRequest) {
+            console.error("fetchMarketJSON GM.xmlHttpRequest null function");
+            isUsingLocalMarketJson = true;
+            const jsonStr = MARKET_JSON_LOCAL_BACKUP;
+            const jsonObj = JSON.parse(jsonStr);
+            if (jsonObj && jsonObj.time && jsonObj.market) {
+                jsonObj.market.Coin.ask = 1;
+                jsonObj.market.Coin.bid = 1;
+                console.log(jsonObj);
+                localStorage.setItem("MWITools_marketAPI_timestamp", Date.now());
+                localStorage.setItem("MWITools_marketAPI_json", JSON.stringify(jsonObj));
+                return jsonObj;
+            }
+        }
+
         if (!forceFetch && localStorage.getItem("MWITools_marketAPI_timestamp") && Date.now() - localStorage.getItem("MWITools_marketAPI_timestamp") < 900000) {
             return JSON.parse(localStorage.getItem("MWITools_marketAPI_json"));
         }
@@ -923,7 +945,7 @@
                         let hours = parseInt(matches[3], 10) || 0;
                         let minutes = parseInt(matches[4], 10) || 0;
                         let seconds = parseInt(matches[5], 10) || 0;
-                        let battles = parseInt(matches[7], 10);
+                        let battles = parseInt(matches[7], 10) - 1; // 排除当前战斗
                         battleDurationSec = days * 86400 + hours * 3600 + minutes * 60 + seconds;
                         let efficiencyPerHour = ((battles / battleDurationSec) * 3600).toFixed(1);
                         elem.insertAdjacentHTML("afterend", `<div id="script_battleNumbers" style="color: Green;">平均每小时战斗 ${efficiencyPerHour} 次</div>`);
