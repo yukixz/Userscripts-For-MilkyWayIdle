@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      3.5
+// @version      3.6
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -133,14 +133,14 @@
                 console.error("calculateNetworth cannot get marketPrices of " + itemName);
                 return;
             }
-            if (itemName === "Bag Of 10 Cowbells") {
-                marketPrices.ask *= 1 - 18 / 100;
-                marketPrices.bid *= 1 - 18 / 100;
-            } else {
-                marketPrices.ask *= 1 - 2 / 100;
-                marketPrices.bid *= 1 - 2 / 100;
-            }
             if (item.isSell) {
+                if (itemName === "Bag Of 10 Cowbells") {
+                    marketPrices.ask *= 1 - 18 / 100;
+                    marketPrices.bid *= 1 - 18 / 100;
+                } else {
+                    marketPrices.ask *= 1 - 2 / 100;
+                    marketPrices.bid *= 1 - 2 / 100;
+                }
                 if (!enhancementLevel || enhancementLevel === 0) {
                     networthAsk += quantity * (marketPrices.ask > 0 ? marketPrices.ask : 0);
                     networthBid += quantity * (marketPrices.bid > 0 ? marketPrices.bid : 0);
