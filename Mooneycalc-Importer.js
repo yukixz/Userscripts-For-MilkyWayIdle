@@ -1,13 +1,14 @@
 // ==UserScript==
 // @name         Mooneycalc-Importer
 // @namespace    http://tampermonkey.net/
-// @version      4.3
-// @description  For the game MilkyWayIdle, https://mooneycalc.vercel.app/, and https://kugandev.github.io/MWICombatSimulator/ (deprecated), and https://mwisim.github.io/. This script imports player info to the websites.
+// @version      4.4
+// @description  For the game MilkyWayIdle. This script imports player info to the following websites. https://mooneycalc.vercel.app/, https://mwisim.github.io/, https://cowculator.info/.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
 // @match        https://mooneycalc.vercel.app/*
 // @match        https://kugandev.github.io/MWICombatSimulator/*
 // @match        https://mwisim.github.io/*
+// @match        https://cowculator.info/
 // @run-at       document-start
 // @grant        GM_getValue
 // @grant        GM_setValue
@@ -25,6 +26,8 @@
     } else if (document.URL.includes("mwisim.github.io")) {
         addImportButton3();
         observeResults();
+    } else if (document.URL.includes("cowculator.info")) {
+        addImportButton_cowculator();
     }
 
     function hookWS() {
@@ -606,10 +609,17 @@
         const expensesSpan = document.querySelector(`span#expensesSpan`);
         const revenueSpan = document.querySelector(`span#revenueSpan`);
         const profitSpan = document.querySelector(`span#profitPreview`);
-        profitSpan.parentNode.insertAdjacentHTML(
-            "beforeend",
-            `<div style="background-color: #DCDCDC;">${expensesSpan.parentNode.textContent}</><div style="background-color: #DCDCDC;">${revenueSpan.parentNode.textContent}</>`
-        );
+        const expenseDiv = document.querySelector(`div#script_expense`);
+        const revenueDiv = document.querySelector(`div#script_revenue`);
+        if (expenseDiv && expenseDiv) {
+            expenseDiv.textContent = expensesSpan.parentNode.textContent;
+            revenueDiv.textContent = revenueSpan.parentNode.textContent;
+        } else {
+            profitSpan.parentNode.insertAdjacentHTML(
+                "beforeend",
+                `<div id="script_expense" style="background-color: #DCDCDC;">${expensesSpan.parentNode.textContent}</div><div id="script_revenue" style="background-color: #DCDCDC;">${revenueSpan.parentNode.textContent}</div>`
+            );
+        }
     }
 
     function calculateTill(skillName, skillInputElem, skillLevels, parentDiv, perHourGainExp) {
@@ -654,5 +664,167 @@
         }
         let str = d.getUTCHours() + "h " + pad(d.getUTCMinutes()) + "m " + pad(d.getUTCSeconds()) + "s";
         return str;
+    }
+
+    /* For cowculator.info */
+    function addImportButton_cowculator() {
+        const checkElem = () => {
+            const selectedElement = document.querySelector(`ul.menu.sticky.text-base-content`);
+            if (selectedElement) {
+                clearInterval(timer);
+                console.log("Mooneycalc-Importer: Found elem");
+                let button = document.createElement("button");
+                selectedElement.parentNode.append(button);
+                button.textContent = "导入人物数据(导入会删除已保存的套装配置；刷新游戏网页更新人物数据)";
+                button.style.backgroundColor = "green";
+                button.style.padding = "5px";
+                button.style.width = "200px";
+                button.onclick = function () {
+                    console.log("Mooneycalc-Importer: Button onclick");
+                    importData_cowculator(button);
+                    return false;
+                };
+            }
+        };
+        let timer = setInterval(checkElem, 200);
+    }
+
+    async function importData_cowculator(button) {
+        let data = GM_getValue("init_character_data", "");
+        let obj = JSON.parse(data);
+        console.log(obj);
+        if (!obj || !obj.characterSkills || !obj.currentTimestamp) {
+            button.textContent = "错误：没有人物数据";
+            return;
+        }
+
+        let isSuccess = constructImportJsonObj_cowculator(obj);
+        if (isSuccess) {
+            let timestamp = new Date(obj.currentTimestamp).getTime();
+            let now = new Date().getTime();
+            button.textContent = "导入成功。人物数据更新时间：" + timeReadable(now - timestamp) + " 前";
+            await new Promise((r) => setTimeout(r, 500));
+            location.reload();
+        } else {
+            button.textContent = "导入失败，请查看浏览器控制台报错";
+        }
+    }
+
+    function constructImportJsonObj_cowculator(obj) {
+        let data = GM_getValue("init_client_data", "");
+        let clientObj = JSON.parse(data);
+
+        let house = {};
+        for (const h of Object.values(obj.characterHouseRoomMap)) {
+            house[h.houseRoomHrid] = h.level;
+        }
+        console.log(house);
+        localStorage.setItem("house", JSON.stringify(house));
+
+        let characterLevels = {};
+        let targetLevels = {};
+        let currentXp = {};
+        for (const skill of obj.characterSkills) {
+            characterLevels[skill.skillHrid] = skill.level;
+            targetLevels[skill.skillHrid] = skill.level + 1;
+            currentXp[skill.skillHrid] = skill.experience;
+        }
+        console.log(characterLevels);
+        localStorage.setItem("characterLevels", JSON.stringify(characterLevels));
+        console.log(targetLevels);
+        localStorage.setItem("targetLevels", JSON.stringify(targetLevels));
+        console.log(currentXp);
+        localStorage.setItem("currentXp", JSON.stringify(currentXp));
+
+        let loadout = {
+            activeLoadoutId: 0,
+            loadouts: {
+                0: {
+                    id: 0,
+                    name: "default",
+                    equipment: {
+                        "/item_locations/head": null,
+                        "/item_locations/body": null,
+                        "/item_locations/legs": null,
+                        "/item_locations/feet": null,
+                        "/item_locations/hands": null,
+                        "/item_locations/main_hand": null,
+                        "/item_locations/off_hand": null,
+                        "/item_locations/earrings": null,
+                        "/item_locations/neck": null,
+                        "/item_locations/ring": null,
+                        "/item_locations/pouch": null,
+                        "/item_locations/milking_tool": null,
+                        "/item_locations/foraging_tool": null,
+                        "/item_locations/woodcutting_tool": null,
+                        "/item_locations/cheesesmithing_tool": null,
+                        "/item_locations/crafting_tool": null,
+                        "/item_locations/tailoring_tool": null,
+                        "/item_locations/cooking_tool": null,
+                        "/item_locations/brewing_tool": null,
+                        "/item_locations/enhancing_tool": null,
+                    },
+                    enhancementLevels: {
+                        "/item_locations/head": 0,
+                        "/item_locations/body": 0,
+                        "/item_locations/legs": 0,
+                        "/item_locations/feet": 0,
+                        "/item_locations/hands": 0,
+                        "/item_locations/main_hand": 0,
+                        "/item_locations/off_hand": 0,
+                        "/item_locations/earrings": 0,
+                        "/item_locations/neck": 0,
+                        "/item_locations/ring": 0,
+                        "/item_locations/pouch": 0,
+                        "/item_locations/milking_tool": 0,
+                        "/item_locations/foraging_tool": 0,
+                        "/item_locations/woodcutting_tool": 0,
+                        "/item_locations/cheesesmithing_tool": 0,
+                        "/item_locations/crafting_tool": 0,
+                        "/item_locations/tailoring_tool": 0,
+                        "/item_locations/cooking_tool": 0,
+                        "/item_locations/brewing_tool": 0,
+                        "/item_locations/enhancing_tool": 0,
+                    },
+                },
+            },
+        };
+        for (const item of obj.characterItems) {
+            if (item.itemLocationHrid !== "/item_locations/inventory") {
+                loadout.loadouts[0].equipment[item.itemLocationHrid] = clientObj.itemDetailMap[item.itemHrid];
+                loadout.loadouts[0].enhancementLevels[item.itemLocationHrid] = item.enhancementLevel;
+            }
+        }
+        console.log(loadout);
+        localStorage.setItem("loadout", JSON.stringify(loadout));
+
+        let skillDrinks = {
+            "/action_types/milking": [],
+            "/action_types/foraging": [],
+            "/action_types/woodcutting": [],
+            "/action_types/cheesesmithing": [],
+            "/action_types/crafting": [],
+            "/action_types/tailoring": [],
+            "/action_types/cooking": [],
+            "/action_types/brewing": [],
+            "/action_types/enhancing": [],
+            "/action_types/combat": [],
+        };
+        for (const key of Object.keys(obj.actionTypeDrinkSlotsMap)) {
+            if (key.includes("combat")) {
+                continue;
+            }
+            for (const drink of obj.actionTypeDrinkSlotsMap[key]) {
+                if (!drink) {
+                    continue;
+                }
+                const itemDetail = clientObj.itemDetailMap[drink.itemHrid];
+                skillDrinks[key].push(itemDetail);
+            }
+        }
+        console.log(skillDrinks);
+        localStorage.setItem("skillDrinks", JSON.stringify(skillDrinks));
+
+        return true;
     }
 })();
