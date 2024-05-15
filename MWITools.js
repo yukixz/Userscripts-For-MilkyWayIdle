@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      3.4
+// @version      3.5
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -12,10 +12,13 @@
 
 /* 汉化插件必须使用 bot7420 修改版，否则不支持 */
 /* 市场价格数据是24小时均价，大约每半小时更新一次，需要科学网络，否则使用的是旧数据 */
+/* 价格 "/" 前后数字，前者是卖单价，后者是买单价 */
+/* 带强化等级的装备没有市场价格数据 */
 /* 如果有问题，关闭其它插件试试，可能有冲突 */
-/* 仅在电脑浏览器上维护，不解决手机使用问题 */
-/* MWITools 版本更新发布在 https://greasyfork.org/en/scripts/494467-mwitools */
-/* 作者的另一个插件 https://greasyfork.org/en/scripts/494468-mooneycalc-importer */
+/* 仅在电脑浏览器上维护，不保证手机使用 */
+/* MWITools 版本更新发布在: https://greasyfork.org/en/scripts/494467-mwitools */
+/* 作者的另一个插件: https://greasyfork.org/en/scripts/494468-mooneycalc-importer */
+/* 作者的游戏内名字: bot7420 */
 
 (() => {
     "use strict";
@@ -32,6 +35,7 @@
     let initData_actionCategoryDetailMap = null;
     let initData_abilityDetailMap = null;
     let initData_characterAbilities = null;
+    let initData_myMarketListings = null;
 
     let currentActionsHridList = [];
 
@@ -70,6 +74,7 @@
             initData_characterHouseRoomMap = obj.characterHouseRoomMap;
             initData_actionTypeDrinkSlotsMap = obj.actionTypeDrinkSlotsMap;
             initData_characterAbilities = obj.characterAbilities;
+            initData_myMarketListings = obj.myMarketListings;
             currentActionsHridList = [...obj.characterActions];
             showTotalActionTime();
             waitForActionPanelParent();
@@ -116,6 +121,37 @@
             if (marketPrices) {
                 networthAsk += item.count * (marketPrices.ask > 0 ? marketPrices.ask : 0);
                 networthBid += item.count * (marketPrices.bid > 0 ? marketPrices.bid : 0);
+            }
+        }
+
+        for (const item of initData_myMarketListings) {
+            const itemName = initData_itemDetailMap[item.itemHrid]?.name;
+            const quantity = item.orderQuantity - item.filledQuantity;
+            const enhancementLevel = item.enhancementLevel;
+            const marketPrices = marketAPIJson.market[itemName];
+            if (!marketPrices) {
+                console.error("calculateNetworth cannot get marketPrices of " + itemName);
+                return;
+            }
+            if (itemName === "Bag Of 10 Cowbells") {
+                marketPrices.ask *= 1 - 18 / 100;
+                marketPrices.bid *= 1 - 18 / 100;
+            } else {
+                marketPrices.ask *= 1 - 2 / 100;
+                marketPrices.bid *= 1 - 2 / 100;
+            }
+            if (item.isSell) {
+                if (!enhancementLevel || enhancementLevel === 0) {
+                    networthAsk += quantity * (marketPrices.ask > 0 ? marketPrices.ask : 0);
+                    networthBid += quantity * (marketPrices.bid > 0 ? marketPrices.bid : 0);
+                }
+                networthAsk += item.unclaimedCoinCount;
+                networthBid += item.unclaimedCoinCount;
+            } else {
+                networthAsk += quantity * item.price;
+                networthBid += quantity * item.price;
+                networthAsk += item.unclaimedItemCount * (marketPrices.ask > 0 ? marketPrices.ask : 0);
+                networthBid += item.unclaimedItemCount * (marketPrices.bid > 0 ? marketPrices.bid : 0);
             }
         }
 
@@ -640,6 +676,9 @@
     };
 
     async function handleActionPanel(panel) {
+        if (!panel.querySelector("div.SkillActionDetail_expGain__F5xHu")) {
+            return; // 不处理战斗ActionPanel
+        }
         const actionName = panel.querySelector("div.SkillActionDetail_name__3erHV").textContent;
         const exp = Number(panel.querySelector("div.SkillActionDetail_expGain__F5xHu").textContent.replaceAll(",", ""));
         const duration = Number(panel.querySelectorAll("div.SkillActionDetail_value__dQjYH")[4].textContent.replace("s", ""));
@@ -659,6 +698,9 @@
             }, 50);
         });
         inputElem.addEventListener("keyup", function (evt) {
+            if (inputElem.value.toLowerCase().includes("k") || inputElem.value.toLowerCase().includes("m")) {
+                reactInputTriggerHack(inputElem, inputElem.value.toLowerCase().replaceAll("k", "000").replaceAll("m", "000000"));
+            }
             showTotalTimeDiv.textContent = getTotalTimeStr(inputElem.value, duration, effBuff);
         });
 
@@ -683,7 +725,7 @@
 
         quickInputButtonsDiv.append(document.createElement("div"));
         quickInputButtonsDiv.append(document.createTextNode("做 "));
-        const presetTimes = [10, 20, 50, 100, 200, 500, 1000, 2000];
+        const presetTimes = [10, 100, 300, 500, 1000, 2000];
         for (const value of presetTimes) {
             const btn = document.createElement("button");
             btn.style.backgroundColor = "white";
