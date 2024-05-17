@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      4.1
+// @version      4.2
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -80,6 +80,7 @@
             showTotalActionTime();
             waitForActionPanelParent();
             waitForItemDict();
+            add3rdPartyLinks();
             calculateNetworth();
         } else if (obj && obj.type === "init_client_data") {
             initData_actionDetailMap = obj.actionDetailMap;
@@ -236,6 +237,10 @@
         overflow: visible !important;
         white-space: normal !important;
         height: auto !important;
+      }`);
+
+    GM_addStyle(`span.NavigationBar_label__1uH-y {
+        width: 10px !important;
       }`);
 
     /* 物品 ToolTips */
@@ -1086,61 +1091,59 @@
             filters = document.querySelector("#script_filters");
             filters.insertAdjacentHTML(
                 "beforeend",
-                `<span id="script_filter_level" style="float: left; color: green;">等级: <input id="script_filter_level_input" value = "1" maxlength="3" size="4" placeholder="All"></input></span>`
+                `<span id="script_filter_level" style="float: left; color: green;">等级至少: 
+                <select name="script_filter_level_select" id="script_filter_level_select">
+                <option value="1">All</option>
+                <option value="10">10</option>
+                <option value="20">20</option>
+                <option value="30">30</option>
+                <option value="40">40</option>
+                <option value="50">50</option>
+                <option value="60">60</option>
+                <option value="70">70</option>
+                <option value="80">80</option>
+                <option value="90">90</option>
+                <option value="100">100</option>
+            </select>&emsp;</span>`
             );
             filters.insertAdjacentHTML(
                 "beforeend",
                 `<span id="script_filter_skill" style="float: left; color: green;">职业: 
                 <select name="script_filter_skill_select" id="script_filter_skill_select">
                     <option value="all">All</option>
-                    <option value="stamina">Stamina</option>
-                    <option value="intelligence">Intelligence</option>
                     <option value="attack">Attack</option>
                     <option value="power">Power</option>
                     <option value="defense">Defense</option>
                     <option value="ranged">Ranged</option>
                     <option value="magic">Magic</option>
-                </select></span>`
+                </select>&emsp;</span>`
             );
             filters.insertAdjacentHTML(
                 "beforeend",
                 `<span id="script_filter_location" style="float: left; color: green;">部位: 
                 <select name="script_filter_location_select" id="script_filter_location_select">
                     <option value="all">All</option>
-                    <option value="body">Body</option>
-                    <option value="earrings">Earrings</option>
-                    <option value="feet">Feet</option>
-                    <option value="hands">Hands</option>
-                    <option value="head">Head</option>
-                    <option value="legs">Legs</option>
                     <option value="main_hand">Main Hand</option>
-                    <option value="neck">Neck</option>
                     <option value="off_hand">Off Hand</option>
-                    <option value="pouch">Pouch</option>
-                    <option value="ring">Ring</option>
                     <option value="two_hand">Two Hand</option>
-                </select></span>`
+                    <option value="head">Head</option>
+                    <option value="body">Body</option>
+                    <option value="hands">Hands</option>
+                    <option value="legs">Legs</option>
+                    <option value="feet">Feet</option>
+                    <option value="neck">Neck</option>
+                    <option value="earrings">Earrings</option>
+                    <option value="ring">Ring</option>
+                    <option value="pouch">Pouch</option>
+                </select>&emsp;</span>`
             );
 
-            const levelFilter = document.querySelector("#script_filter_level_input");
+            const levelFilter = document.querySelector("#script_filter_level_select");
             levelFilter.addEventListener("change", function () {
                 console.log(levelFilter.value);
                 if (levelFilter.value && !isNaN(levelFilter.value)) {
                     onlyShowItemsAboveLevel = Number(levelFilter.value);
                     console.log("Filter: " + Number(levelFilter.value));
-                } else {
-                    onlyShowItemsAboveLevel = 1;
-                    console.log("Filter: " + "1");
-                }
-            });
-            levelFilter.addEventListener("keyup", function () {
-                console.log(levelFilter.value);
-                if (levelFilter.value && !isNaN(levelFilter.value)) {
-                    onlyShowItemsAboveLevel = Number(levelFilter.value);
-                    console.log("Filter: " + Number(levelFilter.value));
-                } else {
-                    onlyShowItemsAboveLevel = 1;
-                    console.log("Filter: " + "1");
                 }
             });
             const skillFilter = document.querySelector("#script_filter_skill_select");
@@ -1307,5 +1310,70 @@
                 tillLevelNumber.textContent = "Error";
             }
         });
+    }
+
+    /* 添加第三方网站链接 */
+    function add3rdPartyLinks() {
+        const waitForNavi = () => {
+            const targetNode = document.querySelector("div.NavigationBar_minorNavigationLinks__dbxh7");
+            if (targetNode) {
+                let div = document.createElement("div");
+                div.setAttribute("class", "NavigationBar_minorNavigationLink__31K7Y");
+                div.style.color = "green";
+                div.innerHTML = "插件说明";
+                div.addEventListener("click", () => {
+                    window.open("http://43.129.194.214:5000/readme", "_blank");
+                });
+                targetNode.insertAdjacentElement("afterbegin", div);
+
+                div = document.createElement("div");
+                div.setAttribute("class", "NavigationBar_minorNavigationLink__31K7Y");
+                div.style.color = "green";
+                div.innerHTML = "强化模拟 Enhancelator";
+                div.addEventListener("click", () => {
+                    window.open("https://doh-nuts.github.io/Enhancelator/", "_blank");
+                });
+                targetNode.insertAdjacentElement("afterbegin", div);
+
+                div = document.createElement("div");
+                div.setAttribute("class", "NavigationBar_minorNavigationLink__31K7Y");
+                div.style.color = "green";
+                div.innerHTML = "利润计算 Mooneycalc";
+                div.addEventListener("click", () => {
+                    window.open("https://mooneycalc.vercel.app/", "_blank");
+                });
+                targetNode.insertAdjacentElement("afterbegin", div);
+
+                div = document.createElement("div");
+                div.setAttribute("class", "NavigationBar_minorNavigationLink__31K7Y");
+                div.style.color = "green";
+                div.innerHTML = "利润计算 cowculator";
+                div.addEventListener("click", () => {
+                    window.open("https://cowculator.info/", "_blank");
+                });
+                targetNode.insertAdjacentElement("afterbegin", div);
+
+                div = document.createElement("div");
+                div.setAttribute("class", "NavigationBar_minorNavigationLink__31K7Y");
+                div.style.color = "green";
+                div.innerHTML = "战斗模拟（批量）";
+                div.addEventListener("click", () => {
+                    window.open("http://43.129.194.214:5000/mwisim.github.io", "_blank");
+                });
+                targetNode.insertAdjacentElement("afterbegin", div);
+
+                div = document.createElement("div");
+                div.setAttribute("class", "NavigationBar_minorNavigationLink__31K7Y");
+                div.style.color = "green";
+                div.innerHTML = "战斗模拟 MWISim";
+                div.addEventListener("click", () => {
+                    window.open("https://mwisim.github.io/", "_blank");
+                });
+                targetNode.insertAdjacentElement("afterbegin", div);
+            } else {
+                setTimeout(add3rdPartyLinks, 200);
+            }
+        };
+        waitForNavi();
     }
 })();
