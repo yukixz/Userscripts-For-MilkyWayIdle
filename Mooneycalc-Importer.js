@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Mooneycalc-Importer
 // @namespace    http://tampermonkey.net/
-// @version      4.5
+// @version      4.6
 // @description  For the game MilkyWayIdle. This script imports player info to the following websites. https://mooneycalc.vercel.app/, https://mwisim.github.io/, https://cowculator.info/.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -10,10 +10,17 @@
 // @match        https://mwisim.github.io/*
 // @match        https://cowculator.info/
 // @match        http://43.129.194.214:5000/mwisim.github.io
+// @match        http://127.0.0.1:5500/
 // @run-at       document-start
 // @grant        GM_getValue
 // @grant        GM_setValue
 // ==/UserScript==
+
+/* 仅在电脑浏览器上维护，不保证手机使用 */
+/* Mooneycalc-Importer 版本更新发布在: https://greasyfork.org/en/scripts/494468-mooneycalc-importer */
+/* 作者的另一个插件: https://greasyfork.org/en/scripts/494467-mwitools */
+/* 作者的批量战斗模拟网站: http://43.129.194.214:5000/mwisim.github.io */
+/* 作者的游戏内名字: bot7420 */
 
 (function () {
     "use strict";
@@ -24,7 +31,7 @@
         addImportButton1();
     } else if (document.URL.includes("kugandev.github.io/MWICombatSimulator")) {
         addImportButton2();
-    } else if (document.URL.includes("mwisim.github.io")) {
+    } else if (document.URL.includes("mwisim.github.io") || document.URL.includes("127.0.0.1:5500")) {
         addImportButton3();
         observeResults();
     } else if (document.URL.includes("cowculator.info")) {
@@ -481,18 +488,27 @@
         return exportObj;
     }
 
-    function observeResults() {
-        const resultDiv = document.querySelector(`div.row`).querySelectorAll(`div.col-md-5`)[2].querySelector(`div.row > div.col-md-5`);
+    async function observeResults() {
+        let resultDiv = document.querySelector(`div.row`)?.querySelectorAll(`div.col-md-5`)?.[2]?.querySelector(`div.row > div.col-md-5`);
+        while (!resultDiv) {
+            await new Promise((resolve) => setTimeout(resolve, 100));
+            resultDiv = document.querySelector(`div.row`)?.querySelectorAll(`div.col-md-5`)?.[2]?.querySelector(`div.row > div.col-md-5`);
+        }
+
         const deathDiv = document.querySelector(`div#simulationResultPlayerDeaths`);
         const expDiv = document.querySelector(`div#simulationResultExperienceGain`);
         const consumeDiv = document.querySelector(`div#simulationResultConsumablesUsed`);
         deathDiv.style.backgroundColor = "#FFEAE9";
+        deathDiv.style.color = "black";
         expDiv.style.backgroundColor = "#CDFFDD";
+        expDiv.style.color = "black";
         consumeDiv.style.backgroundColor = "#F0F8FF";
+        consumeDiv.style.color = "black";
 
         let div = document.createElement("div");
         div.id = "tillLevel";
         div.style.backgroundColor = "#FFFFE0";
+        div.style.color = "black";
         div.textContent = "";
         resultDiv.append(div);
 
@@ -618,7 +634,7 @@
         } else {
             profitSpan.parentNode.insertAdjacentHTML(
                 "beforeend",
-                `<div id="script_expense" style="background-color: #DCDCDC;">${expensesSpan.parentNode.textContent}</div><div id="script_revenue" style="background-color: #DCDCDC;">${revenueSpan.parentNode.textContent}</div>`
+                `<div id="script_expense" style="background-color: #DCDCDC; color: black;">${expensesSpan.parentNode.textContent}</div><div id="script_revenue" style="background-color: #DCDCDC; color: black;">${revenueSpan.parentNode.textContent}</div>`
             );
         }
     }
