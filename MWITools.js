@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      3.8
+// @version      3.9
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -1087,7 +1087,7 @@
             filters = document.querySelector("#script_filters");
             filters.insertAdjacentHTML(
                 "beforeend",
-                `<span id="script_filter_level" style="float: left; color: green;">等级: <input id="script_filter_level_input" value = "1" maxlength="3" size="4"></input></span>`
+                `<span id="script_filter_level" style="float: left; color: green;">等级: <input id="script_filter_level_input" value = "1" maxlength="3" size="4" placeholder="All"></input></span>`
             );
             filters.insertAdjacentHTML(
                 "beforeend",
@@ -1125,6 +1125,16 @@
 
             const levelFilter = document.querySelector("#script_filter_level_input");
             levelFilter.addEventListener("change", function () {
+                console.log(levelFilter.value);
+                if (levelFilter.value && !isNaN(levelFilter.value)) {
+                    onlyShowItemsAboveLevel = Number(levelFilter.value);
+                    console.log("Filter: " + Number(levelFilter.value));
+                } else {
+                    onlyShowItemsAboveLevel = 1;
+                    console.log("Filter: " + "1");
+                }
+            });
+            levelFilter.addEventListener("keyup", function () {
                 console.log(levelFilter.value);
                 if (levelFilter.value && !isNaN(levelFilter.value)) {
                     onlyShowItemsAboveLevel = Number(levelFilter.value);
