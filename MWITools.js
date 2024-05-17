@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      3.9
+// @version      4.0
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -10,7 +10,7 @@
 // @connect      raw.githubusercontent.com
 // ==/UserScript==
 
-/* 汉化插件必须使用 bot7420 修改版，否则不支持 */
+/* 汉化插件必须使用修改版，否则不支持: https://greasyfork.org/en/scripts/494308-milky-way-idle%E6%B1%89%E5%8C%96%E5%85%BC%E5%AE%B9mwitool%E7%89%88 */
 /* 市场价格数据是24小时均价，大约每半小时更新一次，需要科学网络，否则使用的是旧数据 */
 /* 价格 "/" 前后数字，前者是卖单价，后者是买单价 */
 /* 带强化等级的装备没有市场价格数据 */
