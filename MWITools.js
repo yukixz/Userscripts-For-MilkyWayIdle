@@ -1056,6 +1056,12 @@
                         `<div class="script_itemLevel" style="z-index: 1; position: absolute; top: 2px; right: 2px; text-align: right; color: green;">${itemLevel}</div>`
                     );
                 }
+                if (
+                    !initData_itemDetailMap[itemHrid]?.equipmentDetail.type?.includes("_tool") &&
+                    div.parentElement.parentElement.parentElement.className.includes("MarketplacePanel_marketItems__D4k7e")
+                ) {
+                    handleMarketItemFilter(div, initData_itemDetailMap[itemHrid]);
+                }
             } else if (itemAbilityLevel && itemAbilityLevel > 0) {
                 if (!div.querySelector("div.script_itemLevel")) {
                     div.insertAdjacentHTML(
@@ -1067,6 +1073,112 @@
         }
     }
     setInterval(addItemLevels, 500);
+
+    /* 市场物品筛选 */
+    let onlyShowItemsAboveLevel = 1;
+    let onlyShowItemsType = "all";
+    let onlyShowItemsSkillReq = "all";
+
+    function addMarketFilterButtons() {
+        const oriFilter = document.querySelector(".MarketplacePanel_itemFilterContainer__3F3td");
+        let filters = document.querySelector("#script_filters");
+        if (oriFilter && !filters) {
+            oriFilter.insertAdjacentHTML("afterend", `<div id="script_filters" style="float: left; color: green;"></div>`);
+            filters = document.querySelector("#script_filters");
+            filters.insertAdjacentHTML(
+                "beforeend",
+                `<span id="script_filter_level" style="float: left; color: green;">等级: <input id="script_filter_level_input" value = "1" maxlength="3" size="4"></input></span>`
+            );
+            filters.insertAdjacentHTML(
+                "beforeend",
+                `<span id="script_filter_skill" style="float: left; color: green;">职业: 
+                <select name="script_filter_skill_select" id="script_filter_skill_select">
+                    <option value="all">All</option>
+                    <option value="stamina">Stamina</option>
+                    <option value="intelligence">Intelligence</option>
+                    <option value="attack">Attack</option>
+                    <option value="power">Power</option>
+                    <option value="defense">Defense</option>
+                    <option value="ranged">Ranged</option>
+                    <option value="magic">Magic</option>
+                </select></span>`
+            );
+            filters.insertAdjacentHTML(
+                "beforeend",
+                `<span id="script_filter_location" style="float: left; color: green;">部位: 
+                <select name="script_filter_location_select" id="script_filter_location_select">
+                    <option value="all">All</option>
+                    <option value="body">Body</option>
+                    <option value="earrings">Earrings</option>
+                    <option value="feet">Feet</option>
+                    <option value="hands">Hands</option>
+                    <option value="head">Head</option>
+                    <option value="legs">Legs</option>
+                    <option value="main_hand">Main Hand</option>
+                    <option value="neck">Neck</option>
+                    <option value="off_hand">Off Hand</option>
+                    <option value="pouch">Pouch</option>
+                    <option value="ring">Ring</option>
+                    <option value="two_hand">Two Hand</option>
+                </select></span>`
+            );
+
+            const levelFilter = document.querySelector("#script_filter_level_input");
+            levelFilter.addEventListener("change", function () {
+                console.log(levelFilter.value);
+                if (levelFilter.value && !isNaN(levelFilter.value)) {
+                    onlyShowItemsAboveLevel = Number(levelFilter.value);
+                    console.log("Filter: " + Number(levelFilter.value));
+                } else {
+                    onlyShowItemsAboveLevel = 1;
+                    console.log("Filter: " + "1");
+                }
+            });
+            const skillFilter = document.querySelector("#script_filter_skill_select");
+            skillFilter.addEventListener("change", function () {
+                if (skillFilter.value) {
+                    onlyShowItemsSkillReq = skillFilter.value;
+                    console.log("Filter: " + skillFilter.value);
+                }
+            });
+            const locationFilter = document.querySelector("#script_filter_location_select");
+            locationFilter.addEventListener("change", function () {
+                if (locationFilter.value) {
+                    onlyShowItemsType = locationFilter.value;
+                    console.log("Filter: " + locationFilter.value);
+                }
+            });
+        }
+    }
+    setInterval(addMarketFilterButtons, 500);
+
+    function handleMarketItemFilter(div, itemDetal) {
+        const itemLevel = itemDetal.itemLevel;
+        const type = itemDetal.equipmentDetail.type;
+        const levelRequirements = itemDetal.equipmentDetail.levelRequirements;
+
+        let isType = false;
+        isType = type.includes(onlyShowItemsType);
+        if (onlyShowItemsType === "all") {
+            isType = true;
+        }
+
+        let isRequired = false;
+        for (const requirement of levelRequirements) {
+            if (requirement.skillHrid.includes(onlyShowItemsSkillReq)) {
+                isRequired = true;
+            }
+        }
+        if (onlyShowItemsSkillReq === "all") {
+            isRequired = true;
+        }
+
+        if (itemLevel >= onlyShowItemsAboveLevel && isType && isRequired) {
+            div.style.display = "block";
+        } else {
+            div.style.display = "none";
+        }
+    }
 
     /* 任务卡片显示战斗地图序号 */
     function handleTaskCard() {
