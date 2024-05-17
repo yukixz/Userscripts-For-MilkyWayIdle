@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      3.7
+// @version      3.8
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -467,7 +467,8 @@
             // 基础每小时生产数量
             let produceItemPerHour = 3600000 / (initData_actionDetailMap[actionHrid].baseTimeCost / 1000000);
             // 基础掉率
-            let droprate = 1;
+            let droprate = initData_actionDetailMap[actionHrid].outputItems[0].count;
+            //produceItemPerHour *= droprate;
             // 工具提高速度
             let toolPercent = getToolsSpeedBuffByActionHrid(actionHrid);
             produceItemPerHour *= 1 + toolPercent / 100;
@@ -494,10 +495,10 @@
 
             appendHTMLStr += `<div style="color: DarkGreen; font-size: 10px;">生产利润(卖单价进、买单价出；不包括Processing Tea、社区buff、稀有掉落；刷新网页更新人物数据)：</div>`;
             appendHTMLStr += `<div style="color: DarkGreen; font-size: 10px;">x${droprate}基础掉率 +${toolPercent}%工具速度 +${levelEffBuff}%等级效率 +${houseEffBuff}%房子效率 +${teaBuffs.efficiency}%茶效率 +${itemEffiBuff}%装备效率 +${teaBuffs.quantity}%茶额外数量 +${teaBuffs.lessResource}%茶减少消耗</div>`;
-            appendHTMLStr += `<div style="color: DarkGreen; font-size: 10px;">每小时生产 ${Number(produceItemPerHour + extraQuantityPerHour).toFixed(1)} 个</div>`;
-            appendHTMLStr += `<div style="color: DarkGreen;">利润: ${numberFormatter(bid - totalAskPrice * (1 - teaBuffs.lessResource / 100))}/个, ${numberFormatter(
-                produceItemPerHour * (bid - totalAskPrice * (1 - teaBuffs.lessResource / 100)) + extraQuantityPerHour * bid
-            )}/小时, ${numberFormatter(24 * (produceItemPerHour * (bid - totalAskPrice * (1 - teaBuffs.lessResource / 100)) + extraQuantityPerHour * bid))}/天</div>`;
+            appendHTMLStr += `<div style="color: DarkGreen; font-size: 10px;">每小时生产 ${Number((produceItemPerHour + extraQuantityPerHour) * droprate).toFixed(1)} 个</div>`;
+            appendHTMLStr += `<div style="color: DarkGreen;">利润: ${numberFormatter(bid * droprate - totalAskPrice * (1 - teaBuffs.lessResource / 100))}/个, ${numberFormatter(
+                produceItemPerHour * (bid * droprate - totalAskPrice * (1 - teaBuffs.lessResource / 100)) + extraQuantityPerHour * bid * droprate
+            )}/小时, ${numberFormatter(24 * (produceItemPerHour * (bid * droprate - totalAskPrice * (1 - teaBuffs.lessResource / 100)) + extraQuantityPerHour * bid * droprate))}/天</div>`;
         } else if (getActionHridFromItemName(itemName) && initData_actionDetailMap[getActionHridFromItemName(itemName)].inputItems === null && initData_actionDetailMap && initData_itemDetailMap) {
             // 采集类技能
             const actionHrid = getActionHridFromItemName(itemName);
