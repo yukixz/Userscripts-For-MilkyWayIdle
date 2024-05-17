@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      3.6
+// @version      3.7
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -18,6 +18,7 @@
 /* 仅在电脑浏览器上维护，不保证手机使用 */
 /* MWITools 版本更新发布在: https://greasyfork.org/en/scripts/494467-mwitools */
 /* 作者的另一个插件: https://greasyfork.org/en/scripts/494468-mooneycalc-importer */
+/* 作者的批量战斗模拟网站: http://43.129.194.214:5000/mwisim.github.io */
 /* 作者的游戏内名字: bot7420 */
 
 (() => {
