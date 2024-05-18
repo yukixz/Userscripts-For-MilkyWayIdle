@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      4.2
+// @version      4.3
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -10,16 +10,7 @@
 // @connect      raw.githubusercontent.com
 // ==/UserScript==
 
-/* 汉化插件必须使用修改版，否则不支持: https://greasyfork.org/en/scripts/494308-milky-way-idle%E6%B1%89%E5%8C%96%E5%85%BC%E5%AE%B9mwitool%E7%89%88 */
-/* 市场价格数据是24小时均价，大约每半小时更新一次，需要科学网络，否则使用的是旧数据 */
-/* 价格 "/" 前后数字，前者是卖单价，后者是买单价 */
-/* 带强化等级的装备没有市场价格数据 */
-/* 如果有问题，关闭其它插件试试，可能有冲突 */
-/* 仅在电脑浏览器上维护，不保证手机使用 */
-/* MWITools 版本更新发布在: https://greasyfork.org/en/scripts/494467-mwitools */
-/* 作者的另一个插件: https://greasyfork.org/en/scripts/494468-mooneycalc-importer */
-/* 作者的批量战斗模拟网站: http://43.129.194.214:5000/mwisim.github.io */
-/* 作者的游戏内名字: bot7420 */
+/* 插件说明见游戏左侧栏下方绿字链接 */
 
 (() => {
     "use strict";
@@ -77,6 +68,7 @@
             initData_characterAbilities = obj.characterAbilities;
             initData_myMarketListings = obj.myMarketListings;
             currentActionsHridList = [...obj.characterActions];
+            console.log(currentActionsHridList);
             showTotalActionTime();
             waitForActionPanelParent();
             waitForItemDict();
@@ -91,16 +83,14 @@
         } else if (obj && obj.type === "actions_updated") {
             for (const action of obj.endCharacterActions) {
                 if (action.isDone === false) {
-                    let o = {};
-                    o.id = action.id;
-                    o.actionHrid = action.actionHrid;
-                    currentActionsHridList.push(o);
+                    currentActionsHridList.push(action);
                 } else {
                     currentActionsHridList = currentActionsHridList.filter((o) => {
                         return o.id !== action.id;
                     });
                 }
             }
+            console.log(currentActionsHridList);
         } else if (obj && obj.type === "battle_unit_fetched") {
             handleBattleSummary(obj);
         }
@@ -250,6 +240,8 @@
                 if (added.classList.contains("MuiTooltip-popper")) {
                     if (added.querySelector("div.ItemTooltipText_name__2JAHA")) {
                         await handleTooltipItem(added);
+                    } else if (added.querySelector("div.QueuedActions_queuedActionsEditMenu__3OoQH")) {
+                        handleActionQueueMenue(added.querySelector("div.QueuedActions_queuedActionsEditMenu__3OoQH"));
                     }
                 }
             }
@@ -470,12 +462,12 @@
             }
 
             // 基础每小时生产数量
-            let produceItemPerHour = 3600000 / (initData_actionDetailMap[actionHrid].baseTimeCost / 1000000);
+            const baseTimePerActionSec = initData_actionDetailMap[actionHrid].baseTimeCost / 1000000000;
+            const toolPercent = getToolsSpeedBuffByActionHrid(actionHrid);
+            const actualTimePerActionSec = baseTimePerActionSec / (1 + toolPercent / 100);
+            let produceItemPerHour = 3600 / actualTimePerActionSec;
             // 基础掉率
             let droprate = initData_actionDetailMap[actionHrid].outputItems[0].count;
-            // 工具提高速度
-            let toolPercent = getToolsSpeedBuffByActionHrid(actionHrid);
-            produceItemPerHour *= 1 + toolPercent / 100;
             // 等级碾压提高效率
             const requiredLevel = initData_actionDetailMap[actionHrid].levelRequirement.level;
             let currentLevel = requiredLevel;
@@ -507,13 +499,13 @@
             // 采集类技能
             const actionHrid = getActionHridFromItemName(itemName);
             // 基础每小时生产数量
-            let produceItemPerHour = 3600000 / (initData_actionDetailMap[actionHrid].baseTimeCost / 1000000);
+            const baseTimePerActionSec = initData_actionDetailMap[actionHrid].baseTimeCost / 1000000000;
+            const toolPercent = getToolsSpeedBuffByActionHrid(actionHrid);
+            const actualTimePerActionSec = baseTimePerActionSec / (1 + toolPercent / 100);
+            let produceItemPerHour = 3600 / actualTimePerActionSec;
             // 基础掉率
             let droprate = (initData_actionDetailMap[actionHrid].dropTable[0].minCount + initData_actionDetailMap[actionHrid].dropTable[0].maxCount) / 2;
             produceItemPerHour *= droprate;
-            // 工具提高速度
-            let toolPercent = getToolsSpeedBuffByActionHrid(actionHrid);
-            produceItemPerHour *= 1 + toolPercent / 100;
             // 等级碾压效率
             const requiredLevel = initData_actionDetailMap[actionHrid].levelRequirement.level;
             let currentLevel = requiredLevel;
@@ -817,7 +809,11 @@
         if (panel.querySelector("div.SkillActionDetail_dropTable__3ViVp").children.length > 1) {
             const jsonObj = await fetchMarketJSON();
             const actionHrid = "/actions/foraging/" + actionName.toLowerCase().replaceAll(" ", "_");
-            let numOfActionsPerHour = 3600000 / (initData_actionDetailMap[actionHrid].baseTimeCost / 1000000);
+            // 基础每小时生产数量
+            const baseTimePerActionSec = initData_actionDetailMap[actionHrid].baseTimeCost / 1000000000;
+            const toolPercent = getToolsSpeedBuffByActionHrid(actionHrid);
+            const actualTimePerActionSec = baseTimePerActionSec / (1 + toolPercent / 100);
+            const numOfActionsPerHour = 3600 / actualTimePerActionSec;
             let dropTable = initData_actionDetailMap[actionHrid].dropTable;
             let virtualItemBid = 0;
             for (const drop of dropTable) {
@@ -826,9 +822,6 @@
                 virtualItemBid += bid * amount;
             }
 
-            // 工具提高速度
-            let toolPercent = getToolsSpeedBuffByActionHrid(actionHrid);
-            numOfActionsPerHour *= 1 + toolPercent / 100;
             // 等级碾压效率
             const requiredLevel = initData_actionDetailMap[actionHrid].levelRequirement.level;
             let currentLevel = requiredLevel;
@@ -1375,5 +1368,70 @@
             }
         };
         waitForNavi();
+    }
+
+    /* 动作列表菜单计算时间 */
+    function handleActionQueueMenue(added) {
+        handleActionQueueMenueCalculateTime(added);
+
+        const listDiv = added.querySelector(".QueuedActions_actions__2Lur6");
+        new MutationObserver((mutationsList) => {
+            handleActionQueueMenueCalculateTime(added);
+        }).observe(listDiv, { characterData: false, subtree: false, childList: true });
+    }
+
+    function handleActionQueueMenueCalculateTime(added) {
+        const actionDivList = added.querySelectorAll("div.QueuedActions_action__r3HlD");
+        if (!actionDivList || actionDivList.length === 0) {
+            return;
+        }
+        if (actionDivList.length !== currentActionsHridList.length - 1) {
+            console.error("handleActionQueueTooltip action queue length inconsistency: ------");
+            console.log(actionDivList);
+            console.log(currentActionsHridList);
+            console.error("------");
+            return;
+        }
+
+        let actionDivListIndex = 0;
+        let hasSkippedfirstActionObj = false;
+        let accumulatedTimeSec = 0;
+        let isAccumulatedTimeInfinite = false;
+        for (const actionObj of currentActionsHridList) {
+            const actionHrid = actionObj.actionHrid;
+            const count = actionObj.maxCount - actionObj.currentCount;
+            let isInfinit = false;
+            if (count === 0) {
+                isInfinit = true;
+                isAccumulatedTimeInfinite = true;
+            }
+
+            const baseTimePerActionSec = initData_actionDetailMap[actionHrid].baseTimeCost / 1000000000;
+            const totalEffBuff = getTotalEffiPercentage(actionHrid);
+            const toolSpeedBuff = getToolsSpeedBuffByActionHrid(actionHrid);
+
+            let timePerActionSec = baseTimePerActionSec / (1 + toolSpeedBuff / 100);
+            timePerActionSec /= 1 + totalEffBuff / 100;
+            let totalTimeSec = count * timePerActionSec;
+
+            let str = " ∞ ";
+            if (!isAccumulatedTimeInfinite) {
+                accumulatedTimeSec += totalTimeSec;
+                const currentTime = new Date();
+                currentTime.setSeconds(currentTime.getSeconds() + accumulatedTimeSec);
+                str = `${String(currentTime.getHours()).padStart(2, "0")}:${String(currentTime.getMinutes()).padStart(2, "0")}:${String(currentTime.getSeconds()).padStart(2, "0")}`;
+            }
+
+            if (hasSkippedfirstActionObj) {
+                const html = `<div class="script_actionTime" style="color: green;">${isInfinit ? "[ ∞ ] " : `[${timeReadable(totalTimeSec)}]`} ${str}</div>`;
+                if (actionDivList[actionDivListIndex].querySelector("div div.script_actionTime")) {
+                    actionDivList[actionDivListIndex].querySelector("div div.script_actionTime").innerHTML = html;
+                } else {
+                    actionDivList[actionDivListIndex].querySelector("div").insertAdjacentHTML("beforeend", html);
+                }
+                actionDivListIndex++;
+            }
+            hasSkippedfirstActionObj = true;
+        }
     }
 })();
