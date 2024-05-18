@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      4.3
+// @version      4.4
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -997,14 +997,14 @@
                 // 总收入
                 document
                     .querySelector("div#script_battleNumbers")
-                    .insertAdjacentHTML("afterend", `<div id="script_totalIncome" style="color: Green;">总收入: ${numberFormatter(totalPriceAsk)} / ${numberFormatter(totalPriceAskBid)}</div>`);
+                    .insertAdjacentHTML("afterend", `<div id="script_totalIncome" style="color: Green;">总收获: ${numberFormatter(totalPriceAsk)} / ${numberFormatter(totalPriceAskBid)}</div>`);
                 // 平均收入
                 if (battleDurationSec) {
                     document
                         .querySelector("div#script_totalIncome")
                         .insertAdjacentHTML(
                             "afterend",
-                            `<div id="script_averageIncome" style="color: Green;">平均每小时收入: ${numberFormatter(totalPriceAsk / (battleDurationSec / 60 / 60))} / ${numberFormatter(
+                            `<div id="script_averageIncome" style="color: Green;">平均每小时收获: ${numberFormatter(totalPriceAsk / (battleDurationSec / 60 / 60))} / ${numberFormatter(
                                 totalPriceAskBid / (battleDurationSec / 60 / 60)
                             )}</div>`
                         );
@@ -1021,8 +1021,16 @@
                         .querySelector("div#script_totalSkillsExp")
                         .insertAdjacentHTML(
                             "afterend",
-                            `<div id="script_averageSkillsExp" style="color: Green;">平均每小时经验: ${numberFormatter(totalSkillsExp / (battleDurationSec / 60 / 60))}</div>`
+                            `<div id="script_averageSkillsExp" style="color: Green;">平均每小时总经验: ${numberFormatter(totalSkillsExp / (battleDurationSec / 60 / 60))}</div>`
                         );
+
+                    for (const [key, value] of Object.entries(message.unit.totalSkillExperienceMap)) {
+                        let skillName = key.replace("/skills/", "");
+                        let str = skillName.charAt(0).toUpperCase() + skillName.slice(1);
+                        document
+                            .querySelector("div#script_totalSkillsExp")
+                            .parentElement.insertAdjacentHTML("beforeend", `<div style="color: Green;">平均每小时${str}经验: ${numberFormatter(value / (battleDurationSec / 60 / 60))}</div>`);
+                    }
                 } else {
                     console.error("handleBattleSummary unable to display average exp due to null battleDurationSec");
                 }
