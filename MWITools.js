@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      4.4
+// @version      4.5
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -1409,7 +1409,7 @@
             const actionHrid = actionObj.actionHrid;
             const count = actionObj.maxCount - actionObj.currentCount;
             let isInfinit = false;
-            if (count === 0) {
+            if (count === 0 || actionHrid.includes("/combat/")) {
                 isInfinit = true;
                 isAccumulatedTimeInfinite = true;
             }
@@ -1422,12 +1422,12 @@
             timePerActionSec /= 1 + totalEffBuff / 100;
             let totalTimeSec = count * timePerActionSec;
 
-            let str = " ∞ ";
+            let str = "到 ∞ ";
             if (!isAccumulatedTimeInfinite) {
                 accumulatedTimeSec += totalTimeSec;
                 const currentTime = new Date();
                 currentTime.setSeconds(currentTime.getSeconds() + accumulatedTimeSec);
-                str = `${String(currentTime.getHours()).padStart(2, "0")}:${String(currentTime.getMinutes()).padStart(2, "0")}:${String(currentTime.getSeconds()).padStart(2, "0")}`;
+                str = `到 ${String(currentTime.getHours()).padStart(2, "0")}:${String(currentTime.getMinutes()).padStart(2, "0")}:${String(currentTime.getSeconds()).padStart(2, "0")}`;
             }
 
             if (hasSkippedfirstActionObj) {
@@ -1440,6 +1440,12 @@
                 actionDivListIndex++;
             }
             hasSkippedfirstActionObj = true;
+        }
+        const html = `<div id="script_queueTotalTime" style="color: green;">总时间：${isAccumulatedTimeInfinite ? "[ ∞ ] " : `[${timeReadable(accumulatedTimeSec)}]`}</div>`;
+        if (document.querySelector("div#script_queueTotalTime")) {
+            document.querySelector("div#script_queueTotalTime").innerHTML = html;
+        } else {
+            document.querySelector("div.QueuedActions_queuedActionsEditMenu__3OoQH").insertAdjacentHTML("afterend", html);
         }
     }
 })();
