@@ -1,10 +1,11 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      4.6
+// @version      4.7
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
+// @match        https://test.milkywayidle.com/*
 // @grant        GM_addStyle
 // @grant        GM_xmlhttpRequest
 // @connect      raw.githubusercontent.com
@@ -54,7 +55,7 @@
             if (!(socket instanceof WebSocket)) {
                 return oriGet.call(this);
             }
-            if (socket.url.indexOf("api.milkywayidle.com/ws") <= -1) {
+            if (socket.url.indexOf("api.milkywayidle.com/ws") <= -1 && socket.url.indexOf("api-test.milkywayidle.com/ws") <= -1) {
                 return oriGet.call(this);
             }
 
@@ -1094,6 +1095,7 @@
 
     /* 市场物品筛选 */
     let onlyShowItemsAboveLevel = 1;
+    let onlyShowItemsBelowLevel = 1000;
     let onlyShowItemsType = "all";
     let onlyShowItemsSkillReq = "all";
 
@@ -1105,7 +1107,7 @@
             filters = document.querySelector("#script_filters");
             filters.insertAdjacentHTML(
                 "beforeend",
-                `<span id="script_filter_level" style="float: left; color: ${SCRIPT_COLOR_MAIN};">等级至少: 
+                `<span id="script_filter_level" style="float: left; color: ${SCRIPT_COLOR_MAIN};">等级: 大于等于
                 <select name="script_filter_level_select" id="script_filter_level_select">
                 <option value="1">All</option>
                 <option value="10">10</option>
@@ -1114,9 +1116,34 @@
                 <option value="40">40</option>
                 <option value="50">50</option>
                 <option value="60">60</option>
+                <option value="65">65</option>
                 <option value="70">70</option>
+                <option value="75">75</option>
                 <option value="80">80</option>
+                <option value="85">85</option>
                 <option value="90">90</option>
+                <option value="95">95</option>
+                <option value="100">100</option>
+            </select>&nbsp;</span>`
+            );
+            filters.insertAdjacentHTML(
+                "beforeend",
+                `<span id="script_filter_level_to" style="float: left; color: ${SCRIPT_COLOR_MAIN};">小于 
+                <select name="script_filter_level_select_to" id="script_filter_level_select_to">
+                <option value="1000">All</option>
+                <option value="10">10</option>
+                <option value="20">20</option>
+                <option value="30">30</option>
+                <option value="40">40</option>
+                <option value="50">50</option>
+                <option value="60">60</option>
+                <option value="65">65</option>
+                <option value="70">70</option>
+                <option value="75">75</option>
+                <option value="80">80</option>
+                <option value="85">85</option>
+                <option value="90">90</option>
+                <option value="95">95</option>
                 <option value="100">100</option>
             </select>&emsp;</span>`
             );
@@ -1160,6 +1187,14 @@
                     console.log("Filter: " + Number(levelFilter.value));
                 }
             });
+            const levelToFilter = document.querySelector("#script_filter_level_select_to");
+            levelToFilter.addEventListener("change", function () {
+                console.log(levelToFilter.value);
+                if (levelToFilter.value && !isNaN(levelToFilter.value)) {
+                    onlyShowItemsBelowLevel = Number(levelToFilter.value);
+                    console.log("Filter: " + Number(levelToFilter.value));
+                }
+            });
             const skillFilter = document.querySelector("#script_filter_skill_select");
             skillFilter.addEventListener("change", function () {
                 if (skillFilter.value) {
@@ -1199,7 +1234,7 @@
             isRequired = true;
         }
 
-        if (itemLevel >= onlyShowItemsAboveLevel && isType && isRequired) {
+        if (itemLevel >= onlyShowItemsAboveLevel && itemLevel < onlyShowItemsBelowLevel && isType && isRequired) {
             div.style.display = "block";
         } else {
             div.style.display = "none";
