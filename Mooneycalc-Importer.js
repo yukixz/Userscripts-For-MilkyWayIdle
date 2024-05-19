@@ -355,7 +355,7 @@
     }
 
     function constructImportJsonObj(obj) {
-        let clientObj = JSON.parse(GM_getValue("init_client", ""));
+        let clientObj = JSON.parse(GM_getValue("init_client_data", ""));
 
         let exportObj = {};
 
