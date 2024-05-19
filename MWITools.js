@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      4.9
+// @version      5.0
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -1396,6 +1396,15 @@
                 div.innerHTML = "强化模拟 Enhancelator";
                 div.addEventListener("click", () => {
                     window.open("https://doh-nuts.github.io/Enhancelator/", "_blank");
+                });
+                targetNode.insertAdjacentElement("afterbegin", div);
+
+                div = document.createElement("div");
+                div.setAttribute("class", "NavigationBar_minorNavigationLink__31K7Y");
+                div.style.color = SCRIPT_COLOR_MAIN;
+                div.innerHTML = "利润计算 Cowculator";
+                div.addEventListener("click", () => {
+                    window.open("https://mwisim.github.io/cowculator/", "_blank");
                 });
                 targetNode.insertAdjacentElement("afterbegin", div);
 
