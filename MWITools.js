@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      4.7
+// @version      4.8
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -115,12 +115,18 @@
 
         let networthAsk = 0;
         let networthBid = 0;
+        let networthAskInv = 0;
+        let networthBidInv = 0;
         for (const item of initData_characterItems) {
             const itemName = initData_itemDetailMap[item.itemHrid].name;
             const marketPrices = marketAPIJson.market[itemName];
             if (marketPrices) {
                 networthAsk += item.count * (marketPrices.ask > 0 ? marketPrices.ask : 0);
                 networthBid += item.count * (marketPrices.bid > 0 ? marketPrices.bid : 0);
+                if (item.itemLocationHrid === "/item_locations/inventory") {
+                    networthAskInv += item.count * (marketPrices.ask > 0 ? marketPrices.ask : 0);
+                    networthBidInv += item.count * (marketPrices.bid > 0 ? marketPrices.bid : 0);
+                }
             }
         }
 
@@ -167,6 +173,18 @@
             }
         };
         waitForHeader();
+
+        const waitForInvInput = () => {
+            const targetNodes = document.querySelectorAll("input.Inventory_inventoryFilterInput__1Kiwh");
+            if (targetNodes.length > 1) {
+                for (const elem of targetNodes) {
+                    elem.placeholder = `仓库价值: ${numberFormatter(networthAskInv)} / ${numberFormatter(networthBidInv)}`;
+                }
+            } else {
+                setTimeout(waitForInvInput, 200);
+            }
+        };
+        waitForInvInput();
     }
 
     /* 显示当前动作总时间 */
