@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Mooneycalc-Importer
 // @namespace    http://tampermonkey.net/
-// @version      4.6
+// @version      4.7
 // @description  For the game MilkyWayIdle. This script imports player info to the following websites. https://mooneycalc.vercel.app/, https://mwisim.github.io/, https://cowculator.info/.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -16,11 +16,7 @@
 // @grant        GM_setValue
 // ==/UserScript==
 
-/* 仅在电脑浏览器上维护，不保证手机使用 */
-/* Mooneycalc-Importer 版本更新发布在: https://greasyfork.org/en/scripts/494468-mooneycalc-importer */
-/* 作者的另一个插件: https://greasyfork.org/en/scripts/494467-mwitools */
-/* 作者的批量战斗模拟网站: http://43.129.194.214:5000/mwisim.github.io */
-/* 作者的游戏内名字: bot7420 */
+/* 插件说明：http://43.129.194.214:5000/readme */
 
 (function () {
     "use strict";
@@ -359,6 +355,8 @@
     }
 
     function constructImportJsonObj(obj) {
+        let clientObj = JSON.parse(GM_getValue("init_client", ""));
+
         let exportObj = {};
 
         exportObj.player = {};
@@ -447,7 +445,7 @@
         ];
         let normalAbillityIndex = 1;
         for (const ability of obj.combatUnit.combatAbilities) {
-            if (ability && ability.abilityHrid.includes("aura")) {
+            if (ability && clientObj.abilityDetailMap[ability.abilityHrid].isSpecialAbility) {
                 exportObj.abilities[0] = {
                     abilityHrid: ability.abilityHrid,
                     level: ability.level,
