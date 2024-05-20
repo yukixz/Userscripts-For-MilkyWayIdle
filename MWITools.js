@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      5.1
+// @version      5.2
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -123,7 +123,7 @@
             if (marketPrices) {
                 networthAsk += item.count * (marketPrices.ask > 0 ? marketPrices.ask : 0);
                 networthBid += item.count * (marketPrices.bid > 0 ? marketPrices.bid : 0);
-                if (item.itemLocationHrid === "/item_locations/inventory") {
+                if (item.itemLocationHrid === "/item_locations/inventory" && itemName !== "Coin") {
                     networthAskInv += item.count * (marketPrices.ask > 0 ? marketPrices.ask : 0);
                     networthBidInv += item.count * (marketPrices.bid > 0 ? marketPrices.bid : 0);
                 }
@@ -177,7 +177,7 @@
         const waitForInvInput = () => {
             const targetNodes = document.querySelectorAll("input.Inventory_inventoryFilterInput__1Kiwh");
             for (const elem of targetNodes) {
-                elem.placeholder = `仓库价值: ${numberFormatter(networthAskInv)} / ${numberFormatter(networthBidInv)}`;
+                elem.placeholder = `物品价值: ${numberFormatter(networthAskInv)} / ${numberFormatter(networthBidInv)}`;
             }
             setTimeout(waitForInvInput, 1000);
         };
