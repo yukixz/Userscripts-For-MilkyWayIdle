@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      5.0
+// @version      5.1
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -217,7 +217,7 @@
             const match = content.match(/\((\d+)\)/);
             if (match) {
                 const numOfTimes = +match[1];
-                const timePerActionSec = +document.querySelector(".ProgressBar_text__102Yn").textContent.match(/[\d\.]+/)[0];
+                const timePerActionSec = +getOriTextFromElement(document.querySelector(".ProgressBar_text__102Yn")).match(/[\d\.]+/)[0];
                 const actionHrid = currentActionsHridList[0].actionHrid;
                 const effBuff = 1 + getTotalEffiPercentage(actionHrid) / 100;
                 const actualNumberOfTimes = Math.round(numOfTimes / effBuff);
@@ -411,16 +411,16 @@
     }
 
     async function handleTooltipItem(tooltip) {
-        const itemNameElem = tooltip.querySelector("div.ItemTooltipText_name__2JAHA");
+        const itemNameElem = tooltip.querySelector("div.ItemTooltipText_name__2JAHA span");
         if (itemNameElem.querySelectorAll("span").length > 1) {
             return; // 不显示带有强化等级的物品
         }
-        const itemName = itemNameElem.textContent;
+        const itemName = getOriTextFromElement(itemNameElem);
         const amountSpan = tooltip.querySelectorAll("span")[1];
         let amount = 0;
         let insertAfterElem = null;
         if (amountSpan) {
-            amount = +amountSpan.textContent.split(": ")[1].replaceAll(",", "");
+            amount = +getOriTextFromElement(amountSpan).split(": ")[1].replaceAll(",", "");
             insertAfterElem = amountSpan.parentNode.nextSibling;
         } else {
             insertAfterElem = tooltip.querySelectorAll("span")[0].parentNode.nextSibling;
@@ -700,9 +700,9 @@
         if (!panel.querySelector("div.SkillActionDetail_expGain__F5xHu")) {
             return; // 不处理战斗ActionPanel
         }
-        const actionName = panel.querySelector("div.SkillActionDetail_name__3erHV").textContent;
-        const exp = Number(panel.querySelector("div.SkillActionDetail_expGain__F5xHu").textContent.replaceAll(",", ""));
-        const duration = Number(panel.querySelectorAll("div.SkillActionDetail_value__dQjYH")[4].textContent.replace("s", ""));
+        const actionName = getOriTextFromElement(panel.querySelector("div.SkillActionDetail_name__3erHV"));
+        const exp = Number(getOriTextFromElement(panel.querySelector("div.SkillActionDetail_expGain__F5xHu")).replaceAll(",", ""));
+        const duration = Number(getOriTextFromElement(panel.querySelectorAll("div.SkillActionDetail_value__dQjYH")[4]).replace("s", ""));
         const inputElem = panel.querySelector("div.SkillActionDetail_maxActionCountInput__1C0Pw input");
 
         const actionHrid = initData_actionDetailMap[getActionHridFromItemName(actionName)].hrid;
@@ -1260,7 +1260,7 @@
     function handleTaskCard() {
         const taskNameDivs = document.querySelectorAll("div.RandomTask_randomTask__3B9fA div.RandomTask_name__1hl1b");
         for (const div of taskNameDivs) {
-            const taskStr = div.textContent;
+            const taskStr = getOriTextFromElement(div);
             if (!taskStr.startsWith("Defeat ")) {
                 continue;
             }
@@ -1318,7 +1318,7 @@
     };
 
     function handleItemDict(panel) {
-        const itemName = panel.querySelector("div.ItemDictionary_title__27cTd").textContent.toLowerCase().replaceAll(" ", "_");
+        const itemName = getOriTextFromElement(panel.querySelector("div.ItemDictionary_title__27cTd")).toLowerCase().replaceAll(" ", "_");
         let abilityHrid = null;
         for (const skillHrid of Object.keys(initData_abilityDetailMap)) {
             if (skillHrid.includes(itemName)) {
@@ -1519,5 +1519,18 @@
         } else {
             document.querySelector("div.QueuedActions_queuedActionsEditMenu__3OoQH").insertAdjacentHTML("afterend", html);
         }
+    }
+
+    /* 支持修改版汉化插件 */
+    function getOriTextFromElement(elem) {
+        if (!elem) {
+            console.error("getTextFromElement null elem");
+            return "";
+        }
+        const translatedfrom = elem.getAttribute("script_translatedfrom");
+        if (translatedfrom) {
+            return translatedfrom;
+        }
+        return elem.textContent;
     }
 })();
