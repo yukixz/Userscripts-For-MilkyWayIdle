@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      5.2
+// @version      5.3
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -1014,7 +1014,7 @@
                         let battles = parseInt(matches[7], 10) - 1; // 排除当前战斗
                         battleDurationSec = days * 86400 + hours * 3600 + minutes * 60 + seconds;
                         let efficiencyPerHour = ((battles / battleDurationSec) * 3600).toFixed(1);
-                        elem.insertAdjacentHTML("afterend", `<div id="script_battleNumbers" style="color: ${SCRIPT_COLOR_MAIN};">平均每小时战斗 ${efficiencyPerHour} 次</div>`);
+                        elem.insertAdjacentHTML("afterend", `<div id="script_battleNumbers" style="color: ${SCRIPT_COLOR_MAIN};">每小时战斗 ${efficiencyPerHour} 次</div>`);
                     }
                 }
                 // 总收入
@@ -1030,16 +1030,24 @@
                         .querySelector("div#script_totalIncome")
                         .insertAdjacentHTML(
                             "afterend",
-                            `<div id="script_averageIncome" style="color: ${SCRIPT_COLOR_MAIN};">平均每小时收获: ${numberFormatter(totalPriceAsk / (battleDurationSec / 60 / 60))} / ${numberFormatter(
+                            `<div id="script_averageIncome" style="color: ${SCRIPT_COLOR_MAIN};">每小时收获: ${numberFormatter(totalPriceAsk / (battleDurationSec / 60 / 60))} / ${numberFormatter(
                                 totalPriceAskBid / (battleDurationSec / 60 / 60)
                             )}</div>`
+                        );
+                    document
+                        .querySelector("div#script_averageIncome")
+                        .insertAdjacentHTML(
+                            "afterend",
+                            `<div id="script_totalIncomeDay" style="color: ${SCRIPT_COLOR_MAIN};">每天收获: ${numberFormatter(
+                                (totalPriceAsk / (battleDurationSec / 60 / 60)) * 24
+                            )} / ${numberFormatter((totalPriceAskBid / (battleDurationSec / 60 / 60)) * 24)}</div>`
                         );
                 } else {
                     console.error("handleBattleSummary unable to display average income due to null battleDurationSec");
                 }
                 // 总经验
                 document
-                    .querySelector("div#script_averageIncome")
+                    .querySelector("div#script_totalIncomeDay")
                     .insertAdjacentHTML("afterend", `<div id="script_totalSkillsExp" style="color: ${SCRIPT_COLOR_MAIN};">总经验: ${numberFormatter(totalSkillsExp)}</div>`);
                 // 平均经验
                 if (battleDurationSec) {
@@ -1047,7 +1055,7 @@
                         .querySelector("div#script_totalSkillsExp")
                         .insertAdjacentHTML(
                             "afterend",
-                            `<div id="script_averageSkillsExp" style="color: ${SCRIPT_COLOR_MAIN};">平均每小时总经验: ${numberFormatter(totalSkillsExp / (battleDurationSec / 60 / 60))}</div>`
+                            `<div id="script_averageSkillsExp" style="color: ${SCRIPT_COLOR_MAIN};">每小时总经验: ${numberFormatter(totalSkillsExp / (battleDurationSec / 60 / 60))}</div>`
                         );
 
                     for (const [key, value] of Object.entries(message.unit.totalSkillExperienceMap)) {
@@ -1057,7 +1065,7 @@
                             .querySelector("div#script_totalSkillsExp")
                             .parentElement.insertAdjacentHTML(
                                 "beforeend",
-                                `<div style="color: ${SCRIPT_COLOR_MAIN};">平均每小时${str}经验: ${numberFormatter(value / (battleDurationSec / 60 / 60))}</div>`
+                                `<div style="color: ${SCRIPT_COLOR_MAIN};">每小时${str}经验: ${numberFormatter(value / (battleDurationSec / 60 / 60))}</div>`
                             );
                     }
                 } else {
