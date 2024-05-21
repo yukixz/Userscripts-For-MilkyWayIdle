@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      5.6
+// @version      5.7
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -1584,7 +1584,6 @@
     }
 
     async function findBestEnhanceStrat(input_data) {
-        console.log(input_data);
         const price_data = await fetchMarketJSON();
         if (!price_data || !price_data.market) {
             console.error("findBestEnhanceStrat fetchMarketJSON null");
@@ -1603,7 +1602,6 @@
             r.totalCost = totalCost;
             allResults.push(r);
         }
-        console.log(allResults);
 
         let best = null;
         for (const r of allResults) {
@@ -1611,6 +1609,7 @@
                 best = r;
             }
         }
+        console.log(best);
         return best;
     }
 
@@ -1693,8 +1692,8 @@
 
     // 强化模拟输入参数
     let input_data = {
-        item_hrid: "/items/infernal_battlestaff",
-        stop_at: 10,
+        item_hrid: null,
+        stop_at: null,
 
         enhancing_level: 90, // 人物 Enhancing 技能等级
         laboratory_level: 2, // 房子等级
