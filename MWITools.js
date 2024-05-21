@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      5.4
+// @version      5.5
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -1574,7 +1574,7 @@
         input_data.stop_at = enhancementLevel;
         const best = await findBestEnhanceStrat(input_data);
 
-        const appendHTMLStr = `<div style="color: ${SCRIPT_COLOR_TOOLTIP};"><div>强化模拟（默认90级强化，3级房子，5级工具，0级手套，超级茶，幸运茶，卖单价收货，无工时费）：</div><div>总价值 ${numberFormatter(
+        const appendHTMLStr = `<div style="color: ${SCRIPT_COLOR_TOOLTIP};"><div>强化模拟（默认90级强化，3级房子，5级工具，0级手套，超级茶，幸运茶，卖单价收货，无工时费）：</div><div>总成本 ${numberFormatter(
             best.totalCost.toFixed(0)
         )}</div><div>耗时 ${best.simResult.totalActionTimeStr}</div><div>从 ${best.protect_at} 级开始保护</div></div>`;
         tooltip.querySelector(".ItemTooltipText_itemTooltipText__zFq3A").insertAdjacentHTML("beforeend", appendHTMLStr);
