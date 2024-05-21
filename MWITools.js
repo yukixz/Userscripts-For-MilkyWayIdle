@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      5.3
+// @version      5.4
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -9,6 +9,7 @@
 // @grant        GM_addStyle
 // @grant        GM_xmlhttpRequest
 // @connect      raw.githubusercontent.com
+// @require      https://cdnjs.cloudflare.com/ajax/libs/mathjs/12.4.2/math.js
 // ==/UserScript==
 
 /* 插件说明见游戏左侧栏下方绿字链接 */
@@ -411,10 +412,12 @@
     }
 
     async function handleTooltipItem(tooltip) {
-        const itemNameElem = tooltip.querySelector("div.ItemTooltipText_name__2JAHA span");
-        if (itemNameElem.querySelectorAll("span").length > 1) {
-            return; // 不显示带有强化等级的物品
+        const itemNameElems = tooltip.querySelectorAll("div.ItemTooltipText_name__2JAHA span");
+        if (itemNameElems.length > 1) {
+            handleItemTooltipWithEnhancementLevel(tooltip);
+            return;
         }
+        const itemNameElem = itemNameElems[0];
         const itemName = getOriTextFromElement(itemNameElem);
         const amountSpan = tooltip.querySelectorAll("span")[1];
         let amount = 0;
@@ -1540,5 +1543,204 @@
             return translatedfrom;
         }
         return elem.textContent;
+    }
+
+    /* 强化模拟器 */
+    async function handleItemTooltipWithEnhancementLevel(tooltip) {
+        if (typeof math === "undefined") {
+            console.error(`handleItemTooltipWithEnhancementLevel no math lib`);
+            tooltip
+                .querySelector(".ItemTooltipText_itemTooltipText__zFq3A")
+                .insertAdjacentHTML("beforeend", `<div style="color: red;">由于网络问题无法强化模拟: 1. 手机可能不支持脚本联网；2. 请尝试科学网络；</div>`);
+            return;
+        }
+
+        const itemNameElems = tooltip.querySelectorAll("div.ItemTooltipText_name__2JAHA span");
+        const itemName = getOriTextFromElement(itemNameElems[0]);
+        const enhancementLevel = Number(itemNameElems[1].textContent.replace("+", ""));
+
+        let itemHrid = null;
+        for (const item of Object.values(initData_itemDetailMap)) {
+            if (item.name === itemName) {
+                itemHrid = item.hrid;
+            }
+        }
+        if (!itemHrid || !initData_itemDetailMap[itemHrid]) {
+            console.error(`handleItemTooltipWithEnhancementLevel invalid itemHrid ${itemName} ${itemHrid}`);
+            return;
+        }
+
+        input_data.item_hrid = itemHrid;
+        input_data.stop_at = enhancementLevel;
+        const best = await findBestEnhanceStrat(input_data);
+
+        const appendHTMLStr = `<div style="color: ${SCRIPT_COLOR_TOOLTIP};"><div>强化模拟（默认90级强化，3级房子，5级工具，0级手套，超级茶，幸运茶，卖单价收货，无工时费）：</div><div>总价值 ${numberFormatter(
+            best.totalCost.toFixed(0)
+        )}</div><div>耗时 ${best.simResult.totalActionTimeStr}</div><div>从 ${best.protect_at} 级开始保护</div></div>`;
+        tooltip.querySelector(".ItemTooltipText_itemTooltipText__zFq3A").insertAdjacentHTML("beforeend", appendHTMLStr);
+    }
+
+    async function findBestEnhanceStrat(input_data) {
+        console.log(input_data);
+        const price_data = await fetchMarketJSON();
+        if (!price_data || !price_data.market) {
+            console.error("findBestEnhanceStrat fetchMarketJSON null");
+            return [];
+        }
+
+        const allResults = [];
+        for (let protect_at = 2; protect_at <= input_data.stop_at; protect_at++) {
+            const simResult = Enhancelate(input_data, protect_at);
+            const costs = getCosts(input_data.item_hrid, price_data);
+            const totalCost = costs.baseCost + costs.minProtectionCost * simResult.protect_count + costs.perActionCost * simResult.actions;
+            const r = {};
+            r.protect_at = protect_at;
+            r.simResult = simResult;
+            r.costs = costs;
+            r.totalCost = totalCost;
+            allResults.push(r);
+        }
+        console.log(allResults);
+
+        let best = null;
+        for (const r of allResults) {
+            if (best === null || r.totalCost < best.totalCost) {
+                best = r;
+            }
+        }
+        return best;
+    }
+
+    // https://github.com/doh-nuts/Enhancelator
+    function Enhancelate(input_data, protect_at) {
+        const success_rate = [
+            50, //+1
+            45, //+2
+            45, //+3
+            40, //+4
+            40, //+5
+            40, //+6
+            35, //+7
+            35, //+8
+            35, //+9
+            35, //+10
+            30, //+11
+            30, //+12
+            30, //+13
+            30, //+14
+            30, //+15
+            30, //+16
+            30, //+17
+            30, //+18
+            30, //+19
+            30, //+20
+        ];
+
+        // 物品等级
+        const itemLevel = initData_itemDetailMap[input_data.item_hrid].itemLevel;
+
+        // 总强化buff
+        let total_bonus = null;
+        const effective_level = input_data.enhancing_level + (input_data.tea_enhancing ? 3 : 0) + (input_data.tea_super_enhancing ? 6 : 0);
+        if (effective_level >= itemLevel) {
+            total_bonus = 1 + (0.05 * (effective_level + input_data.laboratory_level - itemLevel) + input_data.enhancer_bonus) / 100;
+        } else {
+            total_bonus = 1 - 0.5 * (1 - effective_level / itemLevel) + (0.05 * input_data.laboratory_level + input_data.enhancer_bonus) / 100;
+        }
+
+        // 模拟
+        let markov = math.zeros(20, 20);
+        for (let i = 0; i < input_data.stop_at; i++) {
+            const success_chance = (success_rate[i] / 100.0) * total_bonus;
+            const destination = i >= protect_at ? i - 1 : 0;
+            if (input_data.tea_blessed) {
+                markov.set([i, i + 2], success_chance * 0.01);
+                markov.set([i, i + 1], success_chance * 0.99);
+                markov.set([i, destination], 1 - success_chance);
+            } else {
+                markov.set([i, i + 1], success_chance);
+                markov.set([i, destination], 1.0 - success_chance);
+            }
+        }
+        markov.set([input_data.stop_at, input_data.stop_at], 1.0);
+        let Q = markov.subset(math.index(math.range(0, input_data.stop_at), math.range(0, input_data.stop_at)));
+        const M = math.inv(math.subtract(math.identity(input_data.stop_at), Q));
+        const attemptsArray = M.subset(math.index(math.range(0, 1), math.range(0, input_data.stop_at)));
+        const attempts = math.flatten(math.row(attemptsArray, 0).valueOf()).reduce((a, b) => a + b, 0);
+        const protectAttempts = M.subset(math.index(math.range(0, 1), math.range(protect_at, input_data.stop_at)));
+        const protectAttemptsArray = typeof protectAttempts === "number" ? [protectAttempts] : math.flatten(math.row(protectAttempts, 0).valueOf());
+        const protects = protectAttemptsArray.map((a, i) => a * markov.get([i + protect_at, i + protect_at - 1])).reduce((a, b) => a + b, 0);
+
+        // 动作时间
+        const perActionTimeSec = (
+            12 /
+            (1 +
+                (input_data.enhancing_level > itemLevel
+                    ? (effective_level + input_data.laboratory_level - itemLevel + input_data.glove_bonus) / 100
+                    : (input_data.laboratory_level + input_data.glove_bonus) / 100))
+        ).toFixed(2);
+
+        const result = {};
+        result.actions = attempts;
+        result.protect_count = protects;
+        result.totalActionTimeSec = perActionTimeSec * attempts;
+        result.totalActionTimeStr = timeReadable(result.totalActionTimeSec);
+        return result;
+    }
+
+    // 强化模拟输入参数
+    let input_data = {
+        item_hrid: "/items/infernal_battlestaff",
+        stop_at: 10,
+
+        enhancing_level: 90, // 人物 Enhancing 技能等级
+        laboratory_level: 3, // 房子等级
+        enhancer_bonus: 4.03, // 工具提高成功率，0级=3.6，5级=4.03，10级=4.64
+        glove_bonus: 10, // 手套提高强化速度，0级=10，5级=11.2，10级=12.9
+
+        tea_enhancing: false, // 强化茶
+        tea_super_enhancing: true, // 超级强化茶
+        tea_blessed: true, // 祝福茶
+
+        priceAskBidRatio: 1, // 取市场卖单价买单价比例，1=只用卖单价，0=只用买单价
+    };
+
+    function getCosts(hrid, price_data) {
+        const itemDetalObj = initData_itemDetailMap[hrid];
+        // +0本体成本
+        let baseCost = null;
+
+        // 保护成本
+        let minProtectionPrice = null;
+        let minProtectionHrid = null;
+        let protect_item_hrids = itemDetalObj.protectionItemHrids == null ? [hrid, "/items/mirror_of_protection"] : [hrid, "/items/mirror_of_protection"].concat(itemDetalObj.protectionItemHrids);
+        protect_item_hrids.forEach((protection_hrid, i) => {
+            const this_cost = get_full_item_price(protection_hrid, price_data);
+            if (i == 0) {
+                baseCost = this_cost;
+                minProtectionPrice = this_cost;
+                minProtectionHrid = protection_hrid;
+            } else {
+                if (this_cost < minProtectionPrice) {
+                    minProtectionPrice = this_cost;
+                    minProtectionHrid = protection_hrid;
+                }
+            }
+        });
+
+        // 强化材料成本
+        let totalNeedPrice = 0;
+        for (const need of itemDetalObj.enhancementCosts) {
+            totalNeedPrice += get_full_item_price(need.itemHrid, price_data) * need.count;
+        }
+
+        return { baseCost: baseCost, minProtectionCost: minProtectionPrice, perActionCost: totalNeedPrice, choiceOfProtection: minProtectionHrid };
+    }
+
+    function get_full_item_price(hrid, price_data) {
+        const fullName = initData_itemDetailMap[hrid].name;
+        const item_price_data = price_data.market[fullName];
+        let final_cost = item_price_data.ask * input_data.priceAskBidRatio + item_price_data.bid * (1 - input_data.priceAskBidRatio);
+        return final_cost;
     }
 })();
