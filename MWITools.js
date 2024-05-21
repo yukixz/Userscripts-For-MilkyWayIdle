@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      5.5
+// @version      5.6
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -220,7 +220,10 @@
                 const numOfTimes = +match[1];
                 const timePerActionSec = +getOriTextFromElement(document.querySelector(".ProgressBar_text__102Yn")).match(/[\d\.]+/)[0];
                 const actionHrid = currentActionsHridList[0].actionHrid;
-                const effBuff = 1 + getTotalEffiPercentage(actionHrid) / 100;
+                let effBuff = 1 + getTotalEffiPercentage(actionHrid) / 100;
+                if (actionHrid.includes("enhanc")) {
+                    effBuff = 1;
+                }
                 const actualNumberOfTimes = Math.round(numOfTimes / effBuff);
                 const totalTimeSeconds = actualNumberOfTimes * timePerActionSec;
                 totalTimeStr = " [" + timeReadable(totalTimeSeconds) + "]";
@@ -1574,7 +1577,7 @@
         input_data.stop_at = enhancementLevel;
         const best = await findBestEnhanceStrat(input_data);
 
-        const appendHTMLStr = `<div style="color: ${SCRIPT_COLOR_TOOLTIP};"><div>强化模拟（默认90级强化，3级房子，5级工具，0级手套，超级茶，幸运茶，卖单价收货，无工时费）：</div><div>总成本 ${numberFormatter(
+        const appendHTMLStr = `<div style="color: ${SCRIPT_COLOR_TOOLTIP};"><div>强化模拟（默认90级强化，2级房子，5级工具，0级手套，超级茶，幸运茶，卖单价收货，无工时费）：</div><div>总成本 ${numberFormatter(
             best.totalCost.toFixed(0)
         )}</div><div>耗时 ${best.simResult.totalActionTimeStr}</div><div>从 ${best.protect_at} 级开始保护</div></div>`;
         tooltip.querySelector(".ItemTooltipText_itemTooltipText__zFq3A").insertAdjacentHTML("beforeend", appendHTMLStr);
@@ -1611,7 +1614,7 @@
         return best;
     }
 
-    // https://github.com/doh-nuts/Enhancelator
+    // Source: https://doh-nuts.github.io/Enhancelator/
     function Enhancelate(input_data, protect_at) {
         const success_rate = [
             50, //+1
@@ -1694,7 +1697,7 @@
         stop_at: 10,
 
         enhancing_level: 90, // 人物 Enhancing 技能等级
-        laboratory_level: 3, // 房子等级
+        laboratory_level: 2, // 房子等级
         enhancer_bonus: 4.03, // 工具提高成功率，0级=3.6，5级=4.03，10级=4.64
         glove_bonus: 10, // 手套提高强化速度，0级=10，5级=11.2，10级=12.9
 
