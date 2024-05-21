@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      5.7
+// @version      5.8
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -842,7 +842,7 @@
             const baseTimePerActionSec = initData_actionDetailMap[actionHrid].baseTimeCost / 1000000000;
             const toolPercent = getToolsSpeedBuffByActionHrid(actionHrid);
             const actualTimePerActionSec = baseTimePerActionSec / (1 + toolPercent / 100);
-            const numOfActionsPerHour = 3600 / actualTimePerActionSec;
+            let numOfActionsPerHour = 3600 / actualTimePerActionSec;
             let dropTable = initData_actionDetailMap[actionHrid].dropTable;
             let virtualItemBid = 0;
             for (const drop of dropTable) {
