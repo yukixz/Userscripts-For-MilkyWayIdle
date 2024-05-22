@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      5.8
+// @version      5.9
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -23,7 +23,101 @@
     const SCRIPT_COLOR_MAIN = "green"; // 脚本主要字体颜色
     const SCRIPT_COLOR_TOOLTIP = "darkgreen"; // 物品悬浮窗的字体颜色
 
-    const MARKET_JSON_LOCAL_BACKUP = `{"time":1715547603,"market":{"Amber":{"ask":6600,"bid":6200},"Amethyst":{"ask":94000,"bid":90000},"Apple":{"ask":6,"bid":5},"Apple Gummy":{"ask":16,"bid":10},"Apple Yogurt":{"ask":260,"bid":72},"Aqua Arrow":{"ask":22500,"bid":20500},"Aqua Essence":{"ask":28,"bid":18},"Arabica Coffee Bean":{"ask":125,"bid":115},"Arcane Bow":{"ask":250000,"bid":150000},"Arcane Crossbow":{"ask":230000,"bid":160000},"Arcane Fire Staff":{"ask":280000,"bid":-1},"Arcane Log":{"ask":260,"bid":205},"Arcane Lumber":{"ask":880,"bid":820},"Arcane Nature Staff":{"ask":270000,"bid":190000},"Arcane Water Staff":{"ask":280000,"bid":-1},"Artisan Tea":{"ask":680,"bid":540},"Attack Coffee":{"ask":500,"bid":360},"Azure Boots":{"ask":-1,"bid":12500},"Azure Brush":{"ask":49000,"bid":2100},"Azure Buckler":{"ask":11500,"bid":-1},"Azure Bulwark":{"ask":50000,"bid":-1},"Azure Cheese":{"ask":295,"bid":250},"Azure Chisel":{"ask":25500,"bid":-1},"Azure Enhancer":{"ask":49000,"bid":-1},"Azure Gauntlets":{"ask":35000,"bid":20500},"Azure Hammer":{"ask":21500,"bid":-1},"Azure Hatchet":{"ask":50000,"bid":-1},"Azure Helmet":{"ask":42000,"bid":14500},"Azure Mace":{"ask":-1,"bid":9600},"Azure Milk":{"ask":88,"bid":60},"Azure Needle":{"ask":21000,"bid":-1},"Azure Plate Body":{"ask":46000,"bid":16000},"Azure Plate Legs":{"ask":52000,"bid":16500},"Azure Pot":{"ask":30000,"bid":-1},"Azure Shears":{"ask":19500,"bid":-1},"Azure Spatula":{"ask":46000,"bid":2100},"Azure Spear":{"ask":-1,"bid":18500},"Azure Sword":{"ask":48000,"bid":-1},"Bamboo Boots":{"ask":41000,"bid":-1},"Bamboo Branch":{"ask":46,"bid":36},"Bamboo Fabric":{"ask":300,"bid":270},"Bamboo Gloves":{"ask":26500,"bid":-1},"Bamboo Hat":{"ask":15000,"bid":-1},"Bamboo Robe Bottoms":{"ask":20000,"bid":10000},"Bamboo Robe Top":{"ask":34000,"bid":-1},"Bear Essence":{"ask":70,"bid":56},"Beast Boots":{"ask":29000,"bid":-1},"Beast Bracers":{"ask":34000,"bid":-1},"Beast Chaps":{"ask":80000,"bid":30000},"Beast Hide":{"ask":21,"bid":20},"Beast Hood":{"ask":100000,"bid":30000},"Beast Leather":{"ask":300,"bid":265},"Beast Tunic":{"ask":185000,"bid":30000},"Berserk":{"ask":350000,"bid":310000},"Birch Bow":{"ask":28000,"bid":-1},"Birch Crossbow":{"ask":-1,"bid":-1},"Birch Fire Staff":{"ask":45000,"bid":800},"Birch Log":{"ask":62,"bid":56},"Birch Lumber":{"ask":265,"bid":100},"Birch Nature Staff":{"ask":22500,"bid":860},"Birch Water Staff":{"ask":28000,"bid":-1},"Black Bear Fluff":{"ask":50000,"bid":46000},"Black Bear Shoes":{"ask":440000,"bid":60000},"Black Tea Leaf":{"ask":26,"bid":21},"Blackberry":{"ask":32,"bid":24},"Blackberry Cake":{"ask":360,"bid":320},"Blackberry Donut":{"ask":330,"bid":90},"Blessed Tea":{"ask":840,"bid":700},"Blueberry":{"ask":27,"bid":20},"Blueberry Cake":{"ask":190,"bid":92},"Blueberry Donut":{"ask":175,"bid":82},"Brewing Tea":{"ask":49,"bid":22},"Burble Brush":{"ask":62000,"bid":10000},"Burble Buckler":{"ask":16000,"bid":-1},"Burble Bulwark":{"ask":29500,"bid":-1},"Burble Chisel":{"ask":45000,"bid":25500},"Burble Enhancer":{"ask":62000,"bid":5200},"Burble Gauntlets":{"ask":45000,"bid":20000},"Burble Hatchet":{"ask":64000,"bid":25000},"Burble Helmet":{"ask":54000,"bid":25000},"Burble Mace":{"ask":49000,"bid":25000},"Burble Needle":{"ask":38000,"bid":25000},"Burble Plate Body":{"ask":80000,"bid":13500},"Burble Pot":{"ask":66000,"bid":25000},"Burble Shears":{"ask":54000,"bid":-1},"Burble Spatula":{"ask":66000,"bid":25000},"Burble Sword":{"ask":-1,"bid":31000},"Burble Tea Leaf":{"ask":98,"bid":76},"Cedar Bow":{"ask":56000,"bid":-1},"Cedar Fire Staff":{"ask":30000,"bid":-1},"Cedar Log":{"ask":94,"bid":32},"Cedar Lumber":{"ask":330,"bid":300},"Cedar Water Staff":{"ask":45000,"bid":-1},"Centaur Boots":{"ask":1500000,"bid":-1},"Centaur Hoof":{"ask":150000,"bid":125000},"Cheese Boots":{"ask":-1,"bid":-1},"Cheese Brush":{"ask":6400,"bid":120},"Cheese Buckler":{"ask":960,"bid":-1},"Cheese Chisel":{"ask":3900,"bid":1850},"Cheese Enhancer":{"ask":2450,"bid":115},"Cheese Gauntlets":{"ask":2500,"bid":-1},"Cheese Hammer":{"ask":3600,"bid":160},"Cheese Helmet":{"ask":25000,"bid":-1},"Cheese Mace":{"ask":6800,"bid":-1},"Cheese Plate Body":{"ask":17500,"bid":150},"Cheese Plate Legs":{"ask":14000,"bid":-1},"Cheese Pot":{"ask":3900,"bid":360},"Cheese Spatula":{"ask":4300,"bid":720},"Cheese Spear":{"ask":18000,"bid":1000},"Cheese Sword":{"ask":6800,"bid":175},"Cleave":{"ask":130000,"bid":90000},"Cocoon":{"ask":150,"bid":115},"Coin":{"ask":-1,"bid":-1},"Cotton":{"ask":12,"bid":9},"Cotton Boots":{"ask":880,"bid":-1},"Cotton Fabric":{"ask":195,"bid":70},"Cotton Hat":{"ask":1250,"bid":-1},"Cotton Robe Bottoms":{"ask":7800,"bid":-1},"Cotton Robe Top":{"ask":-1,"bid":-1},"Crab Pincer":{"ask":15000,"bid":14000},"Crafting Tea":{"ask":680,"bid":44},"Crimson Boots":{"ask":38000,"bid":-1},"Crimson Buckler":{"ask":96000,"bid":-1},"Crimson Bulwark":{"ask":34000,"bid":-1},"Crimson Cheese":{"ask":390,"bid":300},"Crimson Enhancer":{"ask":50000,"bid":11000},"Crimson Gauntlets":{"ask":100000,"bid":30000},"Crimson Hammer":{"ask":50000,"bid":40000},"Crimson Helmet":{"ask":44000,"bid":38000},"Crimson Mace":{"ask":94000,"bid":50000},"Crimson Milk":{"ask":80,"bid":62},"Crimson Plate Body":{"ask":82000,"bid":47000},"Crimson Plate Legs":{"ask":80000,"bid":-1},"Crimson Pot":{"ask":58000,"bid":40000},"Crimson Spatula":{"ask":78000,"bid":40000},"Crimson Spear":{"ask":250000,"bid":70000},"Crimson Sword":{"ask":150000,"bid":70000},"Crushed Amber":{"ask":420,"bid":360},"Crushed Amethyst":{"ask":6200,"bid":5200},"Crushed Garnet":{"ask":1100,"bid":980},"Crushed Moonstone":{"ask":1800,"bid":1750},"Crushed Pearl":{"ask":1300,"bid":1000},"Cupcake":{"ask":195,"bid":105},"Donut":{"ask":150,"bid":39},"Dragon Fruit":{"ask":130,"bid":115},"Dragon Fruit Gummy":{"ask":410,"bid":370},"Earrings Of Armor":{"ask":4900000,"bid":1050000},"Earrings Of Gathering":{"ask":3800000,"bid":110000},"Earrings Of Regeneration":{"ask":6200000,"bid":3200000},"Earrings Of Resistance":{"ask":3500000,"bid":500000},"Efficiency Tea":{"ask":640,"bid":580},"Elemental Affinity":{"ask":620000,"bid":560000},"Emp Tea Leaf":{"ask":94,"bid":82},"Enhancing Tea":{"ask":275,"bid":190},"Excelsa Coffee Bean":{"ask":280,"bid":265},"Eyessence":{"ask":56,"bid":38},"Fieriosa Coffee Bean":{"ask":220,"bid":215},"Fireball":{"ask":11500,"bid":11000},"Flame Arrow":{"ask":19500,"bid":17500},"Flame Blast":{"ask":155000,"bid":145000},"Flaming Cloth":{"ask":41000,"bid":39000},"Flaming Robe Top":{"ask":470000,"bid":80000},"Flax":{"ask":90,"bid":35},"Foraging Tea":{"ask":350,"bid":45},"Garnet":{"ask":17000,"bid":15000},"Gathering Tea":{"ask":370,"bid":280},"Giant Pouch":{"ask":6000000,"bid":5200000},"Ginkgo Bow":{"ask":92000,"bid":-1},"Ginkgo Crossbow":{"ask":100000,"bid":-1},"Ginkgo Log":{"ask":62,"bid":50},"Ginkgo Lumber":{"ask":490,"bid":280},"Ginkgo Nature Staff":{"ask":92000,"bid":-1},"Gobo Boomstick":{"ask":20500,"bid":-1},"Gobo Boots":{"ask":40000,"bid":10500},"Gobo Bracers":{"ask":25000,"bid":-1},"Gobo Essence":{"ask":41,"bid":28},"Gobo Hide":{"ask":17,"bid":13},"Gobo Hood":{"ask":24000,"bid":-1},"Gobo Shooter":{"ask":20500,"bid":-1},"Gobo Slasher":{"ask":36000,"bid":20000},"Gobo Smasher":{"ask":20500,"bid":-1},"Gobo Tunic":{"ask":34000,"bid":30000},"Goggles":{"ask":50000,"bid":46000},"Golem Essence":{"ask":230,"bid":200},"Granite Bludgeon":{"ask":-1,"bid":39000000},"Green Tea Leaf":{"ask":25,"bid":13},"Grizzly Bear Fluff":{"ask":46000,"bid":42000},"Gummy":{"ask":380,"bid":42},"Heal":{"ask":210000,"bid":155000},"Holy Boots":{"ask":100000,"bid":-1},"Holy Buckler":{"ask":74000,"bid":-1},"Holy Bulwark":{"ask":205000,"bid":-1},"Holy Cheese":{"ask":840,"bid":780},"Holy Enhancer":{"ask":160000,"bid":125000},"Holy Gauntlets":{"ask":190000,"bid":-1},"Holy Hammer":{"ask":185000,"bid":130000},"Holy Helmet":{"ask":125000,"bid":-1},"Holy Mace":{"ask":270000,"bid":-1},"Holy Milk":{"ask":300,"bid":290},"Holy Plate Body":{"ask":290000,"bid":210000},"Holy Plate Legs":{"ask":-1,"bid":-1},"Holy Pot":{"ask":240000,"bid":105000},"Holy Spatula":{"ask":190000,"bid":155000},"Holy Spear":{"ask":200000,"bid":150000},"Holy Sword":{"ask":165000,"bid":160000},"Icy Cloth":{"ask":21500,"bid":17500},"Icy Robe Bottoms":{"ask":86000,"bid":60000},"Icy Robe Top":{"ask":120000,"bid":70000},"Jade":{"ask":35000,"bid":32000},"Jungle Essence":{"ask":54,"bid":27},"Large Artisan's Crate":{"ask":-1,"bid":-1},"Large Pouch":{"ask":960000,"bid":600000},"Large Treasure Chest":{"ask":-1,"bid":-1},"Liberica Coffee Bean":{"ask":230,"bid":210},"Linen Boots":{"ask":35000,"bid":680},"Linen Gloves":{"ask":13000,"bid":5000},"Linen Hat":{"ask":9800,"bid":-1},"Linen Robe Bottoms":{"ask":21000,"bid":1500},"Living Granite":{"ask":2400000,"bid":1950000},"Log":{"ask":25,"bid":18},"Lucky Coffee":{"ask":820,"bid":800},"Magic Coffee":{"ask":450,"bid":420},"Magnet":{"ask":125000,"bid":94000},"Magnifying Glass":{"ask":540000,"bid":310000},"Maim":{"ask":140000,"bid":72000},"Marsberry":{"ask":36,"bid":30},"Marsberry Donut":{"ask":490,"bid":460},"Medium Artisan's Crate":{"ask":-1,"bid":-1},"Medium Meteorite Cache":{"ask":-1,"bid":-1},"Medium Treasure Chest":{"ask":-1,"bid":-1},"Milk":{"ask":32,"bid":27},"Milking Tea":{"ask":300,"bid":125},"Minor Heal":{"ask":36000,"bid":6600},"Mooberry":{"ask":52,"bid":42},"Mooberry Cake":{"ask":360,"bid":290},"Mooberry Donut":{"ask":-1,"bid":215},"Moonstone":{"ask":43000,"bid":39000},"Necklace Of Efficiency":{"ask":-1,"bid":-1},"Necklace Of Wisdom":{"ask":7800000,"bid":5800000},"Orange Gummy":{"ask":25,"bid":21},"Orange Yogurt":{"ask":215,"bid":80},"Panda Gloves":{"ask":380000,"bid":-1},"Peach":{"ask":31,"bid":18},"Peach Gummy":{"ask":280,"bid":230},"Pearl":{"ask":16000,"bid":13000},"Pierce":{"ask":60000,"bid":48000},"Pincer Gloves":{"ask":48000,"bid":10000},"Plum":{"ask":68,"bid":56},"Plum Yogurt":{"ask":300,"bid":240},"Poke":{"ask":5200,"bid":5000},"Power Coffee":{"ask":520,"bid":420},"Precision":{"ask":39000,"bid":19000},"Purpleheart Bow":{"ask":78000,"bid":10000},"Purpleheart Crossbow":{"ask":-1,"bid":-1},"Purpleheart Fire Staff":{"ask":50000,"bid":-1},"Purpleheart Lumber":{"ask":400,"bid":300},"Purpleheart Nature Staff":{"ask":100000,"bid":-1},"Purpleheart Water Staff":{"ask":78000,"bid":-1},"Quick Shot":{"ask":4000,"bid":2800},"Radiant Fabric":{"ask":700,"bid":640},"Radiant Fiber":{"ask":125,"bid":100},"Radiant Gloves":{"ask":78000,"bid":-1},"Radiant Robe Bottoms":{"ask":180000,"bid":130000},"Radiant Robe Top":{"ask":185000,"bid":165000},"Rain Of Arrows":{"ask":260000,"bid":245000},"Rainbow Brush":{"ask":70000,"bid":30000},"Rainbow Buckler":{"ask":35000,"bid":-1},"Rainbow Bulwark":{"ask":66000,"bid":-1},"Rainbow Chisel":{"ask":120000,"bid":56000},"Rainbow Enhancer":{"ask":84000,"bid":54000},"Rainbow Gauntlets":{"ask":190000,"bid":25000},"Rainbow Hatchet":{"ask":120000,"bid":31000},"Rainbow Helmet":{"ask":84000,"bid":-1},"Rainbow Mace":{"ask":135000,"bid":-1},"Rainbow Needle":{"ask":115000,"bid":30000},"Rainbow Plate Body":{"ask":86000,"bid":62000},"Rainbow Plate Legs":{"ask":160000,"bid":-1},"Rainbow Shears":{"ask":115000,"bid":31000},"Rainbow Spatula":{"ask":120000,"bid":60000},"Rainbow Spear":{"ask":105000,"bid":74000},"Ranged Coffee":{"ask":560,"bid":470},"Ranger Necklace":{"ask":6000000,"bid":5000000},"Red Tea Leaf":{"ask":54,"bid":48},"Redwood Crossbow":{"ask":200000,"bid":-1},"Redwood Fire Staff":{"ask":86000,"bid":-1},"Redwood Log":{"ask":31,"bid":27},"Redwood Nature Staff":{"ask":-1,"bid":-1},"Redwood Water Staff":{"ask":88000,"bid":-1},"Reptile Boots":{"ask":7400,"bid":-1},"Reptile Chaps":{"ask":48000,"bid":1100},"Reptile Hide":{"ask":10,"bid":8},"Reptile Hood":{"ask":8200,"bid":-1},"Reptile Tunic":{"ask":18000,"bid":-1},"Ring Of Armor":{"ask":-1,"bid":1200000},"Ring Of Gathering":{"ask":5400000,"bid":1200000},"Ring Of Regeneration":{"ask":6400000,"bid":3600000},"Ring Of Resistance":{"ask":2650000,"bid":1600000},"Robusta Coffee Bean":{"ask":190,"bid":165},"Rough Bracers":{"ask":4000,"bid":-1},"Rough Chaps":{"ask":3000,"bid":-1},"Rough Hide":{"ask":68,"bid":43},"Rough Leather":{"ask":250,"bid":220},"Rough Tunic":{"ask":1000,"bid":-1},"Scratch":{"ask":4400,"bid":2900},"Silk Boots":{"ask":30000,"bid":-1},"Silk Fabric":{"ask":640,"bid":560},"Silk Gloves":{"ask":80000,"bid":-1},"Silk Robe Bottoms":{"ask":88000,"bid":58000},"Silk Robe Top":{"ask":245000,"bid":54000},"Smack":{"ask":8800,"bid":8000},"Small Meteorite Cache":{"ask":-1,"bid":-1},"Small Pouch":{"ask":17000,"bid":-1},"Snail Shell":{"ask":6600,"bid":3000},"Snail Shell Helmet":{"ask":13500,"bid":-1},"Snake Fang":{"ask":4400,"bid":2150},"Sorcerer Boots":{"ask":190000,"bid":100000},"Sorcerer Essence":{"ask":130,"bid":92},"Sorcerer's Sole":{"ask":66000,"bid":64000},"Spaceberry Cake":{"ask":960,"bid":920},"Spaceberry Donut":{"ask":700,"bid":660},"Spacia Coffee Bean":{"ask":490,"bid":470},"Stalactite Shard":{"ask":1800000,"bid":1450000},"Stalactite Spear":{"ask":-1,"bid":2050000},"Stamina Coffee":{"ask":350,"bid":290},"Star Fruit":{"ask":240,"bid":215},"Star Fruit Gummy":{"ask":640,"bid":600},"Star Fruit Yogurt":{"ask":860,"bid":820},"Strawberry Cake":{"ask":360,"bid":250},"Strawberry Donut":{"ask":390,"bid":205},"Stunning Blow":{"ask":480000,"bid":410000},"Super Attack Coffee":{"ask":1600,"bid":1100},"Super Brewing Tea":{"ask":500,"bid":100},"Super Cheesesmithing Tea":{"ask":2800,"bid":1850},"Super Crafting Tea":{"ask":3600,"bid":200},"Super Defense Coffee":{"ask":1700,"bid":1600},"Super Enhancing Tea":{"ask":2650,"bid":1200},"Super Foraging Tea":{"ask":4000,"bid":74},"Super Magic Coffee":{"ask":6800,"bid":6000},"Super Milking Tea":{"ask":1900,"bid":370},"Super Power Coffee":{"ask":2650,"bid":2300},"Super Stamina Coffee":{"ask":2000,"bid":1800},"Super Tailoring Tea":{"ask":6400,"bid":205},"Super Woodcutting Tea":{"ask":1550,"bid":640},"Sweep":{"ask":100000,"bid":80000},"Swiftness Coffee":{"ask":860,"bid":820},"Tailoring Tea":{"ask":520,"bid":72},"Tome Of The Elements":{"ask":320000,"bid":225000},"Toughness":{"ask":35000,"bid":34000},"Toxic Pollen":{"ask":175000,"bid":150000},"Turtle Shell Body":{"ask":12500,"bid":9000},"Turtle Shell Legs":{"ask":23000,"bid":6000},"Twilight Essence":{"ask":290,"bid":235},"Umbral Bracers":{"ask":88000,"bid":28000},"Umbral Chaps":{"ask":-1,"bid":-1},"Umbral Hide":{"ask":46,"bid":32},"Umbral Leather":{"ask":360,"bid":300},"Umbral Tunic":{"ask":185000,"bid":-1},"Vampire Fang":{"ask":1900000,"bid":1400000},"Vampirism":{"ask":40000,"bid":25000},"Verdant Boots":{"ask":-1,"bid":6600},"Verdant Brush":{"ask":8000,"bid":880},"Verdant Bulwark":{"ask":8200,"bid":-1},"Verdant Cheese":{"ask":215,"bid":185},"Verdant Chisel":{"ask":8000,"bid":3700},"Verdant Gauntlets":{"ask":9400,"bid":4900},"Verdant Hammer":{"ask":8000,"bid":600},"Verdant Hatchet":{"ask":34000,"bid":600},"Verdant Mace":{"ask":76000,"bid":9800},"Verdant Milk":{"ask":68,"bid":62},"Verdant Needle":{"ask":17500,"bid":560},"Verdant Plate Legs":{"ask":22000,"bid":12500},"Verdant Pot":{"ask":15500,"bid":1900},"Verdant Shears":{"ask":7800,"bid":720},"Verdant Spear":{"ask":22000,"bid":-1},"Verdant Sword":{"ask":22000,"bid":-1},"Vision Helmet":{"ask":48000,"bid":-1},"Water Strike":{"ask":16500,"bid":16000},"Werewolf Claw":{"ask":1100000,"bid":1000000},"Werewolf Slasher":{"ask":34000000,"bid":17000000},"Wisdom Coffee":{"ask":820,"bid":760},"Wisdom Tea":{"ask":640,"bid":540},"Wizard Necklace":{"ask":10000000,"bid":6000000},"Wooden Bow":{"ask":9600,"bid":-1},"Wooden Crossbow":{"ask":9600,"bid":-1},"Wooden Fire Staff":{"ask":10000,"bid":-1},"Wooden Water Staff":{"ask":5000,"bid":-1},"Yogurt":{"ask":275,"bid":60},"Burble Boots":{"ask":56000,"bid":20000},"Burble Cheese":{"ask":275,"bid":240},"Burble Hammer":{"ask":28500,"bid":25000},"Burble Milk":{"ask":98,"bid":78},"Cedar Nature Staff":{"ask":43000,"bid":2900},"Cheese":{"ask":145,"bid":96},"Cheese Bulwark":{"ask":4000,"bid":-1},"Cheese Hatchet":{"ask":9400,"bid":180},"Cheese Needle":{"ask":13500,"bid":130},"Cheese Shears":{"ask":14500,"bid":150},"Cheesesmithing Tea":{"ask":460,"bid":66},"Cooking Tea":{"ask":190,"bid":52},"Cotton Gloves":{"ask":1400,"bid":-1},"Cowbell":{"ask":-1,"bid":-1},"Crimson Brush":{"ask":76000,"bid":12000},"Crimson Chisel":{"ask":66000,"bid":41000},"Crimson Hatchet":{"ask":72000,"bid":43000},"Crimson Shears":{"ask":44000,"bid":-1},"Critical Coffee":{"ask":1700,"bid":1600},"Crushed Jade":{"ask":2600,"bid":1900},"Defense Coffee":{"ask":410,"bid":320},"Dragon Fruit Yogurt":{"ask":500,"bid":460},"Flaming Robe Bottoms":{"ask":370000,"bid":64000},"Frenzy":{"ask":90000,"bid":78000},"Gobo Leather":{"ask":310,"bid":205},"Holy Chisel":{"ask":195000,"bid":150000},"Holy Hatchet":{"ask":165000,"bid":94000},"Holy Needle":{"ask":185000,"bid":92000},"Holy Shears":{"ask":185000,"bid":150000},"Ice Spear":{"ask":86000,"bid":74000},"Intelligence Coffee":{"ask":360,"bid":275},"Linen Fabric":{"ask":300,"bid":215},"Linen Robe Top":{"ask":11000,"bid":-1},"Lumber":{"ask":190,"bid":105},"Mirror Of Protection":{"ask":5000000,"bid":4800000},"Moolong Tea Leaf":{"ask":64,"bid":50},"Orange":{"ask":19,"bid":6},"Panda Fluff":{"ask":48000,"bid":40000},"Peach Yogurt":{"ask":410,"bid":350},"Plum Gummy":{"ask":125,"bid":86},"Processing Tea":{"ask":820,"bid":660},"Purpleheart Log":{"ask":76,"bid":56},"Radiant Boots":{"ask":52000,"bid":-1},"Radiant Hat":{"ask":135000,"bid":105000},"Rainbow Boots":{"ask":165000,"bid":-1},"Rainbow Cheese":{"ask":400,"bid":370},"Rainbow Hammer":{"ask":105000,"bid":54000},"Rainbow Milk":{"ask":110,"bid":100},"Rainbow Pot":{"ask":86000,"bid":30000},"Rainbow Sword":{"ask":90000,"bid":70000},"Redwood Bow":{"ask":100000,"bid":-1},"Redwood Lumber":{"ask":190,"bid":130},"Reptile Bracers":{"ask":27500,"bid":-1},"Reptile Leather":{"ask":130,"bid":96},"Ring Of Rare Find":{"ask":4400000,"bid":3400000},"Rough Boots":{"ask":2350,"bid":-1},"Rough Hood":{"ask":72000,"bid":-1},"Shard Of Protection":{"ask":30000,"bid":29000},"Silk Hat":{"ask":92000,"bid":-1},"Small Artisan's Crate":{"ask":-1,"bid":-1},"Small Treasure Chest":{"ask":-1,"bid":-1},"Snake Fang Dirk":{"ask":4100,"bid":2500},"Spaceberry":{"ask":125,"bid":110},"Spike Shell":{"ask":180000,"bid":115000},"Star Fragment":{"ask":6400,"bid":6200},"Strawberry":{"ask":47,"bid":40},"Super Cooking Tea":{"ask":940,"bid":86},"Super Intelligence Coffee":{"ask":1950,"bid":1850},"Super Ranged Coffee":{"ask":3400,"bid":3200},"Swamp Essence":{"ask":21,"bid":20},"Tome Of Healing":{"ask":80000,"bid":40000},"Turtle Shell":{"ask":8000,"bid":2700},"Umbral Boots":{"ask":160000,"bid":-1},"Umbral Hood":{"ask":100000,"bid":-1},"Vampire Fang Dirk":{"ask":-1,"bid":22000000},"Verdant Buckler":{"ask":7400,"bid":-1},"Verdant Enhancer":{"ask":35000,"bid":560},"Verdant Helmet":{"ask":22500,"bid":3000},"Verdant Spatula":{"ask":16000,"bid":5800},"Vision Shield":{"ask":390000,"bid":100000},"Wheat":{"ask":20,"bid":18},"Woodcutting Tea":{"ask":400,"bid":190},"Wooden Nature Staff":{"ask":3900,"bid":150},"Cedar Crossbow":{"ask":39000,"bid":2600},"Earrings Of Rare Find":{"ask":4900000,"bid":3300000},"Egg":{"ask":21,"bid":18},"Entangle":{"ask":4400,"bid":2000},"Fighter Necklace":{"ask":9600000,"bid":-1},"Gator Vest":{"ask":6200,"bid":6000},"Ginkgo Fire Staff":{"ask":70000,"bid":-1},"Gobo Chaps":{"ask":27000,"bid":11000},"Gobo Stabber":{"ask":21000,"bid":-1},"Gourmet Tea":{"ask":380,"bid":280},"Grizzly Bear Shoes":{"ask":920000,"bid":68000},"Holy Brush":{"ask":185000,"bid":130000},"Large Meteorite Cache":{"ask":-1,"bid":-1},"Magnetic Gloves":{"ask":760000,"bid":460000},"Marsberry Cake":{"ask":540,"bid":500},"Medium Pouch":{"ask":165000,"bid":52000},"Polar Bear Fluff":{"ask":82000,"bid":80000},"Verdant Plate Body":{"ask":29500,"bid":12000},"Ginkgo Water Staff":{"ask":76000,"bid":-1},"Polar Bear Shoes":{"ask":-1,"bid":64000},"Sugar":{"ask":7,"bid":6},"Crimson Needle":{"ask":80000,"bid":-1},"Burble Plate Legs":{"ask":72000,"bid":40000},"Burble Spear":{"ask":-1,"bid":40000},"Arcane Shield":{"ask":165000,"bid":-1},"Birch Shield":{"ask":13000,"bid":-1},"Cedar Shield":{"ask":25000,"bid":-1},"Ginkgo Shield":{"ask":58000,"bid":-1},"Purpleheart Shield":{"ask":39000,"bid":-1},"Redwood Shield":{"ask":68000,"bid":22000},"Sighted Bracers":{"ask":760000,"bid":250000},"Spiked Bulwark":{"ask":52000000,"bid":410000},"Wooden Shield":{"ask":1950,"bid":96},"Advanced Task Ring":{"ask":-1,"bid":-1},"Basic Task Ring":{"ask":-1,"bid":-1},"Expert Task Ring":{"ask":-1,"bid":-1},"Purple's Gift":{"ask":-1,"bid":-1},"Task Crystal":{"ask":-1,"bid":-1},"Task Token":{"ask":-1,"bid":-1},"Abyssal Essence":{"ask":240,"bid":215},"Channeling Coffee":{"ask":700,"bid":660},"Chrono Gloves":{"ask":6800000,"bid":400000},"Chrono Sphere":{"ask":700000,"bid":560000},"Collector's Boots":{"ask":2500000,"bid":-1},"Colossus Core":{"ask":1050000,"bid":980000},"Colossus Plate Body":{"ask":13000000,"bid":8800000},"Colossus Plate Legs":{"ask":9000000,"bid":7400000},"Demonic Core":{"ask":1450000,"bid":1350000},"Demonic Plate Body":{"ask":16000000,"bid":8000000},"Demonic Plate Legs":{"ask":12500000,"bid":6200000},"Elusiveness":{"ask":26000,"bid":17500},"Enchanted Gloves":{"ask":6800000,"bid":5200000},"Eye Of The Watcher":{"ask":640000,"bid":600000},"Eye Watch":{"ask":7400000,"bid":3200000},"Firestorm":{"ask":640000,"bid":620000},"Fluffy Red Hat":{"ask":4200000,"bid":3200000},"Frost Sphere":{"ask":660000,"bid":560000},"Frost Staff":{"ask":15000000,"bid":11000000},"Frost Surge":{"ask":760000,"bid":600000},"Gobo Defender":{"ask":250000,"bid":235000},"Gobo Rag":{"ask":160000,"bid":135000},"Infernal Battlestaff":{"ask":35000000,"bid":24500000},"Infernal Ember":{"ask":1800000,"bid":1700000},"Luna Robe Bottoms":{"ask":2650000,"bid":-1},"Luna Robe Top":{"ask":1900000,"bid":110000},"Luna Wing":{"ask":185000,"bid":170000},"Marine Chaps":{"ask":1650000,"bid":-1},"Marine Scale":{"ask":220000,"bid":205000},"Marine Tunic":{"ask":2850000,"bid":1200000},"Nature's Veil":{"ask":800000,"bid":480000},"Puncture":{"ask":250000,"bid":185000},"Red Chef's Hat":{"ask":4000000,"bid":3300000},"Red Panda Fluff":{"ask":390000,"bid":370000},"Revenant Anima":{"ask":1400000,"bid":1300000},"Revenant Chaps":{"ask":10000000,"bid":320000},"Revenant Tunic":{"ask":12500000,"bid":9000000},"Shoebill Feather":{"ask":28000,"bid":22500},"Shoebill Shoes":{"ask":350000,"bid":-1},"Silencing Shot":{"ask":260000,"bid":240000},"Soul Fragment":{"ask":1150000,"bid":980000},"Soul Hunter Crossbow":{"ask":-1,"bid":10000000},"Steady Shot":{"ask":640000,"bid":580000},"Treant Bark":{"ask":21500,"bid":17500},"Treant Shield":{"ask":32000,"bid":-1},"Vampiric Bow":{"ask":41000000,"bid":410000},"Watchful Relic":{"ask":7400000,"bid":-1},"Bag Of 10 Cowbells":{"ask":290000,"bid":270000},"Aqua Aura":{"ask":3600000,"bid":2800000},"Critical Aura":{"ask":11000000,"bid":7600000},"Fierce Aura":{"ask":17000000,"bid":12500000},"Flame Aura":{"ask":5000000,"bid":4200000},"Insanity":{"ask":10000000,"bid":7000000},"Invincible":{"ask":66000000,"bid":37000000},"Provoke":{"ask":180000,"bid":160000},"Quick Aid":{"ask":880000,"bid":580000},"Rejuvenate":{"ask":880000,"bid":760000},"Revive":{"ask":1200000,"bid":700000},"Speed Aura":{"ask":8400000,"bid":6000000},"Sylvan Aura":{"ask":4500000,"bid":3700000},"Taunt":{"ask":92000,"bid":78000}}}`;
+    let settingsMap = {
+        totalActionTime: {
+            id: "totalActionTime",
+            desc: "左上角显示：当前动作预计总耗时、预计何时完成",
+            isTrue: true,
+        },
+        actionPanel_totalTime: {
+            id: "actionPanel_totalTime",
+            desc: "动作面板显示：动作预计总耗时、到多少级还需做多少次、每小时经验",
+            isTrue: true,
+        },
+        actionPanel_foragingTotal: {
+            id: "actionPanel_foragingTotal",
+            desc: "动作面板显示：采摘综合图显示综合收益 [依赖上一项]",
+            isTrue: true,
+        },
+        networth: {
+            id: "networth",
+            desc: "右上角显示：Networth总资产",
+            isTrue: true,
+        },
+        invWorth: {
+            id: "invWorth",
+            desc: "仓库搜索栏显示：仓库中物品总价值 [依赖上一项]",
+            isTrue: true,
+        },
+        itemTooltip_prices: {
+            id: "itemTooltip_prices",
+            desc: "物品悬浮窗显示：24小时市场均价",
+            isTrue: true,
+        },
+        itemTooltip_profit: {
+            id: "itemTooltip_profit",
+            desc: "物品悬浮窗显示：生产成本和利润计算 [依赖上一项]",
+            isTrue: true,
+        },
+        networkAlert: {
+            id: "networkAlert",
+            desc: "右上角显示：无法联网更新市场数据时，红字警告",
+            isTrue: true,
+        },
+        expPercentage: {
+            id: "expPercentage",
+            desc: "左侧栏显示：技能经验百分比",
+            isTrue: true,
+        },
+        battlePanel: {
+            id: "battlePanel",
+            desc: "战斗总结面板（战斗时点击玩家头像）显示：平均每小时战斗次数、收入、经验",
+            isTrue: true,
+        },
+        itemIconLevel: {
+            id: "itemIconLevel",
+            desc: "装备图标右上角显示：装备等级",
+            isTrue: true,
+        },
+        marketFilter: {
+            id: "marketFilter",
+            desc: "市场页面显示：装备按等级、职业、部位筛选",
+            isTrue: true,
+        },
+        taskMapIndex: {
+            id: "taskMapIndex",
+            desc: "任务页面显示：目标战斗地图序号",
+            isTrue: true,
+        },
+        mapIndex: {
+            id: "mapIndex",
+            desc: "战斗地图选择页面显示：地图序号",
+            isTrue: true,
+        },
+        skillbook: {
+            id: "skillbook",
+            desc: "技能书的物品词典面板显示：到多少级还需要多少本技能书",
+            isTrue: true,
+        },
+        ThirdPartyLinks: {
+            id: "ThirdPartyLinks",
+            desc: "左侧菜单栏显示：第三方工具网站链接、脚本设置链接、脚本说明链接",
+            isTrue: true,
+        },
+        actionQueue: {
+            id: "actionQueue",
+            desc: "上方动作队列菜单显示：队列中每个动作预计总时间、到何时完成",
+            isTrue: true,
+        },
+        enhanceSim: {
+            id: "enhanceSim",
+            desc: "带强化等级的装备的悬浮菜单显示：强化模拟计算",
+            isTrue: true,
+        },
+    };
+    readSettings();
+
+    const MARKET_JSON_LOCAL_BACKUP = `{"time":1716313502,"market":{"Amber":{"ask":6400,"bid":6200},"Amethyst":{"ask":94000,"bid":90000},"Apple":{"ask":11,"bid":4},"Apple Gummy":{"ask":15,"bid":11},"Apple Yogurt":{"ask":230,"bid":100},"Aqua Arrow":{"ask":17000,"bid":16500},"Aqua Essence":{"ask":26.5,"bid":20},"Arabica Coffee Bean":{"ask":140,"bid":110},"Arcane Bow":{"ask":210000,"bid":205000},"Arcane Crossbow":{"ask":235000,"bid":185000},"Arcane Fire Staff":{"ask":185000,"bid":-1},"Arcane Log":{"ask":250,"bid":215},"Arcane Lumber":{"ask":880,"bid":820},"Arcane Nature Staff":{"ask":295000,"bid":-1},"Arcane Water Staff":{"ask":185000,"bid":-1},"Artisan Tea":{"ask":760,"bid":660},"Attack Coffee":{"ask":370,"bid":-1},"Azure Boots":{"ask":19500,"bid":1350},"Azure Brush":{"ask":49000,"bid":2150},"Azure Buckler":{"ask":27500,"bid":-1},"Azure Bulwark":{"ask":30000,"bid":-1},"Azure Cheese":{"ask":350,"bid":320},"Azure Chisel":{"ask":62000,"bid":2050},"Azure Enhancer":{"ask":48000,"bid":-1},"Azure Gauntlets":{"ask":19500,"bid":9800},"Azure Hammer":{"ask":31000,"bid":-1},"Azure Hatchet":{"ask":50000,"bid":-1},"Azure Helmet":{"ask":25000,"bid":7200},"Azure Mace":{"ask":44000,"bid":10500},"Azure Milk":{"ask":89,"bid":78},"Azure Needle":{"ask":39000,"bid":-1},"Azure Plate Body":{"ask":64000,"bid":15500},"Azure Plate Legs":{"ask":62000,"bid":12500},"Azure Pot":{"ask":48500,"bid":-1},"Azure Shears":{"ask":27000,"bid":-1},"Azure Spatula":{"ask":37000,"bid":6000},"Azure Spear":{"ask":44000,"bid":17000},"Azure Sword":{"ask":44000,"bid":-1},"Bamboo Boots":{"ask":45000,"bid":-1},"Bamboo Branch":{"ask":48,"bid":32},"Bamboo Fabric":{"ask":300,"bid":250},"Bamboo Gloves":{"ask":39000,"bid":-1},"Bamboo Hat":{"ask":49000,"bid":-1},"Bamboo Robe Bottoms":{"ask":29000,"bid":-1},"Bamboo Robe Top":{"ask":49000,"bid":-1},"Bear Essence":{"ask":56,"bid":54},"Beast Boots":{"ask":29000,"bid":-1},"Beast Bracers":{"ask":35000,"bid":-1},"Beast Chaps":{"ask":180000,"bid":20000},"Beast Hide":{"ask":21,"bid":20},"Beast Hood":{"ask":200000,"bid":-1},"Beast Leather":{"ask":282.5,"bid":260},"Beast Tunic":{"ask":94000,"bid":-1},"Berserk":{"ask":310000,"bid":300000},"Birch Bow":{"ask":-1,"bid":-1},"Birch Crossbow":{"ask":25000,"bid":-1},"Birch Fire Staff":{"ask":45000,"bid":-1},"Birch Log":{"ask":72,"bid":52},"Birch Lumber":{"ask":245,"bid":200},"Birch Nature Staff":{"ask":22500,"bid":3400},"Birch Water Staff":{"ask":28500,"bid":-1},"Black Bear Fluff":{"ask":47000,"bid":46000},"Black Bear Shoes":{"ask":252500,"bid":60000},"Black Tea Leaf":{"ask":21,"bid":18},"Blackberry":{"ask":29,"bid":25},"Blackberry Cake":{"ask":330,"bid":260},"Blackberry Donut":{"ask":320,"bid":100},"Blessed Tea":{"ask":840,"bid":580},"Blueberry":{"ask":20,"bid":17},"Blueberry Cake":{"ask":260,"bid":100},"Blueberry Donut":{"ask":200,"bid":90},"Brewing Tea":{"ask":90,"bid":84},"Burble Brush":{"ask":62000,"bid":10500},"Burble Buckler":{"ask":50000,"bid":-1},"Burble Bulwark":{"ask":43000,"bid":-1},"Burble Chisel":{"ask":62000,"bid":22500},"Burble Enhancer":{"ask":66000,"bid":2599.5},"Burble Gauntlets":{"ask":76000,"bid":10000},"Burble Hatchet":{"ask":62000,"bid":25500},"Burble Helmet":{"ask":45000,"bid":11000},"Burble Mace":{"ask":100000,"bid":25500},"Burble Needle":{"ask":56000,"bid":5200},"Burble Plate Body":{"ask":92000,"bid":31000},"Burble Pot":{"ask":43000,"bid":-1},"Burble Shears":{"ask":64000,"bid":-1},"Burble Spatula":{"ask":50000,"bid":8200},"Burble Sword":{"ask":110000,"bid":-1},"Burble Tea Leaf":{"ask":115,"bid":100},"Cedar Bow":{"ask":44000,"bid":-1},"Cedar Fire Staff":{"ask":37000,"bid":15000},"Cedar Log":{"ask":70,"bid":64},"Cedar Lumber":{"ask":320,"bid":275},"Cedar Water Staff":{"ask":45000,"bid":6600},"Centaur Boots":{"ask":1100000,"bid":-1},"Centaur Hoof":{"ask":160000,"bid":155000},"Cheese Boots":{"ask":4100,"bid":-1},"Cheese Brush":{"ask":4000,"bid":115},"Cheese Buckler":{"ask":720,"bid":-1},"Cheese Chisel":{"ask":4000,"bid":150},"Cheese Enhancer":{"ask":1800,"bid":115},"Cheese Gauntlets":{"ask":7000,"bid":-1},"Cheese Hammer":{"ask":3500,"bid":-1},"Cheese Helmet":{"ask":35000,"bid":-1},"Cheese Mace":{"ask":20000,"bid":-1},"Cheese Plate Body":{"ask":17500,"bid":150},"Cheese Plate Legs":{"ask":14000,"bid":-1},"Cheese Pot":{"ask":3900,"bid":350},"Cheese Spatula":{"ask":4300,"bid":145},"Cheese Spear":{"ask":14500,"bid":2000},"Cheese Sword":{"ask":8000,"bid":180},"Cleave":{"ask":140000,"bid":110000},"Cocoon":{"ask":130,"bid":96},"Coin":{"ask":-1,"bid":-1},"Cotton":{"ask":30,"bid":23},"Cotton Boots":{"ask":2100,"bid":-1},"Cotton Fabric":{"ask":120,"bid":70},"Cotton Hat":{"ask":7000,"bid":-1},"Cotton Robe Bottoms":{"ask":6600,"bid":-1},"Cotton Robe Top":{"ask":1500,"bid":-1},"Crab Pincer":{"ask":16500,"bid":15000},"Crafting Tea":{"ask":270,"bid":190},"Crimson Boots":{"ask":45000,"bid":20000},"Crimson Buckler":{"ask":46000,"bid":-1},"Crimson Bulwark":{"ask":26000,"bid":-1},"Crimson Cheese":{"ask":420,"bid":295},"Crimson Enhancer":{"ask":88000,"bid":50000},"Crimson Gauntlets":{"ask":45000,"bid":34000},"Crimson Hammer":{"ask":76000,"bid":20500},"Crimson Helmet":{"ask":-1,"bid":-1},"Crimson Mace":{"ask":64000,"bid":30000},"Crimson Milk":{"ask":98,"bid":90},"Crimson Plate Body":{"ask":185000,"bid":-1},"Crimson Plate Legs":{"ask":80000,"bid":44000},"Crimson Pot":{"ask":67000,"bid":40000},"Crimson Spatula":{"ask":64000,"bid":-1},"Crimson Spear":{"ask":140000,"bid":28500},"Crimson Sword":{"ask":105000,"bid":14000},"Crushed Amber":{"ask":430,"bid":350},"Crushed Amethyst":{"ask":6000,"bid":5600},"Crushed Garnet":{"ask":980,"bid":890},"Crushed Moonstone":{"ask":2300,"bid":1750},"Crushed Pearl":{"ask":1000,"bid":780},"Cupcake":{"ask":280,"bid":54},"Donut":{"ask":140,"bid":56},"Dragon Fruit":{"ask":130,"bid":120},"Dragon Fruit Gummy":{"ask":430,"bid":400},"Earrings Of Armor":{"ask":2900000,"bid":1050000},"Earrings Of Gathering":{"ask":4200000,"bid":54000},"Earrings Of Regeneration":{"ask":4000000,"bid":3100000},"Earrings Of Resistance":{"ask":3250000,"bid":500000},"Efficiency Tea":{"ask":580,"bid":520},"Elemental Affinity":{"ask":500000,"bid":450000},"Emp Tea Leaf":{"ask":96,"bid":84},"Enhancing Tea":{"ask":480,"bid":270},"Excelsa Coffee Bean":{"ask":255,"bid":240},"Eyessence":{"ask":98,"bid":42},"Fieriosa Coffee Bean":{"ask":260,"bid":235},"Fireball":{"ask":12000,"bid":11000},"Flame Arrow":{"ask":19000,"bid":11500},"Flame Blast":{"ask":150000,"bid":140000},"Flaming Cloth":{"ask":36000,"bid":35000},"Flaming Robe Top":{"ask":180000,"bid":80000},"Flax":{"ask":82,"bid":39.5},"Foraging Tea":{"ask":165,"bid":18},"Garnet":{"ask":14500,"bid":14000},"Gathering Tea":{"ask":360,"bid":310},"Giant Pouch":{"ask":6000000,"bid":5400000},"Ginkgo Bow":{"ask":150000,"bid":-1},"Ginkgo Crossbow":{"ask":150000,"bid":27500},"Ginkgo Log":{"ask":62,"bid":34},"Ginkgo Lumber":{"ask":270,"bid":220},"Ginkgo Nature Staff":{"ask":76000,"bid":-1},"Gobo Boomstick":{"ask":22500,"bid":-1},"Gobo Boots":{"ask":36000,"bid":22500},"Gobo Bracers":{"ask":38000,"bid":-1},"Gobo Essence":{"ask":34,"bid":26},"Gobo Hide":{"ask":17.5,"bid":13},"Gobo Hood":{"ask":29500,"bid":13000},"Gobo Shooter":{"ask":27000,"bid":-1},"Gobo Slasher":{"ask":27000,"bid":20000},"Gobo Smasher":{"ask":20500,"bid":-1},"Gobo Tunic":{"ask":39000,"bid":22500},"Goggles":{"ask":49000,"bid":46000},"Golem Essence":{"ask":245,"bid":205},"Granite Bludgeon":{"ask":-1,"bid":40000000},"Green Tea Leaf":{"ask":19,"bid":18},"Grizzly Bear Fluff":{"ask":45000,"bid":44000},"Gummy":{"ask":390,"bid":100},"Heal":{"ask":185000,"bid":150000},"Holy Boots":{"ask":94000,"bid":-1},"Holy Buckler":{"ask":54000,"bid":-1},"Holy Bulwark":{"ask":130000,"bid":-1},"Holy Cheese":{"ask":860,"bid":820},"Holy Enhancer":{"ask":175000,"bid":150000},"Holy Gauntlets":{"ask":270000,"bid":-1},"Holy Hammer":{"ask":210000,"bid":92000},"Holy Helmet":{"ask":110000,"bid":-1},"Holy Mace":{"ask":295000,"bid":-1},"Holy Milk":{"ask":275,"bid":270},"Holy Plate Body":{"ask":285000,"bid":140000},"Holy Plate Legs":{"ask":175000,"bid":-1},"Holy Pot":{"ask":170000,"bid":100000},"Holy Spatula":{"ask":185000,"bid":155000},"Holy Spear":{"ask":235000,"bid":-1},"Holy Sword":{"ask":205000,"bid":-1},"Icy Cloth":{"ask":22500,"bid":21000},"Icy Robe Bottoms":{"ask":88000,"bid":40000},"Icy Robe Top":{"ask":100000,"bid":60000},"Jade":{"ask":34000,"bid":32000},"Jungle Essence":{"ask":54,"bid":47},"Large Artisan's Crate":{"ask":-1,"bid":-1},"Large Pouch":{"ask":900000,"bid":700000},"Large Treasure Chest":{"ask":-1,"bid":-1},"Liberica Coffee Bean":{"ask":215,"bid":205},"Linen Boots":{"ask":16500,"bid":5000},"Linen Gloves":{"ask":12000,"bid":5000},"Linen Hat":{"ask":38000,"bid":5000},"Linen Robe Bottoms":{"ask":22500,"bid":5000},"Living Granite":{"ask":2450000,"bid":2350000},"Log":{"ask":42.5,"bid":30},"Lucky Coffee":{"ask":910,"bid":740},"Magic Coffee":{"ask":400,"bid":360},"Magnet":{"ask":54000,"bid":31000},"Magnifying Glass":{"ask":390000,"bid":330000},"Maim":{"ask":92000,"bid":70000},"Marsberry":{"ask":35,"bid":30},"Marsberry Donut":{"ask":445,"bid":390},"Medium Artisan's Crate":{"ask":-1,"bid":-1},"Medium Meteorite Cache":{"ask":-1,"bid":-1},"Medium Treasure Chest":{"ask":-1,"bid":-1},"Milk":{"ask":32,"bid":31},"Milking Tea":{"ask":220,"bid":100},"Minor Heal":{"ask":23500,"bid":14500},"Mooberry":{"ask":68,"bid":60},"Mooberry Cake":{"ask":460,"bid":410},"Mooberry Donut":{"ask":420,"bid":265},"Moonstone":{"ask":40000,"bid":39000},"Necklace Of Efficiency":{"ask":9600000,"bid":-1},"Necklace Of Wisdom":{"ask":6800000,"bid":5400000},"Orange Gummy":{"ask":34,"bid":28},"Orange Yogurt":{"ask":232.5,"bid":145},"Panda Gloves":{"ask":390000,"bid":-1},"Peach":{"ask":49,"bid":34},"Peach Gummy":{"ask":222.5,"bid":205},"Pearl":{"ask":13500,"bid":13000},"Pierce":{"ask":72000,"bid":70000},"Pincer Gloves":{"ask":39000,"bid":10000},"Plum":{"ask":58,"bid":46},"Plum Yogurt":{"ask":310,"bid":230},"Poke":{"ask":6200,"bid":6000},"Power Coffee":{"ask":460,"bid":410},"Precision":{"ask":25000,"bid":10500},"Purpleheart Bow":{"ask":70000,"bid":11000},"Purpleheart Crossbow":{"ask":-1,"bid":26000},"Purpleheart Fire Staff":{"ask":66000,"bid":-1},"Purpleheart Lumber":{"ask":450,"bid":330},"Purpleheart Nature Staff":{"ask":78000,"bid":-1},"Purpleheart Water Staff":{"ask":185000,"bid":-1},"Quick Shot":{"ask":4500,"bid":3500},"Radiant Fabric":{"ask":660,"bid":600},"Radiant Fiber":{"ask":96,"bid":88},"Radiant Gloves":{"ask":74000,"bid":-1},"Radiant Robe Bottoms":{"ask":165000,"bid":130000},"Radiant Robe Top":{"ask":165000,"bid":-1},"Rain Of Arrows":{"ask":215000,"bid":200000},"Rainbow Brush":{"ask":120000,"bid":45000},"Rainbow Buckler":{"ask":29000,"bid":-1},"Rainbow Bulwark":{"ask":49000,"bid":-1},"Rainbow Chisel":{"ask":120000,"bid":64000},"Rainbow Enhancer":{"ask":86000,"bid":74000},"Rainbow Gauntlets":{"ask":94000,"bid":-1},"Rainbow Hatchet":{"ask":100000,"bid":30000},"Rainbow Helmet":{"ask":155000,"bid":-1},"Rainbow Mace":{"ask":110000,"bid":-1},"Rainbow Needle":{"ask":70000,"bid":31000},"Rainbow Plate Body":{"ask":-1,"bid":78000},"Rainbow Plate Legs":{"ask":150000,"bid":-1},"Rainbow Shears":{"ask":90000,"bid":33000},"Rainbow Spatula":{"ask":56000,"bid":30000},"Rainbow Spear":{"ask":175000,"bid":-1},"Ranged Coffee":{"ask":540,"bid":455},"Ranger Necklace":{"ask":7000000,"bid":5600000},"Red Tea Leaf":{"ask":72,"bid":63},"Redwood Crossbow":{"ask":122500,"bid":-1},"Redwood Fire Staff":{"ask":64000,"bid":-1},"Redwood Log":{"ask":33,"bid":28},"Redwood Nature Staff":{"ask":115000,"bid":-1},"Redwood Water Staff":{"ask":62000,"bid":-1},"Reptile Boots":{"ask":52000,"bid":580},"Reptile Chaps":{"ask":10000,"bid":1100},"Reptile Hide":{"ask":11.5,"bid":7},"Reptile Hood":{"ask":16000,"bid":-1},"Reptile Tunic":{"ask":13500,"bid":-1},"Ring Of Armor":{"ask":5400000,"bid":1300000},"Ring Of Gathering":{"ask":5000000,"bid":350000},"Ring Of Regeneration":{"ask":4100000,"bid":3000000},"Ring Of Resistance":{"ask":2100000,"bid":500000},"Robusta Coffee Bean":{"ask":175,"bid":170},"Rough Bracers":{"ask":-1,"bid":-1},"Rough Chaps":{"ask":-1,"bid":-1},"Rough Hide":{"ask":105,"bid":52},"Rough Leather":{"ask":270,"bid":255},"Rough Tunic":{"ask":2150,"bid":-1},"Scratch":{"ask":3200,"bid":1900},"Silk Boots":{"ask":40000,"bid":-1},"Silk Fabric":{"ask":660,"bid":620},"Silk Gloves":{"ask":62000,"bid":-1},"Silk Robe Bottoms":{"ask":210000,"bid":-1},"Silk Robe Top":{"ask":74000,"bid":-1},"Smack":{"ask":8000,"bid":7600},"Small Meteorite Cache":{"ask":-1,"bid":-1},"Small Pouch":{"ask":30000,"bid":-1},"Snail Shell":{"ask":5600,"bid":2550},"Snail Shell Helmet":{"ask":9400,"bid":-1},"Snake Fang":{"ask":2925,"bid":2050},"Sorcerer Boots":{"ask":200000,"bid":155000},"Sorcerer Essence":{"ask":120,"bid":110},"Sorcerer's Sole":{"ask":72000,"bid":70000},"Spaceberry Cake":{"ask":920,"bid":900},"Spaceberry Donut":{"ask":600,"bid":560},"Spacia Coffee Bean":{"ask":450,"bid":420},"Stalactite Shard":{"ask":2050000,"bid":1750000},"Stalactite Spear":{"ask":-1,"bid":26000000},"Stamina Coffee":{"ask":285,"bid":270},"Star Fruit":{"ask":235,"bid":222.5},"Star Fruit Gummy":{"ask":600,"bid":560},"Star Fruit Yogurt":{"ask":830,"bid":800},"Strawberry Cake":{"ask":440,"bid":400},"Strawberry Donut":{"ask":450,"bid":215},"Stunning Blow":{"ask":480000,"bid":400000},"Super Attack Coffee":{"ask":1450,"bid":1100},"Super Brewing Tea":{"ask":860,"bid":170},"Super Cheesesmithing Tea":{"ask":2100,"bid":1800},"Super Crafting Tea":{"ask":3600,"bid":230},"Super Defense Coffee":{"ask":1750,"bid":1250},"Super Enhancing Tea":{"ask":1700,"bid":270},"Super Foraging Tea":{"ask":3450,"bid":125},"Super Magic Coffee":{"ask":6600,"bid":6100},"Super Milking Tea":{"ask":1500,"bid":430},"Super Power Coffee":{"ask":2250,"bid":2150},"Super Stamina Coffee":{"ask":1900,"bid":1700},"Super Tailoring Tea":{"ask":6400,"bid":275},"Super Woodcutting Tea":{"ask":2250,"bid":900},"Sweep":{"ask":90000,"bid":81000},"Swiftness Coffee":{"ask":820,"bid":760},"Tailoring Tea":{"ask":780,"bid":250},"Tome Of The Elements":{"ask":290000,"bid":270000},"Toughness":{"ask":37000,"bid":36000},"Toxic Pollen":{"ask":195000,"bid":160000},"Turtle Shell Body":{"ask":25000,"bid":9000},"Turtle Shell Legs":{"ask":56000,"bid":6000},"Twilight Essence":{"ask":245,"bid":220},"Umbral Bracers":{"ask":76000,"bid":-1},"Umbral Chaps":{"ask":150000,"bid":88000},"Umbral Hide":{"ask":46.5,"bid":35},"Umbral Leather":{"ask":440,"bid":380},"Umbral Tunic":{"ask":140000,"bid":96000},"Vampire Fang":{"ask":1325000,"bid":1275000},"Vampirism":{"ask":30000,"bid":25000},"Verdant Boots":{"ask":8900,"bid":-1},"Verdant Brush":{"ask":15000,"bid":900},"Verdant Bulwark":{"ask":12500,"bid":980},"Verdant Cheese":{"ask":255,"bid":222.5},"Verdant Chisel":{"ask":8000,"bid":560},"Verdant Gauntlets":{"ask":9800,"bid":-1},"Verdant Hammer":{"ask":7000,"bid":700},"Verdant Hatchet":{"ask":33000,"bid":620},"Verdant Mace":{"ask":22000,"bid":-1},"Verdant Milk":{"ask":54,"bid":50},"Verdant Needle":{"ask":30000,"bid":560},"Verdant Plate Legs":{"ask":35000,"bid":-1},"Verdant Pot":{"ask":29500,"bid":1900},"Verdant Shears":{"ask":15000,"bid":960},"Verdant Spear":{"ask":22000,"bid":-1},"Verdant Sword":{"ask":22000,"bid":-1},"Vision Helmet":{"ask":37000,"bid":-1},"Water Strike":{"ask":16000,"bid":15500},"Werewolf Claw":{"ask":1100000,"bid":1000000},"Werewolf Slasher":{"ask":18000000,"bid":4000000},"Wisdom Coffee":{"ask":780,"bid":740},"Wisdom Tea":{"ask":580,"bid":520},"Wizard Necklace":{"ask":6200000,"bid":1900000},"Wooden Bow":{"ask":9000,"bid":-1},"Wooden Crossbow":{"ask":4900,"bid":-1},"Wooden Fire Staff":{"ask":1050,"bid":-1},"Wooden Water Staff":{"ask":5000,"bid":-1},"Yogurt":{"ask":340,"bid":115},"Burble Boots":{"ask":62000,"bid":15000},"Burble Cheese":{"ask":360,"bid":300},"Burble Hammer":{"ask":42000,"bid":15500},"Burble Milk":{"ask":107.5,"bid":98},"Cedar Nature Staff":{"ask":42000,"bid":9749.5},"Cheese":{"ask":150,"bid":96},"Cheese Bulwark":{"ask":3800,"bid":-1},"Cheese Hatchet":{"ask":20000,"bid":150},"Cheese Needle":{"ask":12500,"bid":130},"Cheese Shears":{"ask":5800,"bid":150},"Cheesesmithing Tea":{"ask":470,"bid":105},"Cooking Tea":{"ask":370,"bid":125},"Cotton Gloves":{"ask":1750,"bid":-1},"Cowbell":{"ask":-1,"bid":-1},"Crimson Brush":{"ask":80000,"bid":-1},"Crimson Chisel":{"ask":80000,"bid":-1},"Crimson Hatchet":{"ask":80000,"bid":-1},"Crimson Shears":{"ask":70000,"bid":28000},"Critical Coffee":{"ask":1750,"bid":1600},"Crushed Jade":{"ask":2050,"bid":1900},"Defense Coffee":{"ask":390,"bid":350},"Dragon Fruit Yogurt":{"ask":500,"bid":470},"Flaming Robe Bottoms":{"ask":130000,"bid":62000},"Frenzy":{"ask":110000,"bid":94000},"Gobo Leather":{"ask":290,"bid":250},"Holy Chisel":{"ask":200000,"bid":150000},"Holy Hatchet":{"ask":150000,"bid":66000},"Holy Needle":{"ask":160000,"bid":62000},"Holy Shears":{"ask":200000,"bid":160000},"Ice Spear":{"ask":78000,"bid":74000},"Intelligence Coffee":{"ask":330,"bid":270},"Linen Fabric":{"ask":370,"bid":255},"Linen Robe Top":{"ask":16000,"bid":5000},"Lumber":{"ask":185,"bid":140},"Mirror Of Protection":{"ask":5200000,"bid":5000000},"Moolong Tea Leaf":{"ask":76,"bid":62},"Orange":{"ask":8,"bid":7},"Panda Fluff":{"ask":50000,"bid":42000},"Peach Yogurt":{"ask":390,"bid":340},"Plum Gummy":{"ask":106.5,"bid":90},"Processing Tea":{"ask":940,"bid":720},"Purpleheart Log":{"ask":112.5,"bid":90},"Radiant Boots":{"ask":45000,"bid":-1},"Radiant Hat":{"ask":130000,"bid":110000},"Rainbow Boots":{"ask":78000,"bid":19000},"Rainbow Cheese":{"ask":370,"bid":350},"Rainbow Hammer":{"ask":115000,"bid":56000},"Rainbow Milk":{"ask":94,"bid":88},"Rainbow Pot":{"ask":76000,"bid":30000},"Rainbow Sword":{"ask":185000,"bid":-1},"Redwood Bow":{"ask":98000,"bid":-1},"Redwood Lumber":{"ask":170,"bid":130},"Reptile Bracers":{"ask":9500,"bid":580},"Reptile Leather":{"ask":340,"bid":240},"Ring Of Rare Find":{"ask":4400000,"bid":3000000},"Rough Boots":{"ask":900,"bid":-1},"Rough Hood":{"ask":10000,"bid":-1},"Shard Of Protection":{"ask":29000,"bid":28000},"Silk Hat":{"ask":68000,"bid":-1},"Small Artisan's Crate":{"ask":-1,"bid":-1},"Small Treasure Chest":{"ask":-1,"bid":-1},"Snake Fang Dirk":{"ask":7000,"bid":2500},"Spaceberry":{"ask":130,"bid":120},"Spike Shell":{"ask":267500,"bid":215000},"Star Fragment":{"ask":6600,"bid":6200},"Strawberry":{"ask":50,"bid":46},"Super Cooking Tea":{"ask":1200,"bid":520},"Super Intelligence Coffee":{"ask":1850,"bid":1650},"Super Ranged Coffee":{"ask":3500,"bid":3100},"Swamp Essence":{"ask":18,"bid":9.5},"Tome Of Healing":{"ask":35000,"bid":27500},"Turtle Shell":{"ask":6100,"bid":4500},"Umbral Boots":{"ask":92000,"bid":-1},"Umbral Hood":{"ask":105000,"bid":80000},"Vampire Fang Dirk":{"ask":26000000,"bid":21000000},"Verdant Buckler":{"ask":21000,"bid":-1},"Verdant Enhancer":{"ask":15000,"bid":560},"Verdant Helmet":{"ask":12500,"bid":2000},"Verdant Spatula":{"ask":35000,"bid":580},"Vision Shield":{"ask":215000,"bid":62000},"Wheat":{"ask":24.5,"bid":19.5},"Woodcutting Tea":{"ask":390,"bid":240},"Wooden Nature Staff":{"ask":4800,"bid":150},"Cedar Crossbow":{"ask":49000,"bid":-1},"Earrings Of Rare Find":{"ask":3800000,"bid":3500000},"Egg":{"ask":20,"bid":18},"Entangle":{"ask":4100,"bid":3100},"Fighter Necklace":{"ask":6800000,"bid":4600000},"Gator Vest":{"ask":6600,"bid":5200},"Ginkgo Fire Staff":{"ask":50000,"bid":-1},"Gobo Chaps":{"ask":46000,"bid":-1},"Gobo Stabber":{"ask":24000,"bid":-1},"Gourmet Tea":{"ask":390,"bid":350},"Grizzly Bear Shoes":{"ask":450000,"bid":105000},"Holy Brush":{"ask":205000,"bid":165000},"Large Meteorite Cache":{"ask":-1,"bid":-1},"Magnetic Gloves":{"ask":520000,"bid":-1},"Marsberry Cake":{"ask":500,"bid":470},"Medium Pouch":{"ask":72000,"bid":50000},"Polar Bear Fluff":{"ask":86000,"bid":80000},"Verdant Plate Body":{"ask":35000,"bid":1100},"Ginkgo Water Staff":{"ask":90000,"bid":14000},"Polar Bear Shoes":{"ask":700000,"bid":64000},"Sugar":{"ask":7,"bid":6},"Crimson Needle":{"ask":80000,"bid":-1},"Burble Plate Legs":{"ask":80000,"bid":22500},"Burble Spear":{"ask":76000,"bid":27000},"Arcane Shield":{"ask":90000,"bid":-1},"Birch Shield":{"ask":6000,"bid":480},"Cedar Shield":{"ask":23000,"bid":-1},"Ginkgo Shield":{"ask":56000,"bid":-1},"Purpleheart Shield":{"ask":33000,"bid":-1},"Redwood Shield":{"ask":44000,"bid":-1},"Sighted Bracers":{"ask":450000,"bid":310000},"Spiked Bulwark":{"ask":50000000,"bid":7400000},"Wooden Shield":{"ask":3750,"bid":96},"Advanced Task Ring":{"ask":-1,"bid":-1},"Basic Task Ring":{"ask":-1,"bid":-1},"Expert Task Ring":{"ask":-1,"bid":-1},"Purple's Gift":{"ask":-1,"bid":-1},"Task Crystal":{"ask":-1,"bid":-1},"Task Token":{"ask":-1,"bid":-1},"Abyssal Essence":{"ask":200,"bid":165},"Channeling Coffee":{"ask":680,"bid":640},"Chrono Gloves":{"ask":6600000,"bid":-1},"Chrono Sphere":{"ask":640000,"bid":600000},"Collector's Boots":{"ask":1550000,"bid":760000},"Colossus Core":{"ask":1200000,"bid":1100000},"Colossus Plate Body":{"ask":14000000,"bid":-1},"Colossus Plate Legs":{"ask":9600000,"bid":-1},"Demonic Core":{"ask":1200000,"bid":1150000},"Demonic Plate Body":{"ask":14000000,"bid":8000000},"Demonic Plate Legs":{"ask":13000000,"bid":6200000},"Elusiveness":{"ask":18000,"bid":17500},"Enchanted Gloves":{"ask":6600000,"bid":4700000},"Eye Of The Watcher":{"ask":620000,"bid":560000},"Eye Watch":{"ask":6400000,"bid":-1},"Firestorm":{"ask":500000,"bid":480000},"Fluffy Red Hat":{"ask":3700000,"bid":2950000},"Frost Sphere":{"ask":620000,"bid":600000},"Frost Staff":{"ask":5999999.5,"bid":11250000},"Frost Surge":{"ask":720000,"bid":660000},"Gobo Defender":{"ask":340000,"bid":262500},"Gobo Rag":{"ask":120000,"bid":110000},"Infernal Battlestaff":{"ask":40000000,"bid":24000000},"Infernal Ember":{"ask":1750000,"bid":1700000},"Luna Robe Bottoms":{"ask":1800000,"bid":-1},"Luna Robe Top":{"ask":1700000,"bid":400000},"Luna Wing":{"ask":215000,"bid":190000},"Marine Chaps":{"ask":2000000,"bid":-1},"Marine Scale":{"ask":215000,"bid":190000},"Marine Tunic":{"ask":1850000,"bid":-1},"Nature's Veil":{"ask":380000,"bid":250000},"Puncture":{"ask":240000,"bid":205000},"Red Chef's Hat":{"ask":4200000,"bid":2250000},"Red Panda Fluff":{"ask":380000,"bid":360000},"Revenant Anima":{"ask":1150000,"bid":1100000},"Revenant Chaps":{"ask":-1,"bid":7000000},"Revenant Tunic":{"ask":12000000,"bid":10000000},"Shoebill Feather":{"ask":27000,"bid":21500},"Shoebill Shoes":{"ask":330000,"bid":-1},"Silencing Shot":{"ask":260000,"bid":230000},"Soul Fragment":{"ask":1100000,"bid":1000000},"Soul Hunter Crossbow":{"ask":-1,"bid":5000000},"Steady Shot":{"ask":640000,"bid":600000},"Treant Bark":{"ask":11000,"bid":10000},"Treant Shield":{"ask":34000,"bid":-1},"Vampiric Bow":{"ask":26500000,"bid":10500000},"Watchful Relic":{"ask":7000000,"bid":450000},"Bag Of 10 Cowbells":{"ask":292500,"bid":280000},"Aqua Aura":{"ask":3200000,"bid":2150000},"Critical Aura":{"ask":12000000,"bid":8600000},"Fierce Aura":{"ask":11000000,"bid":10500000},"Flame Aura":{"ask":6200000,"bid":4300000},"Insanity":{"ask":9000000,"bid":7600000},"Invincible":{"ask":-1,"bid":41000000},"Provoke":{"ask":160000,"bid":105000},"Quick Aid":{"ask":960000,"bid":860000},"Rejuvenate":{"ask":960000,"bid":880000},"Revive":{"ask":980000,"bid":500000},"Speed Aura":{"ask":8400000,"bid":6600000},"Sylvan Aura":{"ask":4900000,"bid":2700000},"Taunt":{"ask":60000,"bid":41000}}}`;
     let isUsingLocalMarketJson = false;
 
     let initData_characterSkills = null;
@@ -77,12 +171,19 @@
             initData_characterAbilities = obj.characterAbilities;
             initData_myMarketListings = obj.myMarketListings;
             currentActionsHridList = [...obj.characterActions];
-            console.log(currentActionsHridList);
-            showTotalActionTime();
+            if (settingsMap.totalActionTime.isTrue) {
+                showTotalActionTime();
+            }
             waitForActionPanelParent();
-            waitForItemDict();
-            add3rdPartyLinks();
-            calculateNetworth();
+            if (settingsMap.skillbook.isTrue) {
+                waitForItemDict();
+            }
+            if (settingsMap.ThirdPartyLinks.isTrue) {
+                add3rdPartyLinks();
+            }
+            if (settingsMap.networth.isTrue) {
+                calculateNetworth();
+            }
         } else if (obj && obj.type === "init_client_data") {
             initData_actionDetailMap = obj.actionDetailMap;
             initData_levelExperienceTable = obj.levelExperienceTable;
@@ -99,9 +200,10 @@
                     });
                 }
             }
-            console.log(currentActionsHridList);
         } else if (obj && obj.type === "battle_unit_fetched") {
-            handleBattleSummary(obj);
+            if (settingsMap.battlePanel.isTrue) {
+                handleBattleSummary(obj);
+            }
         }
         return message;
     }
@@ -160,6 +262,17 @@
                 networthAsk += item.unclaimedItemCount * (marketPrices.ask > 0 ? marketPrices.ask : 0);
                 networthBid += item.unclaimedItemCount * (marketPrices.bid > 0 ? marketPrices.bid : 0);
             }
+
+            if (settingsMap.invWorth.isTrue) {
+                const waitForInvInput = () => {
+                    const targetNodes = document.querySelectorAll("input.Inventory_inventoryFilterInput__1Kiwh");
+                    for (const elem of targetNodes) {
+                        elem.placeholder = `物品价值: ${numberFormatter(networthAskInv)} / ${numberFormatter(networthBidInv)}`;
+                    }
+                    setTimeout(waitForInvInput, 1000);
+                };
+                waitForInvInput();
+            }
         }
 
         const waitForHeader = () => {
@@ -167,22 +280,15 @@
             if (targetNode) {
                 targetNode.insertAdjacentHTML(
                     "afterend",
-                    `<div>Networth: ${numberFormatter(networthAsk)} / ${numberFormatter(networthBid)}${isUsingLocalMarketJson ? `<div style="color: red">需要科学网络更新市场数据</div>` : ""}</div>`
+                    `<div>Networth: ${numberFormatter(networthAsk)} / ${numberFormatter(networthBid)}${
+                        isUsingLocalMarketJson && settingsMap.networkAlert.isTrue ? `<div style="color: red">需要科学网络更新市场数据</div>` : ""
+                    }</div>`
                 );
             } else {
                 setTimeout(waitForHeader, 200);
             }
         };
         waitForHeader();
-
-        const waitForInvInput = () => {
-            const targetNodes = document.querySelectorAll("input.Inventory_inventoryFilterInput__1Kiwh");
-            for (const elem of targetNodes) {
-                elem.placeholder = `物品价值: ${numberFormatter(networthAskInv)} / ${numberFormatter(networthBidInv)}`;
-            }
-            setTimeout(waitForInvInput, 1000);
-        };
-        waitForInvInput();
     }
 
     /* 显示当前动作总时间 */
@@ -230,7 +336,9 @@
 
                 const currentTime = new Date();
                 currentTime.setSeconds(currentTime.getSeconds() + totalTimeSeconds);
-                totalTimeStr += ` ${String(currentTime.getHours()).padStart(2, "0")}:${String(currentTime.getMinutes()).padStart(2, "0")}:${String(currentTime.getSeconds()).padStart(2, "0")}`;
+                totalTimeStr += ` ${String(currentTime.getHours()).padStart(2, "0")}:${String(currentTime.getMinutes()).padStart(2, "0")}:${String(
+                    currentTime.getSeconds()
+                ).padStart(2, "0")}`;
             } else {
                 totalTimeStr = " [∞]";
             }
@@ -415,6 +523,9 @@
     }
 
     async function handleTooltipItem(tooltip) {
+        if (!settingsMap.itemTooltip_prices.isTrue) {
+            return;
+        }
         const itemNameElems = tooltip.querySelectorAll("div.ItemTooltipText_name__2JAHA span");
         if (itemNameElems.length > 1) {
             handleItemTooltipWithEnhancementLevel(tooltip);
@@ -453,115 +564,137 @@
         const ask = jsonObj?.market[itemName]?.ask;
         const bid = jsonObj?.market[itemName]?.bid;
         appendHTMLStr += `
-        <div style="color: ${SCRIPT_COLOR_TOOLTIP};">日均价: ${numberFormatter(ask)} / ${numberFormatter(bid)} (${ask && ask > 0 ? numberFormatter(ask * amount) : ""} / ${
-            bid && bid > 0 ? numberFormatter(bid * amount) : ""
-        })</div>
+        <div style="color: ${SCRIPT_COLOR_TOOLTIP};">日均价: ${numberFormatter(ask)} / ${numberFormatter(bid)} (${
+            ask && ask > 0 ? numberFormatter(ask * amount) : ""
+        } / ${bid && bid > 0 ? numberFormatter(bid * amount) : ""})</div>
         `;
 
-        if (
-            getActionHridFromItemName(itemName) &&
-            initData_actionDetailMap[getActionHridFromItemName(itemName)].inputItems &&
-            initData_actionDetailMap[getActionHridFromItemName(itemName)].inputItems.length > 0 &&
-            initData_actionDetailMap &&
-            initData_itemDetailMap
-        ) {
-            // 制造类技能
-            const actionHrid = getActionHridFromItemName(itemName);
-            const inputItems = JSON.parse(JSON.stringify(initData_actionDetailMap[actionHrid].inputItems));
-            const upgradedFromItemHrid = initData_actionDetailMap[actionHrid]?.upgradeItemHrid;
-            if (upgradedFromItemHrid) {
-                inputItems.push({ itemHrid: upgradedFromItemHrid, count: 1 });
-            }
+        if (settingsMap.itemTooltip_profit.isTrue) {
+            if (
+                getActionHridFromItemName(itemName) &&
+                initData_actionDetailMap[getActionHridFromItemName(itemName)].inputItems &&
+                initData_actionDetailMap[getActionHridFromItemName(itemName)].inputItems.length > 0 &&
+                initData_actionDetailMap &&
+                initData_itemDetailMap
+            ) {
+                // 制造类技能
+                const actionHrid = getActionHridFromItemName(itemName);
+                const inputItems = JSON.parse(JSON.stringify(initData_actionDetailMap[actionHrid].inputItems));
+                const upgradedFromItemHrid = initData_actionDetailMap[actionHrid]?.upgradeItemHrid;
+                if (upgradedFromItemHrid) {
+                    inputItems.push({ itemHrid: upgradedFromItemHrid, count: 1 });
+                }
 
-            let totalAskPrice = 0;
-            let totalBidPrice = 0;
-            for (let item of inputItems) {
-                item.name = initData_itemDetailMap[item.itemHrid].name;
-                item.perAskPrice = jsonObj?.market[item.name]?.ask;
-                item.perBidPrice = jsonObj?.market[item.name]?.bid;
-                totalAskPrice += item.perAskPrice * item.count;
-                totalBidPrice += item.perBidPrice * item.count;
-            }
+                let totalAskPrice = 0;
+                let totalBidPrice = 0;
+                for (let item of inputItems) {
+                    item.name = initData_itemDetailMap[item.itemHrid].name;
+                    item.perAskPrice = jsonObj?.market[item.name]?.ask;
+                    item.perBidPrice = jsonObj?.market[item.name]?.bid;
+                    totalAskPrice += item.perAskPrice * item.count;
+                    totalBidPrice += item.perBidPrice * item.count;
+                }
 
-            appendHTMLStr += `<div style="color: ${SCRIPT_COLOR_TOOLTIP}; font-size: 10px;">原料价： ${numberFormatter(totalAskPrice)}  / ${numberFormatter(totalBidPrice)}</div>`;
-            for (const item of inputItems) {
-                appendHTMLStr += `
-                <div style="color: ${SCRIPT_COLOR_TOOLTIP}; font-size: 10px;"> ${item.name} x${item.count}: ${numberFormatter(item.perAskPrice)} / ${numberFormatter(item.perBidPrice)}</div>
+                appendHTMLStr += `<div style="color: ${SCRIPT_COLOR_TOOLTIP}; font-size: 10px;">原料价： ${numberFormatter(
+                    totalAskPrice
+                )}  / ${numberFormatter(totalBidPrice)}</div>`;
+                for (const item of inputItems) {
+                    appendHTMLStr += `
+                <div style="color: ${SCRIPT_COLOR_TOOLTIP}; font-size: 10px;"> ${item.name} x${item.count}: ${numberFormatter(
+                        item.perAskPrice
+                    )} / ${numberFormatter(item.perBidPrice)}</div>
                 `;
-            }
-
-            // 基础每小时生产数量
-            const baseTimePerActionSec = initData_actionDetailMap[actionHrid].baseTimeCost / 1000000000;
-            const toolPercent = getToolsSpeedBuffByActionHrid(actionHrid);
-            const actualTimePerActionSec = baseTimePerActionSec / (1 + toolPercent / 100);
-            let produceItemPerHour = 3600 / actualTimePerActionSec;
-            // 基础掉率
-            let droprate = initData_actionDetailMap[actionHrid].outputItems[0].count;
-            // 等级碾压提高效率
-            const requiredLevel = initData_actionDetailMap[actionHrid].levelRequirement.level;
-            let currentLevel = requiredLevel;
-            for (const skill of initData_characterSkills) {
-                if (skill.skillHrid === initData_actionDetailMap[actionHrid].levelRequirement.skillHrid) {
-                    currentLevel = skill.level;
-                    break;
                 }
-            }
-            const levelEffBuff = currentLevel - requiredLevel > 0 ? currentLevel - requiredLevel : 0;
-            // 房子效率
-            const houseEffBuff = getHousesEffBuffByActionHrid(actionHrid);
-            // 茶效率
-            const teaBuffs = getTeaBuffsByActionHrid(actionHrid);
-            // 特殊装备效率
-            const itemEffiBuff = Number(getItemEffiBuffByActionHrid(actionHrid));
-            // 总效率
-            produceItemPerHour *= 1 + (levelEffBuff + houseEffBuff + teaBuffs.efficiency + itemEffiBuff) / 100;
-            // 茶额外数量
-            let extraQuantityPerHour = (produceItemPerHour * teaBuffs.quantity) / 100;
 
-            appendHTMLStr += `<div style="color: ${SCRIPT_COLOR_TOOLTIP}; font-size: 10px;">生产利润(卖单价进、买单价出；不包括Processing Tea、社区buff、稀有掉落；刷新网页更新人物数据)：</div>`;
-            appendHTMLStr += `<div style="color: ${SCRIPT_COLOR_TOOLTIP}; font-size: 10px;">x${droprate}基础掉率 +${toolPercent}%工具速度 +${levelEffBuff}%等级效率 +${houseEffBuff}%房子效率 +${teaBuffs.efficiency}%茶效率 +${itemEffiBuff}%装备效率 +${teaBuffs.quantity}%茶额外数量 +${teaBuffs.lessResource}%茶减少消耗</div>`;
-            appendHTMLStr += `<div style="color: ${SCRIPT_COLOR_TOOLTIP}; font-size: 10px;">每小时生产 ${Number((produceItemPerHour + extraQuantityPerHour) * droprate).toFixed(1)} 个</div>`;
-            appendHTMLStr += `<div style="color: ${SCRIPT_COLOR_TOOLTIP};">利润: ${numberFormatter(bid - (totalAskPrice * (1 - teaBuffs.lessResource / 100)) / droprate)}/个, ${numberFormatter(
-                produceItemPerHour * (bid * droprate - totalAskPrice * (1 - teaBuffs.lessResource / 100)) + extraQuantityPerHour * bid * droprate
-            )}/小时, ${numberFormatter(24 * (produceItemPerHour * (bid * droprate - totalAskPrice * (1 - teaBuffs.lessResource / 100)) + extraQuantityPerHour * bid * droprate))}/天</div>`;
-        } else if (getActionHridFromItemName(itemName) && initData_actionDetailMap[getActionHridFromItemName(itemName)].inputItems === null && initData_actionDetailMap && initData_itemDetailMap) {
-            // 采集类技能
-            const actionHrid = getActionHridFromItemName(itemName);
-            // 基础每小时生产数量
-            const baseTimePerActionSec = initData_actionDetailMap[actionHrid].baseTimeCost / 1000000000;
-            const toolPercent = getToolsSpeedBuffByActionHrid(actionHrid);
-            const actualTimePerActionSec = baseTimePerActionSec / (1 + toolPercent / 100);
-            let produceItemPerHour = 3600 / actualTimePerActionSec;
-            // 基础掉率
-            let droprate = (initData_actionDetailMap[actionHrid].dropTable[0].minCount + initData_actionDetailMap[actionHrid].dropTable[0].maxCount) / 2;
-            produceItemPerHour *= droprate;
-            // 等级碾压效率
-            const requiredLevel = initData_actionDetailMap[actionHrid].levelRequirement.level;
-            let currentLevel = requiredLevel;
-            for (const skill of initData_characterSkills) {
-                if (skill.skillHrid === initData_actionDetailMap[actionHrid].levelRequirement.skillHrid) {
-                    currentLevel = skill.level;
-                    break;
+                // 基础每小时生产数量
+                const baseTimePerActionSec = initData_actionDetailMap[actionHrid].baseTimeCost / 1000000000;
+                const toolPercent = getToolsSpeedBuffByActionHrid(actionHrid);
+                const actualTimePerActionSec = baseTimePerActionSec / (1 + toolPercent / 100);
+                let produceItemPerHour = 3600 / actualTimePerActionSec;
+                // 基础掉率
+                let droprate = initData_actionDetailMap[actionHrid].outputItems[0].count;
+                // 等级碾压提高效率
+                const requiredLevel = initData_actionDetailMap[actionHrid].levelRequirement.level;
+                let currentLevel = requiredLevel;
+                for (const skill of initData_characterSkills) {
+                    if (skill.skillHrid === initData_actionDetailMap[actionHrid].levelRequirement.skillHrid) {
+                        currentLevel = skill.level;
+                        break;
+                    }
                 }
-            }
-            const levelEffBuff = currentLevel - requiredLevel > 0 ? currentLevel - requiredLevel : 0;
-            // 房子效率
-            const houseEffBuff = getHousesEffBuffByActionHrid(actionHrid);
-            // 茶效率
-            const teaBuffs = getTeaBuffsByActionHrid(actionHrid);
-            // 特殊装备效率
-            const itemEffiBuff = Number(getItemEffiBuffByActionHrid(actionHrid));
-            // 总效率
-            produceItemPerHour *= 1 + (levelEffBuff + houseEffBuff + teaBuffs.efficiency + itemEffiBuff) / 100;
-            // 茶额外数量
-            let extraQuantityPerHour = (produceItemPerHour * teaBuffs.quantity) / 100;
+                const levelEffBuff = currentLevel - requiredLevel > 0 ? currentLevel - requiredLevel : 0;
+                // 房子效率
+                const houseEffBuff = getHousesEffBuffByActionHrid(actionHrid);
+                // 茶效率
+                const teaBuffs = getTeaBuffsByActionHrid(actionHrid);
+                // 特殊装备效率
+                const itemEffiBuff = Number(getItemEffiBuffByActionHrid(actionHrid));
+                // 总效率
+                produceItemPerHour *= 1 + (levelEffBuff + houseEffBuff + teaBuffs.efficiency + itemEffiBuff) / 100;
+                // 茶额外数量
+                let extraQuantityPerHour = (produceItemPerHour * teaBuffs.quantity) / 100;
 
-            appendHTMLStr += `<div style="color: ${SCRIPT_COLOR_TOOLTIP}; font-size: 10px;">生产利润(卖单价进、买单价出；不包括Processing Tea、社区buff、稀有掉落；刷新网页更新人物数据)：</div>`;
-            appendHTMLStr += `<div style="color: ${SCRIPT_COLOR_TOOLTIP}; font-size: 10px;">x${droprate}基础掉率 +${toolPercent}%工具速度 +${levelEffBuff}%等级效率 +${houseEffBuff}%房子效率 +${teaBuffs.efficiency}%茶效率 +${itemEffiBuff}%装备效率 +${teaBuffs.quantity}%茶额外数量 +${teaBuffs.lessResource}%茶减少消耗</div>`;
-            appendHTMLStr += `<div style="color: ${SCRIPT_COLOR_TOOLTIP}; font-size: 10px;">每小时生产 ${Number(produceItemPerHour + extraQuantityPerHour).toFixed(1)} 个</div>`;
-            appendHTMLStr += `<div style="color: ${SCRIPT_COLOR_TOOLTIP};">利润: ${numberFormatter(bid)}/个, ${numberFormatter(
-                produceItemPerHour * bid + extraQuantityPerHour * bid
-            )}/小时, ${numberFormatter(24 * (produceItemPerHour * bid + extraQuantityPerHour * bid))}/天</div>`;
+                appendHTMLStr += `<div style="color: ${SCRIPT_COLOR_TOOLTIP}; font-size: 10px;">生产利润(卖单价进、买单价出；不包括Processing Tea、社区buff、稀有掉落；刷新网页更新人物数据)：</div>`;
+                appendHTMLStr += `<div style="color: ${SCRIPT_COLOR_TOOLTIP}; font-size: 10px;">x${droprate}基础掉率 +${toolPercent}%工具速度 +${levelEffBuff}%等级效率 +${houseEffBuff}%房子效率 +${teaBuffs.efficiency}%茶效率 +${itemEffiBuff}%装备效率 +${teaBuffs.quantity}%茶额外数量 +${teaBuffs.lessResource}%茶减少消耗</div>`;
+                appendHTMLStr += `<div style="color: ${SCRIPT_COLOR_TOOLTIP}; font-size: 10px;">每小时生产 ${Number(
+                    (produceItemPerHour + extraQuantityPerHour) * droprate
+                ).toFixed(1)} 个</div>`;
+                appendHTMLStr += `<div style="color: ${SCRIPT_COLOR_TOOLTIP};">利润: ${numberFormatter(
+                    bid - (totalAskPrice * (1 - teaBuffs.lessResource / 100)) / droprate
+                )}/个, ${numberFormatter(
+                    produceItemPerHour * (bid * droprate - totalAskPrice * (1 - teaBuffs.lessResource / 100)) + extraQuantityPerHour * bid * droprate
+                )}/小时, ${numberFormatter(
+                    24 *
+                        (produceItemPerHour * (bid * droprate - totalAskPrice * (1 - teaBuffs.lessResource / 100)) +
+                            extraQuantityPerHour * bid * droprate)
+                )}/天</div>`;
+            } else if (
+                getActionHridFromItemName(itemName) &&
+                initData_actionDetailMap[getActionHridFromItemName(itemName)].inputItems === null &&
+                initData_actionDetailMap &&
+                initData_itemDetailMap
+            ) {
+                // 采集类技能
+                const actionHrid = getActionHridFromItemName(itemName);
+                // 基础每小时生产数量
+                const baseTimePerActionSec = initData_actionDetailMap[actionHrid].baseTimeCost / 1000000000;
+                const toolPercent = getToolsSpeedBuffByActionHrid(actionHrid);
+                const actualTimePerActionSec = baseTimePerActionSec / (1 + toolPercent / 100);
+                let produceItemPerHour = 3600 / actualTimePerActionSec;
+                // 基础掉率
+                let droprate =
+                    (initData_actionDetailMap[actionHrid].dropTable[0].minCount + initData_actionDetailMap[actionHrid].dropTable[0].maxCount) / 2;
+                produceItemPerHour *= droprate;
+                // 等级碾压效率
+                const requiredLevel = initData_actionDetailMap[actionHrid].levelRequirement.level;
+                let currentLevel = requiredLevel;
+                for (const skill of initData_characterSkills) {
+                    if (skill.skillHrid === initData_actionDetailMap[actionHrid].levelRequirement.skillHrid) {
+                        currentLevel = skill.level;
+                        break;
+                    }
+                }
+                const levelEffBuff = currentLevel - requiredLevel > 0 ? currentLevel - requiredLevel : 0;
+                // 房子效率
+                const houseEffBuff = getHousesEffBuffByActionHrid(actionHrid);
+                // 茶效率
+                const teaBuffs = getTeaBuffsByActionHrid(actionHrid);
+                // 特殊装备效率
+                const itemEffiBuff = Number(getItemEffiBuffByActionHrid(actionHrid));
+                // 总效率
+                produceItemPerHour *= 1 + (levelEffBuff + houseEffBuff + teaBuffs.efficiency + itemEffiBuff) / 100;
+                // 茶额外数量
+                let extraQuantityPerHour = (produceItemPerHour * teaBuffs.quantity) / 100;
+
+                appendHTMLStr += `<div style="color: ${SCRIPT_COLOR_TOOLTIP}; font-size: 10px;">生产利润(卖单价进、买单价出；不包括Processing Tea、社区buff、稀有掉落；刷新网页更新人物数据)：</div>`;
+                appendHTMLStr += `<div style="color: ${SCRIPT_COLOR_TOOLTIP}; font-size: 10px;">x${droprate}基础掉率 +${toolPercent}%工具速度 +${levelEffBuff}%等级效率 +${houseEffBuff}%房子效率 +${teaBuffs.efficiency}%茶效率 +${itemEffiBuff}%装备效率 +${teaBuffs.quantity}%茶额外数量 +${teaBuffs.lessResource}%茶减少消耗</div>`;
+                appendHTMLStr += `<div style="color: ${SCRIPT_COLOR_TOOLTIP}; font-size: 10px;">每小时生产 ${Number(
+                    produceItemPerHour + extraQuantityPerHour
+                ).toFixed(1)} 个</div>`;
+                appendHTMLStr += `<div style="color: ${SCRIPT_COLOR_TOOLTIP};">利润: ${numberFormatter(bid)}/个, ${numberFormatter(
+                    produceItemPerHour * bid + extraQuantityPerHour * bid
+                )}/小时, ${numberFormatter(24 * (produceItemPerHour * bid + extraQuantityPerHour * bid))}/天</div>`;
+            }
         }
 
         insertAfterElem.insertAdjacentHTML("afterend", appendHTMLStr);
@@ -583,7 +716,11 @@
             }
         }
 
-        if (!forceFetch && localStorage.getItem("MWITools_marketAPI_timestamp") && Date.now() - localStorage.getItem("MWITools_marketAPI_timestamp") < 900000) {
+        if (
+            !forceFetch &&
+            localStorage.getItem("MWITools_marketAPI_timestamp") &&
+            Date.now() - localStorage.getItem("MWITools_marketAPI_timestamp") < 900000
+        ) {
             return JSON.parse(localStorage.getItem("MWITools_marketAPI_json"));
         }
 
@@ -690,7 +827,10 @@
             const actionPanelObserver = new MutationObserver(async function (mutations) {
                 for (const mutation of mutations) {
                     for (const added of mutation.addedNodes) {
-                        if (added?.classList?.contains("Modal_modalContainer__3B80m") && added.querySelector("div.SkillActionDetail_nonenhancingComponent__1Y-ZY")) {
+                        if (
+                            added?.classList?.contains("Modal_modalContainer__3B80m") &&
+                            added.querySelector("div.SkillActionDetail_nonenhancingComponent__1Y-ZY")
+                        ) {
                             handleActionPanel(added.querySelector("div.SkillActionDetail_nonenhancingComponent__1Y-ZY"));
                         }
                     }
@@ -703,6 +843,10 @@
     };
 
     async function handleActionPanel(panel) {
+        if (!settingsMap.actionPanel_totalTime.isTrue) {
+            return;
+        }
+
         if (!panel.querySelector("div.SkillActionDetail_expGain__F5xHu")) {
             return; // 不处理战斗ActionPanel
         }
@@ -715,7 +859,11 @@
         const effBuff = 1 + getTotalEffiPercentage(actionHrid, false) / 100;
 
         // 显示总时间
-        let hTMLStr = `<div id="showTotalTime" style="color: ${SCRIPT_COLOR_MAIN}; text-align: left;">${getTotalTimeStr(inputElem.value, duration, effBuff)}</div>`;
+        let hTMLStr = `<div id="showTotalTime" style="color: ${SCRIPT_COLOR_MAIN}; text-align: left;">${getTotalTimeStr(
+            inputElem.value,
+            duration,
+            effBuff
+        )}</div>`;
         inputElem.parentNode.insertAdjacentHTML("afterend", hTMLStr);
         const showTotalTimeDiv = panel.querySelector("div#showTotalTime");
 
@@ -797,9 +945,11 @@
             };
 
             const need = calculateNeedToLevel(currentLevel, currentLevel + 1, effBuff, duration, exp);
-            hTMLStr = `<div id="tillLevel" style="color: ${SCRIPT_COLOR_MAIN}; text-align: left;">到 <input id="tillLevelInput" type="number" value="${currentLevel + 1}" min="${
+            hTMLStr = `<div id="tillLevel" style="color: ${SCRIPT_COLOR_MAIN}; text-align: left;">到 <input id="tillLevelInput" type="number" value="${
                 currentLevel + 1
-            }" max="200"> 级还需做 <span id="tillLevelNumber">${need.numOfActions} 次[${timeReadable(need.timeSec)}] (刷新网页更新当前等级)</span></div>`;
+            }" min="${currentLevel + 1}" max="200"> 级还需做 <span id="tillLevelNumber">${need.numOfActions} 次[${timeReadable(
+                need.timeSec
+            )}] (刷新网页更新当前等级)</span></div>`;
 
             quickInputButtonsDiv.insertAdjacentHTML("afterend", hTMLStr);
             const tillLevelInput = panel.querySelector("input#tillLevelInput");
@@ -829,13 +979,13 @@
             .querySelector("div#tillLevel")
             .insertAdjacentHTML(
                 "afterend",
-                `<div id="expPerHour" style="color: ${SCRIPT_COLOR_MAIN}; text-align: left;">每小时经验: ${numberFormatter(Math.round((3600 / duration) * exp * effBuff))} (+${Number(
-                    (effBuff - 1) * 100
-                ).toFixed(1)}%效率)</div>`
+                `<div id="expPerHour" style="color: ${SCRIPT_COLOR_MAIN}; text-align: left;">每小时经验: ${numberFormatter(
+                    Math.round((3600 / duration) * exp * effBuff)
+                )} (+${Number((effBuff - 1) * 100).toFixed(1)}%效率)</div>`
             );
 
         // 显示Foraging最后一个图综合收益
-        if (panel.querySelector("div.SkillActionDetail_dropTable__3ViVp").children.length > 1) {
+        if (panel.querySelector("div.SkillActionDetail_dropTable__3ViVp").children.length > 1 && settingsMap.actionPanel_foragingTotal.isTrue) {
             const jsonObj = await fetchMarketJSON();
             const actionHrid = "/actions/foraging/" + actionName.toLowerCase().replaceAll(" ", "_");
             // 基础每小时生产数量
@@ -965,10 +1115,12 @@
 
     const removeInsertedDivs = () => document.querySelectorAll("span.insertedSpan").forEach((div) => div.parentNode.removeChild(div));
 
-    window.setInterval(() => {
-        removeInsertedDivs();
-        waitForProgressBar();
-    }, 1000);
+    if (settingsMap.expPercentage.isTrue) {
+        window.setInterval(() => {
+            removeInsertedDivs();
+            waitForProgressBar();
+        }, 1000);
+    }
 
     /* 战斗总结 */
     async function handleBattleSummary(message) {
@@ -1020,7 +1172,10 @@
                         let battles = parseInt(matches[7], 10) - 1; // 排除当前战斗
                         battleDurationSec = days * 86400 + hours * 3600 + minutes * 60 + seconds;
                         let efficiencyPerHour = ((battles / battleDurationSec) * 3600).toFixed(1);
-                        elem.insertAdjacentHTML("afterend", `<div id="script_battleNumbers" style="color: ${SCRIPT_COLOR_MAIN};">每小时战斗 ${efficiencyPerHour} 次</div>`);
+                        elem.insertAdjacentHTML(
+                            "afterend",
+                            `<div id="script_battleNumbers" style="color: ${SCRIPT_COLOR_MAIN};">每小时战斗 ${efficiencyPerHour} 次</div>`
+                        );
                     }
                 }
                 // 总收入
@@ -1028,7 +1183,9 @@
                     .querySelector("div#script_battleNumbers")
                     .insertAdjacentHTML(
                         "afterend",
-                        `<div id="script_totalIncome" style="color: ${SCRIPT_COLOR_MAIN};">总收获: ${numberFormatter(totalPriceAsk)} / ${numberFormatter(totalPriceAskBid)}</div>`
+                        `<div id="script_totalIncome" style="color: ${SCRIPT_COLOR_MAIN};">总收获: ${numberFormatter(
+                            totalPriceAsk
+                        )} / ${numberFormatter(totalPriceAskBid)}</div>`
                     );
                 // 平均收入
                 if (battleDurationSec) {
@@ -1036,9 +1193,9 @@
                         .querySelector("div#script_totalIncome")
                         .insertAdjacentHTML(
                             "afterend",
-                            `<div id="script_averageIncome" style="color: ${SCRIPT_COLOR_MAIN};">每小时收获: ${numberFormatter(totalPriceAsk / (battleDurationSec / 60 / 60))} / ${numberFormatter(
-                                totalPriceAskBid / (battleDurationSec / 60 / 60)
-                            )}</div>`
+                            `<div id="script_averageIncome" style="color: ${SCRIPT_COLOR_MAIN};">每小时收获: ${numberFormatter(
+                                totalPriceAsk / (battleDurationSec / 60 / 60)
+                            )} / ${numberFormatter(totalPriceAskBid / (battleDurationSec / 60 / 60))}</div>`
                         );
                     document
                         .querySelector("div#script_averageIncome")
@@ -1054,14 +1211,19 @@
                 // 总经验
                 document
                     .querySelector("div#script_totalIncomeDay")
-                    .insertAdjacentHTML("afterend", `<div id="script_totalSkillsExp" style="color: ${SCRIPT_COLOR_MAIN};">总经验: ${numberFormatter(totalSkillsExp)}</div>`);
+                    .insertAdjacentHTML(
+                        "afterend",
+                        `<div id="script_totalSkillsExp" style="color: ${SCRIPT_COLOR_MAIN};">总经验: ${numberFormatter(totalSkillsExp)}</div>`
+                    );
                 // 平均经验
                 if (battleDurationSec) {
                     document
                         .querySelector("div#script_totalSkillsExp")
                         .insertAdjacentHTML(
                             "afterend",
-                            `<div id="script_averageSkillsExp" style="color: ${SCRIPT_COLOR_MAIN};">每小时总经验: ${numberFormatter(totalSkillsExp / (battleDurationSec / 60 / 60))}</div>`
+                            `<div id="script_averageSkillsExp" style="color: ${SCRIPT_COLOR_MAIN};">每小时总经验: ${numberFormatter(
+                                totalSkillsExp / (battleDurationSec / 60 / 60)
+                            )}</div>`
                         );
 
                     for (const [key, value] of Object.entries(message.unit.totalSkillExperienceMap)) {
@@ -1071,7 +1233,9 @@
                             .querySelector("div#script_totalSkillsExp")
                             .parentElement.insertAdjacentHTML(
                                 "beforeend",
-                                `<div style="color: ${SCRIPT_COLOR_MAIN};">每小时${str}经验: ${numberFormatter(value / (battleDurationSec / 60 / 60))}</div>`
+                                `<div style="color: ${SCRIPT_COLOR_MAIN};">每小时${str}经验: ${numberFormatter(
+                                    value / (battleDurationSec / 60 / 60)
+                                )}</div>`
                             );
                     }
                 } else {
@@ -1120,7 +1284,9 @@
             }
         }
     }
-    setInterval(addItemLevels, 500);
+    if (settingsMap.itemIconLevel.isTrue) {
+        setInterval(addItemLevels, 500);
+    }
 
     /* 市场物品筛选 */
     let onlyShowItemsAboveLevel = 1;
@@ -1240,7 +1406,9 @@
             });
         }
     }
-    setInterval(addMarketFilterButtons, 500);
+    if (settingsMap.marketFilter.isTrue) {
+        setInterval(addMarketFilterButtons, 500);
+    }
 
     function handleMarketItemFilter(div, itemDetal) {
         const itemLevel = itemDetal.itemLevel;
@@ -1290,12 +1458,17 @@
             const index = initData_actionCategoryDetailMap?.[actionCategoryHrid]?.sortIndex;
             if (index) {
                 if (!div.querySelector("span.script_taskMapIndex")) {
-                    div.insertAdjacentHTML("beforeend", `<span class="script_taskMapIndex" style="text-align: right; color: ${SCRIPT_COLOR_MAIN};"> 图 ${index}</span>`);
+                    div.insertAdjacentHTML(
+                        "beforeend",
+                        `<span class="script_taskMapIndex" style="text-align: right; color: ${SCRIPT_COLOR_MAIN};"> 图 ${index}</span>`
+                    );
                 }
             }
         }
     }
-    setInterval(handleTaskCard, 500);
+    if (settingsMap.taskMapIndex.isTrue) {
+        setInterval(handleTaskCard, 500);
+    }
 
     /* 显示战斗地图序号 */
     function addIndexToMaps() {
@@ -1309,7 +1482,9 @@
             }
         }
     }
-    setInterval(addIndexToMaps, 500);
+    if (settingsMap.mapIndex.isTrue) {
+        setInterval(addIndexToMaps, 500);
+    }
 
     /* 物品词典窗口显示还需多少技能书到X级 */
     const waitForItemDict = () => {
@@ -1319,7 +1494,10 @@
             const itemDictPanelObserver = new MutationObserver(async function (mutations) {
                 for (const mutation of mutations) {
                     for (const added of mutation.addedNodes) {
-                        if (added?.classList?.contains("Modal_modalContainer__3B80m") && added.querySelector("div.ItemDictionary_modalContent__WvEBY")) {
+                        if (
+                            added?.classList?.contains("Modal_modalContainer__3B80m") &&
+                            added.querySelector("div.ItemDictionary_modalContent__WvEBY")
+                        ) {
                             handleItemDict(added.querySelector("div.ItemDictionary_modalContent__WvEBY"));
                         }
                     }
@@ -1364,9 +1542,9 @@
         };
 
         let numBooks = getNeedBooksToLevel(currentLevel, currentExp, currentLevel + 1, abilityPerBookExp);
-        let hTMLStr = `<div id="tillLevel" style="color: ${SCRIPT_COLOR_MAIN}; text-align: left;">到 <input id="tillLevelInput" type="number" value="${currentLevel + 1}" min="${
+        let hTMLStr = `<div id="tillLevel" style="color: ${SCRIPT_COLOR_MAIN}; text-align: left;">到 <input id="tillLevelInput" type="number" value="${
             currentLevel + 1
-        }" max="200"> 级还需 <span id="tillLevelNumber">${numBooks} 本书 (刷新网页更新当前等级)</span></div>`;
+        }" min="${currentLevel + 1}" max="200"> 级还需 <span id="tillLevelNumber">${numBooks} 本书 (刷新网页更新当前等级)</span></div>`;
         panel.insertAdjacentHTML("beforeend", hTMLStr);
         const tillLevelInput = panel.querySelector("input#tillLevelInput");
         const tillLevelNumber = panel.querySelector("span#tillLevelNumber");
@@ -1401,6 +1579,16 @@
                 div.innerHTML = "插件说明";
                 div.addEventListener("click", () => {
                     window.open("http://43.129.194.214:5000/readme", "_blank");
+                });
+                targetNode.insertAdjacentElement("afterbegin", div);
+
+                div = document.createElement("div");
+                div.setAttribute("class", "NavigationBar_minorNavigationLink__31K7Y");
+                div.style.color = SCRIPT_COLOR_MAIN;
+                div.innerHTML = "插件设置";
+                div.addEventListener("click", () => {
+                    const array = document.querySelectorAll(".NavigationBar_navigationLink__3eAHA");
+                    array[array.length - 1]?.click();
                 });
                 targetNode.insertAdjacentElement("afterbegin", div);
 
@@ -1466,6 +1654,10 @@
 
     /* 动作列表菜单计算时间 */
     function handleActionQueueMenue(added) {
+        if (!settingsMap.actionQueue.isTrue) {
+            return;
+        }
+
         handleActionQueueMenueCalculateTime(added);
 
         const listDiv = added.querySelector(".QueuedActions_actions__2Lur6");
@@ -1480,10 +1672,7 @@
             return;
         }
         if (actionDivList.length !== currentActionsHridList.length - 1) {
-            console.error("handleActionQueueTooltip action queue length inconsistency: ------");
-            console.log(actionDivList);
-            console.log(currentActionsHridList);
-            console.error("------");
+            console.error("handleActionQueueTooltip action queue length inconsistency");
             return;
         }
 
@@ -1513,11 +1702,15 @@
                 accumulatedTimeSec += totalTimeSec;
                 const currentTime = new Date();
                 currentTime.setSeconds(currentTime.getSeconds() + accumulatedTimeSec);
-                str = `到 ${String(currentTime.getHours()).padStart(2, "0")}:${String(currentTime.getMinutes()).padStart(2, "0")}:${String(currentTime.getSeconds()).padStart(2, "0")}`;
+                str = `到 ${String(currentTime.getHours()).padStart(2, "0")}:${String(currentTime.getMinutes()).padStart(2, "0")}:${String(
+                    currentTime.getSeconds()
+                ).padStart(2, "0")}`;
             }
 
             if (hasSkippedfirstActionObj) {
-                const html = `<div class="script_actionTime" style="color: ${SCRIPT_COLOR_MAIN};">${isInfinit ? "[ ∞ ] " : `[${timeReadable(totalTimeSec)}]`} ${str}</div>`;
+                const html = `<div class="script_actionTime" style="color: ${SCRIPT_COLOR_MAIN};">${
+                    isInfinit ? "[ ∞ ] " : `[${timeReadable(totalTimeSec)}]`
+                } ${str}</div>`;
                 if (actionDivList[actionDivListIndex].querySelector("div div.script_actionTime")) {
                     actionDivList[actionDivListIndex].querySelector("div div.script_actionTime").innerHTML = html;
                 } else {
@@ -1527,7 +1720,9 @@
             }
             hasSkippedfirstActionObj = true;
         }
-        const html = `<div id="script_queueTotalTime" style="color: ${SCRIPT_COLOR_MAIN};">总时间：${isAccumulatedTimeInfinite ? "[ ∞ ] " : `[${timeReadable(accumulatedTimeSec)}]`}</div>`;
+        const html = `<div id="script_queueTotalTime" style="color: ${SCRIPT_COLOR_MAIN};">总时间：${
+            isAccumulatedTimeInfinite ? "[ ∞ ] " : `[${timeReadable(accumulatedTimeSec)}]`
+        }</div>`;
         if (document.querySelector("div#script_queueTotalTime")) {
             document.querySelector("div#script_queueTotalTime").innerHTML = html;
         } else {
@@ -1550,11 +1745,18 @@
 
     /* 强化模拟器 */
     async function handleItemTooltipWithEnhancementLevel(tooltip) {
+        if (!settingsMap.enhanceSim.isTrue) {
+            return;
+        }
+
         if (typeof math === "undefined") {
             console.error(`handleItemTooltipWithEnhancementLevel no math lib`);
             tooltip
                 .querySelector(".ItemTooltipText_itemTooltipText__zFq3A")
-                .insertAdjacentHTML("beforeend", `<div style="color: red;">由于网络问题无法强化模拟: 1. 手机可能不支持脚本联网；2. 请尝试科学网络；</div>`);
+                .insertAdjacentHTML(
+                    "beforeend",
+                    `<div style="color: red;">由于网络问题无法强化模拟: 1. 手机可能不支持脚本联网；2. 请尝试科学网络；</div>`
+                );
             return;
         }
 
@@ -1690,7 +1892,7 @@
         return result;
     }
 
-    // 强化模拟输入参数
+    // 自定义强化模拟输入参数
     let input_data = {
         item_hrid: null,
         stop_at: null,
@@ -1715,7 +1917,10 @@
         // 保护成本
         let minProtectionPrice = null;
         let minProtectionHrid = null;
-        let protect_item_hrids = itemDetalObj.protectionItemHrids == null ? [hrid, "/items/mirror_of_protection"] : [hrid, "/items/mirror_of_protection"].concat(itemDetalObj.protectionItemHrids);
+        let protect_item_hrids =
+            itemDetalObj.protectionItemHrids == null
+                ? [hrid, "/items/mirror_of_protection"]
+                : [hrid, "/items/mirror_of_protection"].concat(itemDetalObj.protectionItemHrids);
         protect_item_hrids.forEach((protection_hrid, i) => {
             const this_cost = get_full_item_price(protection_hrid, price_data);
             if (i == 0) {
@@ -1744,5 +1949,51 @@
         const item_price_data = price_data.market[fullName];
         let final_cost = item_price_data.ask * input_data.priceAskBidRatio + item_price_data.bid * (1 - input_data.priceAskBidRatio);
         return final_cost;
+    }
+
+    /* 脚本设置面板 */
+    const waitForSetttins = () => {
+        const targetNode = document.querySelector("div.SettingsPanel_profileTab__214Bj");
+        if (targetNode) {
+            if (!targetNode.querySelector("#script_settings")) {
+                targetNode.insertAdjacentHTML("beforeend", `<div id="script_settings"></div>`);
+                const insertElem = targetNode.querySelector("div#script_settings");
+                insertElem.insertAdjacentHTML(
+                    "beforeend",
+                    `<div style="float: left; color: ${SCRIPT_COLOR_MAIN}">MWITools 设置 （刷新生效）：</div></br>`
+                );
+
+                for (const setting of Object.values(settingsMap)) {
+                    insertElem.insertAdjacentHTML(
+                        "beforeend",
+                        `<div style="float: left;"><input type="checkbox" id="${setting.id}" ${setting.isTrue ? "checked" : ""}></input>${
+                            setting.desc
+                        }</div></br>`
+                    );
+                }
+
+                insertElem.insertAdjacentHTML(
+                    "beforeend",
+                    `<div style="float: left;">代码里搜索“自定义”可以手动修改字体颜色、强化模拟默认参数</div></br>`
+                );
+                insertElem.addEventListener("change", saveSettings);
+            }
+        }
+        setTimeout(waitForSetttins, 500);
+    };
+    waitForSetttins();
+
+    function saveSettings() {
+        for (const checkbox of document.querySelectorAll("div#script_settings input")) {
+            settingsMap[checkbox.id].isTrue = checkbox.checked;
+            localStorage.setItem("script_settingsMap", JSON.stringify(settingsMap));
+        }
+    }
+
+    function readSettings() {
+        const ls = localStorage.getItem("script_settingsMap");
+        if (ls) {
+            settingsMap = { ...settingsMap, ...JSON.parse(ls) };
+        }
     }
 })();
