@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      6.3
+// @version      6.4
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -1822,7 +1822,7 @@
         if (best) {
             let needMatStr = "";
             for (const [key, value] of Object.entries(best.costs.needMap)) {
-                needMatStr += `<div>${key} 总价: ${numberFormatter(value)}<div>`;
+                needMatStr += `<div>${key} 单价: ${numberFormatter(value)}<div>`;
             }
             appendHTMLStr = `<div style="color: ${SCRIPT_COLOR_TOOLTIP};"><div>强化模拟（默认90级强化，2级房子，5级工具，0级手套，超级茶，幸运茶，卖单价收货，无工时费）：</div><div>总成本 ${numberFormatter(
                 best.totalCost.toFixed(0)
@@ -1993,9 +1993,11 @@
         const needMap = {};
         let totalNeedPrice = 0;
         for (const need of itemDetalObj.enhancementCosts) {
-            const price = get_full_item_price(need.itemHrid, price_data) * need.count;
-            totalNeedPrice += price;
-            needMap[initData_itemDetailMap[need.itemHrid].name] = totalNeedPrice;
+            const price = get_full_item_price(need.itemHrid, price_data);
+            totalNeedPrice += price * need.count;
+            if (!need.itemHrid.includes("/coin")) {
+                needMap[initData_itemDetailMap[need.itemHrid].name] = price;
+            }
         }
 
         return {
