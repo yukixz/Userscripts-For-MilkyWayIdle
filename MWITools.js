@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      6.4
+// @version      6.5
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -1830,7 +1830,7 @@
                 best.protect_count > 0 ? "<div>从 " + best.protect_at + " 级开始保护</div>" : "<div>不需要保护</div>"
             }<div>保护 ${best.protect_count.toFixed(1)} 次</div><div>+0底子: ${numberFormatter(best.costs.baseCost)}</div><div>${
                 best.protect_count > 0
-                    ? "保护单价:" + initData_itemDetailMap[best.costs.choiceOfProtection].name + " " + numberFormatter(best.costs.minProtectionCost)
+                    ? "保护单价: " + initData_itemDetailMap[best.costs.choiceOfProtection].name + " " + numberFormatter(best.costs.minProtectionCost)
                     : ""
             } 
              </div>${needMatStr}</div>`;
@@ -2058,7 +2058,12 @@
     function readSettings() {
         const ls = localStorage.getItem("script_settingsMap");
         if (ls) {
-            settingsMap = { ...settingsMap, ...JSON.parse(ls) };
+            const lsObj = JSON.parse(ls);
+            for (const option of Object.values(lsObj)) {
+                if (settingsMap.hasOwnProperty(option.id)) {
+                    settingsMap[option.id].isTrue = option.isTrue;
+                }
+            }
         }
     }
 
