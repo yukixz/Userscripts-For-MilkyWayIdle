@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      6.1
+// @version      6.2
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -118,7 +118,7 @@
         },
         checkEquipment: {
             id: "checkEquipment",
-            desc: "页面上方显示：战斗时穿了生产装备，或者生产时没有穿生产装备，红字警告",
+            desc: "页面上方显示：战斗时穿了生产装备，或者生产时没有穿对应的生产装备而仓库里有，红字警告",
             isTrue: true,
         },
         notifiEmptyAction: {
@@ -2059,7 +2059,7 @@
                 warningStr = "正穿着生产装备";
             }
         } else if (currentActionHrid.includes("/actions/cooking/") || currentActionHrid.includes("/actions/brewing/")) {
-            if (!hasHat) {
+            if (!hasHat && hasItemHridInInv("/items/red_chefs_hat")) {
                 warningStr = "没穿生产帽";
             }
         } else if (
@@ -2067,7 +2067,7 @@
             currentActionHrid.includes("/actions/crafting/") ||
             currentActionHrid.includes("/actions/tailoring/")
         ) {
-            if (!hasOffHand) {
+            if (!hasOffHand && hasItemHridInInv("/items/eye_watch")) {
                 warningStr = "没穿生产副手";
             }
         } else if (
@@ -2075,11 +2075,11 @@
             currentActionHrid.includes("/actions/foraging/") ||
             currentActionHrid.includes("/actions/woodcutting/")
         ) {
-            if (!hasBoot) {
+            if (!hasBoot && hasItemHridInInv("/items/collectors_boots")) {
                 warningStr = "没穿生产鞋";
             }
         } else if (currentActionHrid.includes("/actions/enhancing")) {
-            if (!hasGlove) {
+            if (!hasGlove && hasItemHridInInv("/items/enchanted_gloves")) {
                 warningStr = "没穿强化手套";
             }
         }
@@ -2092,6 +2092,16 @@
                 `<div id="script_item_warning" style="position: fixed; top: 1%; left: 30%; color: ${SCRIPT_COLOR_ALERT}; font-size: 20px;">${warningStr}</div>`
             );
         }
+    }
+
+    function hasItemHridInInv(hrid) {
+        let result = null;
+        for (const item of initData_characterItems) {
+            if (item.itemHrid === hrid && item.itemLocationHrid === "/item_locations/inventory") {
+                result = item;
+            }
+        }
+        return result ? true : false;
     }
 
     /* 空闲时弹窗通知 */
