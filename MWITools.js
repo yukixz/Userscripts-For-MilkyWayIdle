@@ -1,13 +1,14 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      6.0
+// @version      6.1
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
 // @match        https://test.milkywayidle.com/*
 // @grant        GM_addStyle
 // @grant        GM_xmlhttpRequest
+// @grant        GM_notification
 // @connect      raw.githubusercontent.com
 // @require      https://cdnjs.cloudflare.com/ajax/libs/mathjs/12.4.2/math.js
 // ==/UserScript==
@@ -120,6 +121,11 @@
             desc: "页面上方显示：战斗时穿了生产装备，或者生产时没有穿生产装备，红字警告",
             isTrue: true,
         },
+        notifiEmptyAction: {
+            id: "notifiEmptyAction",
+            desc: "弹窗通知：正在空闲（游戏网页打开时才有效）",
+            isTrue: true,
+        },
     };
     readSettings();
 
@@ -199,6 +205,9 @@
             if (settingsMap.checkEquipment.isTrue) {
                 checkEquipment();
             }
+            if (settingsMap.notifiEmptyAction.isTrue) {
+                notificate();
+            }
         } else if (obj && obj.type === "init_client_data") {
             initData_actionDetailMap = obj.actionDetailMap;
             initData_levelExperienceTable = obj.levelExperienceTable;
@@ -217,6 +226,9 @@
             }
             if (settingsMap.checkEquipment.isTrue) {
                 checkEquipment();
+            }
+            if (settingsMap.notifiEmptyAction.isTrue) {
+                notificate();
             }
         } else if (obj && obj.type === "battle_unit_fetched") {
             if (settingsMap.battlePanel.isTrue) {
@@ -2080,5 +2092,21 @@
                 `<div id="script_item_warning" style="position: fixed; top: 1%; left: 30%; color: ${SCRIPT_COLOR_ALERT}; font-size: 20px;">${warningStr}</div>`
             );
         }
+    }
+
+    /* 空闲时弹窗通知 */
+    function notificate() {
+        if (typeof GM_notification === "undefined" || !GM_notification) {
+            console.error("notificate null GM_notification");
+            return;
+        }
+        if (currentActionsHridList.length > 0) {
+            return;
+        }
+        console.log("notificate empty action");
+        GM_notification({
+            text: "动作队列为空",
+            title: "MWITools",
+        });
     }
 })();
