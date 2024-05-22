@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      6.5
+// @version      6.6
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -53,7 +53,7 @@
         },
         itemTooltip_prices: {
             id: "itemTooltip_prices",
-            desc: "物品悬浮窗显示：24小时市场均价",
+            desc: "物品悬浮窗显示：24小时市场均价、消耗品回血回魔速度和价格",
             isTrue: true,
         },
         itemTooltip_profit: {
@@ -614,6 +614,34 @@
         } / ${bid && bid > 0 ? numberFormatter(bid * amount) : ""})</div>
         `;
 
+        // 消耗品回复计算
+        let itemDetail = null;
+        for (const item of Object.values(initData_itemDetailMap)) {
+            if (item.name === itemName) {
+                itemDetail = item;
+            }
+        }
+        const hp = itemDetail?.consumableDetail?.hitpointRestore;
+        const mp = itemDetail?.consumableDetail?.manapointRestore;
+        const cd = itemDetail?.consumableDetail?.cooldownDuration;
+        if (hp && cd) {
+            const hpPerMiniute = (60 / (cd / 1000000000)) * hp;
+            const pricePer100Hp = ask / (hp / 100);
+            const pricePerMinute = (60 / (cd / 1000000000)) * ask;
+            appendHTMLStr += `<div style="color: ${SCRIPT_COLOR_TOOLTIP}">${pricePer100Hp.toFixed(0)} Coins/100Hp, ${hpPerMiniute.toFixed(
+                0
+            )} Hp/Min, ${pricePerMinute.toFixed(0)} Coins/Min</div>`;
+        }
+        if (mp && cd) {
+            const mpPerMiniute = (60 / (cd / 1000000000)) * mp;
+            const pricePer100Mp = ask / (mp / 100);
+            const pricePerMinute = (60 / (cd / 1000000000)) * ask;
+            appendHTMLStr += `<div style="color: ${SCRIPT_COLOR_TOOLTIP}">${pricePer100Mp.toFixed(0)} Coins/100Mp, ${mpPerMiniute.toFixed(
+                0
+            )} Mp/Min, ${pricePerMinute.toFixed(0)} Coins/Min</div>`;
+        }
+
+        // 生产利润计算
         if (settingsMap.itemTooltip_profit.isTrue) {
             if (
                 getActionHridFromItemName(itemName) &&
