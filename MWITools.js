@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      6.2
+// @version      6.3
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -1820,11 +1820,20 @@
 
         let appendHTMLStr = `<div style="color: ${SCRIPT_COLOR_TOOLTIP};">不支持模拟+1装备</div>`;
         if (best) {
+            let needMatStr = "";
+            for (const [key, value] of Object.entries(best.costs.needMap)) {
+                needMatStr += `<div>${key} 总价: ${numberFormatter(value)}<div>`;
+            }
             appendHTMLStr = `<div style="color: ${SCRIPT_COLOR_TOOLTIP};"><div>强化模拟（默认90级强化，2级房子，5级工具，0级手套，超级茶，幸运茶，卖单价收货，无工时费）：</div><div>总成本 ${numberFormatter(
                 best.totalCost.toFixed(0)
             )}</div><div>耗时 ${best.simResult.totalActionTimeStr}</div>${
                 best.protect_count > 0 ? "<div>从 " + best.protect_at + " 级开始保护</div>" : "<div>不需要保护</div>"
-            }</div>`;
+            }<div>保护 ${best.protect_count.toFixed(1)} 次</div><div>+0底子: ${numberFormatter(best.costs.baseCost)}</div><div>${
+                best.protect_count > 0
+                    ? "保护单价:" + initData_itemDetailMap[best.costs.choiceOfProtection].name + " " + numberFormatter(best.costs.minProtectionCost)
+                    : ""
+            } 
+             </div>${needMatStr}</div>`;
         }
 
         tooltip.querySelector(".ItemTooltipText_itemTooltipText__zFq3A").insertAdjacentHTML("beforeend", appendHTMLStr);
@@ -1981,12 +1990,21 @@
         });
 
         // 强化材料成本
+        const needMap = {};
         let totalNeedPrice = 0;
         for (const need of itemDetalObj.enhancementCosts) {
-            totalNeedPrice += get_full_item_price(need.itemHrid, price_data) * need.count;
+            const price = get_full_item_price(need.itemHrid, price_data) * need.count;
+            totalNeedPrice += price;
+            needMap[initData_itemDetailMap[need.itemHrid].name] = totalNeedPrice;
         }
 
-        return { baseCost: baseCost, minProtectionCost: minProtectionPrice, perActionCost: totalNeedPrice, choiceOfProtection: minProtectionHrid };
+        return {
+            baseCost: baseCost,
+            minProtectionCost: minProtectionPrice,
+            perActionCost: totalNeedPrice,
+            choiceOfProtection: minProtectionHrid,
+            needMap: needMap,
+        };
     }
 
     function get_full_item_price(hrid, price_data) {
