@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      5.9
+// @version      6.0
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -22,6 +22,7 @@
     /* 可以是颜色名称，比如"red"；也可以是颜色Hex，比如"#ED694D" */
     const SCRIPT_COLOR_MAIN = "green"; // 脚本主要字体颜色
     const SCRIPT_COLOR_TOOLTIP = "darkgreen"; // 物品悬浮窗的字体颜色
+    const SCRIPT_COLOR_ALERT = "red"; // 警告字体颜色
 
     let settingsMap = {
         totalActionTime: {
@@ -114,6 +115,11 @@
             desc: "带强化等级的装备的悬浮菜单显示：强化模拟计算",
             isTrue: true,
         },
+        checkEquipment: {
+            id: "checkEquipment",
+            desc: "页面上方显示：战斗时穿了生产装备，或者生产时没有穿生产装备，红字警告",
+            isTrue: true,
+        },
     };
     readSettings();
 
@@ -133,6 +139,7 @@
     let initData_myMarketListings = null;
 
     let currentActionsHridList = [];
+    let currentEquipmentMap = {};
 
     hookWS();
 
@@ -184,6 +191,14 @@
             if (settingsMap.networth.isTrue) {
                 calculateNetworth();
             }
+            for (const item of obj.characterItems) {
+                if (item.itemLocationHrid !== "/item_locations/inventory") {
+                    currentEquipmentMap[item.itemLocationHrid] = item;
+                }
+            }
+            if (settingsMap.checkEquipment.isTrue) {
+                checkEquipment();
+            }
         } else if (obj && obj.type === "init_client_data") {
             initData_actionDetailMap = obj.actionDetailMap;
             initData_levelExperienceTable = obj.levelExperienceTable;
@@ -200,9 +215,25 @@
                     });
                 }
             }
+            if (settingsMap.checkEquipment.isTrue) {
+                checkEquipment();
+            }
         } else if (obj && obj.type === "battle_unit_fetched") {
             if (settingsMap.battlePanel.isTrue) {
                 handleBattleSummary(obj);
+            }
+        } else if (obj && obj.type === "items_updated" && obj.endCharacterItems) {
+            for (const item of obj.endCharacterItems) {
+                if (item.itemLocationHrid !== "/item_locations/inventory") {
+                    if (item.count === 0) {
+                        currentEquipmentMap[item.itemLocationHrid] = null;
+                    } else {
+                        currentEquipmentMap[item.itemLocationHrid] = item;
+                    }
+                }
+            }
+            if (settingsMap.checkEquipment.isTrue) {
+                checkEquipment();
             }
         }
         return message;
@@ -281,7 +312,9 @@
                 targetNode.insertAdjacentHTML(
                     "afterend",
                     `<div>Networth: ${numberFormatter(networthAsk)} / ${numberFormatter(networthBid)}${
-                        isUsingLocalMarketJson && settingsMap.networkAlert.isTrue ? `<div style="color: red">需要科学网络更新市场数据</div>` : ""
+                        isUsingLocalMarketJson && settingsMap.networkAlert.isTrue
+                            ? `<div style="color: ${SCRIPT_COLOR_ALERT}">需要科学网络更新市场数据</div>`
+                            : ""
                     }</div>`
                 );
             } else {
@@ -1376,32 +1409,26 @@
 
             const levelFilter = document.querySelector("#script_filter_level_select");
             levelFilter.addEventListener("change", function () {
-                console.log(levelFilter.value);
                 if (levelFilter.value && !isNaN(levelFilter.value)) {
                     onlyShowItemsAboveLevel = Number(levelFilter.value);
-                    console.log("Filter: " + Number(levelFilter.value));
                 }
             });
             const levelToFilter = document.querySelector("#script_filter_level_select_to");
             levelToFilter.addEventListener("change", function () {
-                console.log(levelToFilter.value);
                 if (levelToFilter.value && !isNaN(levelToFilter.value)) {
                     onlyShowItemsBelowLevel = Number(levelToFilter.value);
-                    console.log("Filter: " + Number(levelToFilter.value));
                 }
             });
             const skillFilter = document.querySelector("#script_filter_skill_select");
             skillFilter.addEventListener("change", function () {
                 if (skillFilter.value) {
                     onlyShowItemsSkillReq = skillFilter.value;
-                    console.log("Filter: " + skillFilter.value);
                 }
             });
             const locationFilter = document.querySelector("#script_filter_location_select");
             locationFilter.addEventListener("change", function () {
                 if (locationFilter.value) {
                     onlyShowItemsType = locationFilter.value;
-                    console.log("Filter: " + locationFilter.value);
                 }
             });
         }
@@ -1755,7 +1782,7 @@
                 .querySelector(".ItemTooltipText_itemTooltipText__zFq3A")
                 .insertAdjacentHTML(
                     "beforeend",
-                    `<div style="color: red;">由于网络问题无法强化模拟: 1. 手机可能不支持脚本联网；2. 请尝试科学网络；</div>`
+                    `<div style="color: ${SCRIPT_COLOR_ALERT};">由于网络问题无法强化模拟: 1. 手机可能不支持脚本联网；2. 请尝试科学网络；</div>`
                 );
             return;
         }
@@ -1779,9 +1806,15 @@
         input_data.stop_at = enhancementLevel;
         const best = await findBestEnhanceStrat(input_data);
 
-        const appendHTMLStr = `<div style="color: ${SCRIPT_COLOR_TOOLTIP};"><div>强化模拟（默认90级强化，2级房子，5级工具，0级手套，超级茶，幸运茶，卖单价收货，无工时费）：</div><div>总成本 ${numberFormatter(
-            best.totalCost.toFixed(0)
-        )}</div><div>耗时 ${best.simResult.totalActionTimeStr}</div><div>从 ${best.protect_at} 级开始保护</div></div>`;
+        let appendHTMLStr = `<div style="color: ${SCRIPT_COLOR_TOOLTIP};">不支持模拟+1装备</div>`;
+        if (best) {
+            appendHTMLStr = `<div style="color: ${SCRIPT_COLOR_TOOLTIP};"><div>强化模拟（默认90级强化，2级房子，5级工具，0级手套，超级茶，幸运茶，卖单价收货，无工时费）：</div><div>总成本 ${numberFormatter(
+                best.totalCost.toFixed(0)
+            )}</div><div>耗时 ${best.simResult.totalActionTimeStr}</div>${
+                best.protect_count > 0 ? "<div>从 " + best.protect_at + " 级开始保护</div>" : "<div>不需要保护</div>"
+            }</div>`;
+        }
+
         tooltip.querySelector(".ItemTooltipText_itemTooltipText__zFq3A").insertAdjacentHTML("beforeend", appendHTMLStr);
     }
 
@@ -1799,6 +1832,7 @@
             const totalCost = costs.baseCost + costs.minProtectionCost * simResult.protect_count + costs.perActionCost * simResult.actions;
             const r = {};
             r.protect_at = protect_at;
+            r.protect_count = simResult.protect_count;
             r.simResult = simResult;
             r.costs = costs;
             r.totalCost = totalCost;
@@ -1811,7 +1845,6 @@
                 best = r;
             }
         }
-        console.log(best);
         return best;
     }
 
@@ -1994,6 +2027,58 @@
         const ls = localStorage.getItem("script_settingsMap");
         if (ls) {
             settingsMap = { ...settingsMap, ...JSON.parse(ls) };
+        }
+    }
+
+    /* 检查是否穿错生产/战斗装备 */
+    function checkEquipment() {
+        if (currentActionsHridList.length === 0) {
+            return;
+        }
+        const currentActionHrid = currentActionsHridList[0].actionHrid;
+        const hasHat = currentEquipmentMap["/item_locations/head"]?.itemHrid === "/items/red_chefs_hat" ? true : false; // Cooking, Brewing
+        const hasOffHand = currentEquipmentMap["/item_locations/off_hand"]?.itemHrid === "/items/eye_watch" ? true : false; // Cheesesmithing, Crafting, Tailoring
+        const hasBoot = currentEquipmentMap["/item_locations/feet"]?.itemHrid === "/items/collectors_boots" ? true : false; // Milking, Foraging, Woodcutting
+        const hasGlove = currentEquipmentMap["/item_locations/hands"]?.itemHrid === "/items/enchanted_gloves" ? true : false; // Enhancing
+
+        let warningStr = null;
+        if (currentActionHrid.includes("/actions/combat/")) {
+            if (hasHat || hasOffHand || hasBoot || hasGlove) {
+                warningStr = "正穿着生产装备";
+            }
+        } else if (currentActionHrid.includes("/actions/cooking/") || currentActionHrid.includes("/actions/brewing/")) {
+            if (!hasHat) {
+                warningStr = "没穿生产帽";
+            }
+        } else if (
+            currentActionHrid.includes("/actions/cheesesmithing/") ||
+            currentActionHrid.includes("/actions/crafting/") ||
+            currentActionHrid.includes("/actions/tailoring/")
+        ) {
+            if (!hasOffHand) {
+                warningStr = "没穿生产副手";
+            }
+        } else if (
+            currentActionHrid.includes("/actions/milking/") ||
+            currentActionHrid.includes("/actions/foraging/") ||
+            currentActionHrid.includes("/actions/woodcutting/")
+        ) {
+            if (!hasBoot) {
+                warningStr = "没穿生产鞋";
+            }
+        } else if (currentActionHrid.includes("/actions/enhancing")) {
+            if (!hasGlove) {
+                warningStr = "没穿强化手套";
+            }
+        }
+
+        document.body.querySelector("#script_item_warning")?.remove();
+        if (warningStr) {
+            console.log(warningStr);
+            document.body.insertAdjacentHTML(
+                "beforeend",
+                `<div id="script_item_warning" style="position: fixed; top: 1%; left: 30%; color: ${SCRIPT_COLOR_ALERT}; font-size: 20px;">${warningStr}</div>`
+            );
         }
     }
 })();
