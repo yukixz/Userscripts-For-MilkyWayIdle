@@ -5,7 +5,7 @@ let LAST_API_TIMESTAMP = 0;
 let APIJson = null;
 
 const app = express();
-const port = 5000;
+const port = 5500;
 app.use(express.json());
 app.use(cors());
 

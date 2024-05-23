@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      6.6
+// @version      10.0.release
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -10,6 +10,7 @@
 // @grant        GM_xmlhttpRequest
 // @grant        GM_notification
 // @connect      raw.githubusercontent.com
+// @connect      43.129.194.214
 // @require      https://cdnjs.cloudflare.com/ajax/libs/mathjs/12.4.2/math.js
 // ==/UserScript==
 
@@ -24,6 +25,9 @@
     const SCRIPT_COLOR_MAIN = "green"; // 脚本主要字体颜色
     const SCRIPT_COLOR_TOOLTIP = "darkgreen"; // 物品悬浮窗的字体颜色
     const SCRIPT_COLOR_ALERT = "red"; // 警告字体颜色
+
+    const MARKET_API_URL = "https://raw.githubusercontent.com/holychikenz/MWIApi/main/medianmarket.json";
+    const MARKET_API_URL_BACKUP = "http://43.129.194.214:5500/apijson";
 
     let settingsMap = {
         totalActionTime: {
@@ -43,7 +47,7 @@
         },
         networth: {
             id: "networth",
-            desc: "右上角显示：Networth总资产",
+            desc: "右上角显示：Networth总资产(+2及以上物品按强化模拟成本计算)",
             isTrue: true,
         },
         invWorth: {
@@ -53,12 +57,17 @@
         },
         itemTooltip_prices: {
             id: "itemTooltip_prices",
-            desc: "物品悬浮窗显示：24小时市场均价、消耗品回血回魔速度和价格",
+            desc: "物品悬浮窗显示：24小时市场均价",
             isTrue: true,
         },
         itemTooltip_profit: {
             id: "itemTooltip_profit",
             desc: "物品悬浮窗显示：生产成本和利润计算 [依赖上一项]",
+            isTrue: true,
+        },
+        showConsumTips: {
+            id: "showConsumTips",
+            desc: "物品悬浮窗显示：消耗品回血回魔速度、回复性价比、每天最多消耗数量",
             isTrue: true,
         },
         networkAlert: {
@@ -124,6 +133,11 @@
         notifiEmptyAction: {
             id: "notifiEmptyAction",
             desc: "弹窗通知：正在空闲（游戏网页打开时才有效）",
+            isTrue: true,
+        },
+        tryBackupApiUrl: {
+            id: "tryBackupApiUrl",
+            desc: "无法从Github更新市场数据时，尝试使用备份地址（备份地址不保证长期维护）",
             isTrue: true,
         },
     };
@@ -264,15 +278,26 @@
         let networthAskInv = 0;
         let networthBidInv = 0;
         for (const item of initData_characterItems) {
+            const enhanceLevel = item.enhancementLevel;
             const itemName = initData_itemDetailMap[item.itemHrid].name;
             const marketPrices = marketAPIJson.market[itemName];
-            if (marketPrices) {
+            if (enhanceLevel && enhanceLevel > 1) {
+                input_data.item_hrid = item.itemHrid;
+                input_data.stop_at = enhanceLevel;
+                const best = await findBestEnhanceStrat(input_data);
+                let totalCost = best?.totalCost;
+                totalCost = totalCost ? Math.round(totalCost) : 0;
+                networthAsk += item.count * (totalCost > 0 ? totalCost : 0);
+                networthBid += item.count * (totalCost > 0 ? totalCost : 0);
+            } else if (marketPrices) {
                 networthAsk += item.count * (marketPrices.ask > 0 ? marketPrices.ask : 0);
                 networthBid += item.count * (marketPrices.bid > 0 ? marketPrices.bid : 0);
                 if (item.itemLocationHrid === "/item_locations/inventory" && itemName !== "Coin") {
                     networthAskInv += item.count * (marketPrices.ask > 0 ? marketPrices.ask : 0);
                     networthBidInv += item.count * (marketPrices.bid > 0 ? marketPrices.bid : 0);
                 }
+            } else {
+                console.error("calculateNetworth cannot find price of " + itemName);
             }
         }
 
@@ -293,9 +318,17 @@
                     marketPrices.ask *= 1 - 2 / 100;
                     marketPrices.bid *= 1 - 2 / 100;
                 }
-                if (!enhancementLevel || enhancementLevel === 0) {
+                if (!enhancementLevel || enhancementLevel <= 1) {
                     networthAsk += quantity * (marketPrices.ask > 0 ? marketPrices.ask : 0);
                     networthBid += quantity * (marketPrices.bid > 0 ? marketPrices.bid : 0);
+                } else {
+                    input_data.item_hrid = item.itemHrid;
+                    input_data.stop_at = enhancementLevel;
+                    const best = await findBestEnhanceStrat(input_data);
+                    let totalCost = best?.totalCost;
+                    totalCost = totalCost ? Math.round(totalCost) : 0;
+                    networthAsk += quantity * (totalCost > 0 ? totalCost : 0);
+                    networthBid += quantity * (totalCost > 0 ? totalCost : 0);
                 }
                 networthAsk += item.unclaimedCoinCount;
                 networthBid += item.unclaimedCoinCount;
@@ -305,17 +338,17 @@
                 networthAsk += item.unclaimedItemCount * (marketPrices.ask > 0 ? marketPrices.ask : 0);
                 networthBid += item.unclaimedItemCount * (marketPrices.bid > 0 ? marketPrices.bid : 0);
             }
+        }
 
-            if (settingsMap.invWorth.isTrue) {
-                const waitForInvInput = () => {
-                    const targetNodes = document.querySelectorAll("input.Inventory_inventoryFilterInput__1Kiwh");
-                    for (const elem of targetNodes) {
-                        elem.placeholder = `物品价值: ${numberFormatter(networthAskInv)} / ${numberFormatter(networthBidInv)}`;
-                    }
-                    setTimeout(waitForInvInput, 1000);
-                };
-                waitForInvInput();
-            }
+        if (settingsMap.invWorth.isTrue) {
+            const waitForInvInput = () => {
+                const targetNodes = document.querySelectorAll("input.Inventory_inventoryFilterInput__1Kiwh");
+                for (const elem of targetNodes) {
+                    elem.placeholder = `物品价值: ${numberFormatter(networthAskInv)} / ${numberFormatter(networthBidInv)}`;
+                }
+                setTimeout(waitForInvInput, 1000);
+            };
+            waitForInvInput();
         }
 
         const waitForHeader = () => {
@@ -325,7 +358,7 @@
                     "afterend",
                     `<div>Networth: ${numberFormatter(networthAsk)} / ${numberFormatter(networthBid)}${
                         isUsingLocalMarketJson && settingsMap.networkAlert.isTrue
-                            ? `<div style="color: ${SCRIPT_COLOR_ALERT}">需要科学网络更新市场数据</div>`
+                            ? `<div style="color: ${SCRIPT_COLOR_ALERT}">网络问题无法更新市场数据</div>`
                             : ""
                     }</div>`
                 );
@@ -568,9 +601,6 @@
     }
 
     async function handleTooltipItem(tooltip) {
-        if (!settingsMap.itemTooltip_prices.isTrue) {
-            return;
-        }
         const itemNameElems = tooltip.querySelectorAll("div.ItemTooltipText_name__2JAHA span");
         if (itemNameElems.length > 1) {
             handleItemTooltipWithEnhancementLevel(tooltip);
@@ -588,61 +618,62 @@
             insertAfterElem = tooltip.querySelectorAll("span")[0].parentNode.nextSibling;
         }
 
-        const jsonObj = await fetchMarketJSON();
-        if (!jsonObj || !jsonObj.market) {
-            insertAfterElem.insertAdjacentHTML(
-                "afterend",
-                `
-                <div style="color: ${SCRIPT_COLOR_TOOLTIP};">市场API错误</div>
-                `
-            );
-            return;
-        }
-
-        if (!jsonObj.market[itemName]) {
-            console.error("itemName not found in market API json: " + itemName);
-        }
-
         let appendHTMLStr = "";
+        let jsonObj = null;
+        let ask = null;
+        let bid = null;
 
-        // 市场价格
-        const ask = jsonObj?.market[itemName]?.ask;
-        const bid = jsonObj?.market[itemName]?.bid;
-        appendHTMLStr += `
-        <div style="color: ${SCRIPT_COLOR_TOOLTIP};">日均价: ${numberFormatter(ask)} / ${numberFormatter(bid)} (${
-            ask && ask > 0 ? numberFormatter(ask * amount) : ""
-        } / ${bid && bid > 0 ? numberFormatter(bid * amount) : ""})</div>
-        `;
-
-        // 消耗品回复计算
-        let itemDetail = null;
-        for (const item of Object.values(initData_itemDetailMap)) {
-            if (item.name === itemName) {
-                itemDetail = item;
+        if (settingsMap.itemTooltip_prices.isTrue) {
+            jsonObj = await fetchMarketJSON();
+            if (!jsonObj || !jsonObj.market) {
+                console.error("jsonObj null");
             }
+            if (!jsonObj.market[itemName]) {
+                console.error("itemName not found in market API json: " + itemName);
+            }
+            // 市场价格
+            ask = jsonObj?.market[itemName]?.ask;
+            bid = jsonObj?.market[itemName]?.bid;
+            appendHTMLStr += `
+        <div style="color: ${SCRIPT_COLOR_TOOLTIP};">日均价: ${numberFormatter(ask)} / ${numberFormatter(bid)} (${
+                ask && ask > 0 ? numberFormatter(ask * amount) : ""
+            } / ${bid && bid > 0 ? numberFormatter(bid * amount) : ""})</div>
+        `;
         }
-        const hp = itemDetail?.consumableDetail?.hitpointRestore;
-        const mp = itemDetail?.consumableDetail?.manapointRestore;
-        const cd = itemDetail?.consumableDetail?.cooldownDuration;
-        if (hp && cd) {
-            const hpPerMiniute = (60 / (cd / 1000000000)) * hp;
-            const pricePer100Hp = ask / (hp / 100);
-            const pricePerMinute = (60 / (cd / 1000000000)) * ask;
-            appendHTMLStr += `<div style="color: ${SCRIPT_COLOR_TOOLTIP}">${pricePer100Hp.toFixed(0)} Coins/100Hp, ${hpPerMiniute.toFixed(
-                0
-            )} Hp/Min, ${pricePerMinute.toFixed(0)} Coins/Min</div>`;
-        }
-        if (mp && cd) {
-            const mpPerMiniute = (60 / (cd / 1000000000)) * mp;
-            const pricePer100Mp = ask / (mp / 100);
-            const pricePerMinute = (60 / (cd / 1000000000)) * ask;
-            appendHTMLStr += `<div style="color: ${SCRIPT_COLOR_TOOLTIP}">${pricePer100Mp.toFixed(0)} Coins/100Mp, ${mpPerMiniute.toFixed(
-                0
-            )} Mp/Min, ${pricePerMinute.toFixed(0)} Coins/Min</div>`;
+
+        if (settingsMap.showConsumTips.isTrue) {
+            // 消耗品回复计算
+            let itemDetail = null;
+            for (const item of Object.values(initData_itemDetailMap)) {
+                if (item.name === itemName) {
+                    itemDetail = item;
+                }
+            }
+            const hp = itemDetail?.consumableDetail?.hitpointRestore;
+            const mp = itemDetail?.consumableDetail?.manapointRestore;
+            const cd = itemDetail?.consumableDetail?.cooldownDuration;
+            if (hp && cd) {
+                const hpPerMiniute = (60 / (cd / 1000000000)) * hp;
+                const pricePer100Hp = ask ? ask / (hp / 100) : null;
+                const usePerday = (24 * 60 * 60) / (cd / 1000000000);
+                appendHTMLStr += `<div style="color: ${SCRIPT_COLOR_TOOLTIP}">${
+                    pricePer100Hp ? pricePer100Hp.toFixed(0) + "金/100hp, " : ""
+                }${hpPerMiniute.toFixed(0)}hp/min, ${usePerday.toFixed(0)}个/天</div>`;
+            } else if (mp && cd) {
+                const mpPerMiniute = (60 / (cd / 1000000000)) * mp;
+                const pricePer100Mp = ask ? ask / (mp / 100) : null;
+                const usePerday = (24 * 60 * 60) / (cd / 1000000000);
+                appendHTMLStr += `<div style="color: ${SCRIPT_COLOR_TOOLTIP}">${
+                    pricePer100Mp ? pricePer100Mp.toFixed(0) + "金/100mp, " : ""
+                }${mpPerMiniute.toFixed(0)}mp/min, ${usePerday.toFixed(0)}个/天</div>`;
+            } else if (cd) {
+                const usePerday = (24 * 60 * 60) / (cd / 1000000000);
+                appendHTMLStr += `<div style="color: ${SCRIPT_COLOR_TOOLTIP}">${usePerday.toFixed(0)}个/天</div>`;
+            }
         }
 
         // 生产利润计算
-        if (settingsMap.itemTooltip_profit.isTrue) {
+        if (settingsMap.itemTooltip_profit.isTrue && jsonObj) {
             if (
                 getActionHridFromItemName(itemName) &&
                 initData_actionDetailMap[getActionHridFromItemName(itemName)].inputItems &&
@@ -801,7 +832,7 @@
         let jsonStr = null;
         jsonStr = await new Promise((resolve, reject) => {
             GM.xmlHttpRequest({
-                url: `https://raw.githubusercontent.com/holychikenz/MWIApi/main/medianmarket.json`,
+                url: MARKET_API_URL,
                 method: "GET",
                 synchronous: true,
                 timeout: 5000,
@@ -828,6 +859,39 @@
                 },
             });
         });
+
+        if (jsonStr === null && settingsMap.tryBackupApiUrl.isTrue) {
+            console.log("fetchMarketJSON fetch backup start");
+            jsonStr = await new Promise((resolve, reject) => {
+                GM.xmlHttpRequest({
+                    url: MARKET_API_URL_BACKUP,
+                    method: "GET",
+                    synchronous: true,
+                    timeout: 5000,
+                    onload: async (response) => {
+                        if (response.status == 200) {
+                            console.log("fetchMarketJSON fetch backup success 200");
+                            resolve(response.responseText);
+                        } else {
+                            console.error("fetchMarketJSON fetch backup onload with HTTP status failure " + response.status);
+                            resolve(null);
+                        }
+                    },
+                    onabort: () => {
+                        console.error("fetchMarketJSON fetch backup onabort");
+                        resolve(null);
+                    },
+                    onerror: () => {
+                        console.error("fetchMarketJSON fetch backup onerror");
+                        resolve(null);
+                    },
+                    ontimeout: () => {
+                        console.error("fetchMarketJSON fetch backup ontimeout");
+                        resolve(null);
+                    },
+                });
+            });
+        }
 
         if (jsonStr === null) {
             console.error("fetchMarketJSON network error, using local version");
