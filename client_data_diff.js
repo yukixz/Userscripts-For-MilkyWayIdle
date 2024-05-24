@@ -54,7 +54,8 @@
     function store() {
         const selectedItems = {};
         for (const item of Object.values(initData_itemDetailMap)) {
-            if (item.categoryHrid === "/item_categories/equipment") {
+            // if (item.categoryHrid === "/item_categories/equipment") {
+            if (item.categoryHrid) {
                 const newItem = {};
                 newItem.description = item.description;
                 newItem.hrid = item.hrid;
@@ -81,10 +82,10 @@
         test = JSON.parse(test);
         master = JSON.parse(master);
 
-        const result = [];
+        const result = new Map();
         for (const key of Object.keys(test)) {
             if (test[key].hrid !== master[key]?.hrid) {
-                result.push(test[key]);
+                result.set(test[key].name, test[key]);
             }
         }
         console.log(result);
