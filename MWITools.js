@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      10.1
+// @version      10.2
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -140,6 +140,11 @@
             desc: "无法从Github更新市场数据时，尝试使用备份地址（备份地址不保证长期维护）",
             isTrue: true,
         },
+        fillMarketOrderPrice: {
+            id: "fillMarketOrderPrice",
+            desc: "发布市场订单时自动填写为最小压价",
+            isTrue: true,
+        },
     };
     readSettings();
 
@@ -221,6 +226,9 @@
             }
             if (settingsMap.notifiEmptyAction.isTrue) {
                 notificate();
+            }
+            if (settingsMap.fillMarketOrderPrice.isTrue) {
+                waitForMarketOrders();
             }
         } else if (obj && obj.type === "init_client_data") {
             initData_actionDetailMap = obj.actionDetailMap;
@@ -1508,6 +1516,7 @@
                     <option value="earrings">Earrings</option>
                     <option value="ring">Ring</option>
                     <option value="pouch">Pouch</option>
+                    <option value="back">Back</option>
                 </select>&emsp;</span>`
             );
 
@@ -2235,5 +2244,43 @@
             text: "动作队列为空",
             title: "MWITools",
         });
+    }
+
+    /* 左侧栏显示技能百分比 */
+    const waitForMarketOrders = () => {
+        const element = document.querySelector(".MarketplacePanel_marketListings__1GCyQ");
+        if (element) {
+            console.log("start observe market order");
+            new MutationObserver((mutationsList) => {
+                mutationsList.forEach((mutation) => {
+                    mutation.addedNodes.forEach((node) => {
+                        if (node.classList.contains("Modal_modalContainer__3B80m")) {
+                            handleMarketNewOrder(node);
+                        }
+                    });
+                });
+            }).observe(element, {
+                characterData: false,
+                subtree: false,
+                childList: true,
+            });
+        } else {
+            setTimeout(waitForMarketOrders, 500);
+        }
+    };
+
+    function handleMarketNewOrder(node) {
+        const label = node.querySelector("span.MarketplacePanel_bestPrice__3bgKp");
+        const inputDiv = node.querySelector(".MarketplacePanel_inputContainer__3xmB2 .MarketplacePanel_priceInputs__3iWxy");
+        if (!label || !inputDiv) {
+            console.error("handleMarketNewOrder can not find elements");
+            return;
+        }
+        label.click();
+        if (label.parentElement.textContent.toLowerCase().includes("best buy")) {
+            inputDiv.querySelectorAll(".MarketplacePanel_buttonContainer__vJQud")[2]?.querySelector("div")?.click();
+        } else if (label.parentElement.textContent.toLowerCase().includes("best sell")) {
+            inputDiv.querySelectorAll(".MarketplacePanel_buttonContainer__vJQud")[1]?.querySelector("div")?.click();
+        }
     }
 })();
