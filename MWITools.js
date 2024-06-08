@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      10.4
+// @version      10.5
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -88,6 +88,11 @@
         itemIconLevel: {
             id: "itemIconLevel",
             desc: "装备图标右上角显示：装备等级",
+            isTrue: true,
+        },
+        showsKeyInfoInIcon: {
+            id: "showsKeyInfoInIcon",
+            desc: "钥匙和钥匙碎片图标右上角显示：对应的地图序号 [依赖上一项]",
             isTrue: true,
         },
         marketFilter: {
@@ -1424,6 +1429,30 @@
                     div.insertAdjacentHTML(
                         "beforeend",
                         `<div class="script_itemLevel" style="z-index: 1; position: absolute; top: 2px; right: 2px; text-align: right; color: ${SCRIPT_COLOR_MAIN};">${itemAbilityLevel}</div>`
+                    );
+                }
+            } else if (settingsMap.showsKeyInfoInIcon.isTrue && (itemHrid.includes("_key_fragment") || itemHrid.includes("_key"))) {
+                const map = new Map();
+                map.set("/items/blue_key_fragment", "图3");
+                map.set("/items/green_key_fragment", "图4");
+                map.set("/items/purple_key_fragment", "图5");
+                map.set("/items/white_key_fragment", "图6");
+                map.set("/items/orange_key_fragment", "图7");
+                map.set("/items/brown_key_fragment", "图8");
+                map.set("/items/stone_key_fragment", "图9");
+                map.set("/items/dark_key_fragment", "图10");
+                map.set("/items/burning_key_fragment", "图11");
+
+                map.set("/items/chimerical_key", "3.4.5.8");
+                map.set("/items/sinister_key", "5.7.8.10");
+                map.set("/items/enchanted_key", "6.7.9.11");
+
+                if (!div.querySelector("div.script_key")) {
+                    div.insertAdjacentHTML(
+                        "beforeend",
+                        `<div class="script_key" style="z-index: 1; position: absolute; top: 2px; right: 2px; text-align: right; color: ${SCRIPT_COLOR_MAIN};">${map.get(
+                            itemHrid
+                        )}</div>`
                     );
                 }
             }
