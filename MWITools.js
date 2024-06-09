@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      10.5
+// @version      10.6
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -1745,15 +1745,6 @@
                 let div = document.createElement("div");
                 div.setAttribute("class", "NavigationBar_minorNavigationLink__31K7Y");
                 div.style.color = SCRIPT_COLOR_MAIN;
-                div.innerHTML = "插件说明";
-                div.addEventListener("click", () => {
-                    window.open("http://43.129.194.214:5000/readme", "_blank");
-                });
-                targetNode.insertAdjacentElement("afterbegin", div);
-
-                div = document.createElement("div");
-                div.setAttribute("class", "NavigationBar_minorNavigationLink__31K7Y");
-                div.style.color = SCRIPT_COLOR_MAIN;
                 div.innerHTML = "插件设置";
                 div.addEventListener("click", () => {
                     const array = document.querySelectorAll(".NavigationBar_navigationLink__3eAHA");
@@ -1785,15 +1776,6 @@
                 div.innerHTML = "利润计算 Mooneycalc";
                 div.addEventListener("click", () => {
                     window.open("https://mooneycalc.vercel.app/", "_blank");
-                });
-                targetNode.insertAdjacentElement("afterbegin", div);
-
-                div = document.createElement("div");
-                div.setAttribute("class", "NavigationBar_minorNavigationLink__31K7Y");
-                div.style.color = SCRIPT_COLOR_MAIN;
-                div.innerHTML = "利润计算 cowculator";
-                div.addEventListener("click", () => {
-                    window.open("https://cowculator.info/", "_blank");
                 });
                 targetNode.insertAdjacentElement("afterbegin", div);
 
@@ -2275,7 +2257,7 @@
         });
     }
 
-    /* 左侧栏显示技能百分比 */
+    /* 市场价格自动输入最小压价 */
     const waitForMarketOrders = () => {
         const element = document.querySelector(".MarketplacePanel_marketListings__1GCyQ");
         if (element) {
@@ -2310,9 +2292,9 @@
             return;
         }
         label.click();
-        if (label.parentElement.textContent.toLowerCase().includes("best buy")) {
+        if (getOriTextFromElement(label.parentElement).toLowerCase().includes("best buy")) {
             inputDiv.querySelectorAll(".MarketplacePanel_buttonContainer__vJQud")[2]?.querySelector("div")?.click();
-        } else if (label.parentElement.textContent.toLowerCase().includes("best sell")) {
+        } else if (getOriTextFromElement(label.parentElement).toLowerCase().includes("best sell")) {
             inputDiv.querySelectorAll(".MarketplacePanel_buttonContainer__vJQud")[1]?.querySelector("div")?.click();
         }
     }
