@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      11.0
+// @version      11.1
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -850,7 +850,7 @@
                         ? "生产利润(卖单价进、买单价出；不包括Processing Tea、社区buff、稀有掉落；刷新网页更新人物数据)："
                         : "Production profit(Sell price in, bid price out; Not including processing tea, comm buffs, rare drops; Refresh page to update player data): "
                 }</div>`;
-                appendHTMLStr += `<div style="color: ${SCRIPT_COLOR_TOOLTIP}; font-size: 10px;">x${droprate}${
+                appendHTMLStr += `<div style="color: ${SCRIPT_COLOR_TOOLTIP}; font-size: 10px;">x${droprate} ${
                     isZH ? "基础掉率" : "base drop rate,"
                 } +${toolPercent}%${isZH ? "工具速度" : " tool speed,"} +${levelEffBuff}%${isZH ? "等级效率" : " level eff,"} +${houseEffBuff}%${
                     isZH ? "房子效率" : " house eff,"
@@ -912,7 +912,7 @@
                         ? "生产利润(卖单价进、买单价出；不包括Processing Tea、社区buff、稀有掉落；刷新网页更新人物数据)："
                         : "Production profit(Sell price in, bid price out; Not including processing tea, comm buffs, rare drops; Refresh page to update player data): "
                 }</div>`;
-                appendHTMLStr += `<div style="color: ${SCRIPT_COLOR_TOOLTIP}; font-size: 10px;">x${droprate}${
+                appendHTMLStr += `<div style="color: ${SCRIPT_COLOR_TOOLTIP}; font-size: 10px;">x${droprate} ${
                     isZH ? "基础掉率" : "base drop rate,"
                 } +${toolPercent}%${isZH ? "工具速度" : " tool speed,"} +${levelEffBuff}%${isZH ? "等级效率" : " level eff,"} +${houseEffBuff}%${
                     isZH ? "房子效率" : " house eff,"
@@ -1212,9 +1212,9 @@
 
             const need = calculateNeedToLevel(currentLevel, currentLevel + 1, effBuff, duration, exp);
             hTMLStr = `<div id="tillLevel" style="color: ${SCRIPT_COLOR_MAIN}; text-align: left;">${
-                isZH ? "到 " : "To "
+                isZH ? "到 " : "To reach level "
             }<input id="tillLevelInput" type="number" value="${currentLevel + 1}" min="${currentLevel + 1}" max="200">${
-                isZH ? " 级还需做 " : " level need to do "
+                isZH ? " 级还需做 " : ", need to do "
             }<span id="tillLevelNumber">${need.numOfActions}${isZH ? " 次" : " times "}[${timeReadable(need.timeSec)}]${
                 isZH ? " (刷新网页更新当前等级)" : " (Refresh page to update current level)"
             }</span></div>`;
@@ -1226,7 +1226,7 @@
                 const targetLevel = Number(tillLevelInput.value);
                 if (targetLevel > currentLevel && targetLevel <= 200) {
                     const need = calculateNeedToLevel(currentLevel, targetLevel, effBuff, duration, exp);
-                    tillLevelNumber.textContent = `${need.numOfActions} 次[${timeReadable(need.timeSec)}]${
+                    tillLevelNumber.textContent = `${need.numOfActions}${isZH ? " 次" : " times "}[${timeReadable(need.timeSec)}]${
                         isZH ? " (刷新网页更新当前等级)" : " (Refresh page to update current level)"
                     }`;
                 } else {
@@ -1237,7 +1237,7 @@
                 const targetLevel = Number(tillLevelInput.value);
                 if (targetLevel > currentLevel && targetLevel <= 200) {
                     const need = calculateNeedToLevel(currentLevel, targetLevel, effBuff, duration, exp);
-                    tillLevelNumber.textContent = `${need.numOfActions} 次[${timeReadable(need.timeSec)}]${
+                    tillLevelNumber.textContent = `${need.numOfActions}${isZH ? " 次" : " times "}[${timeReadable(need.timeSec)}]${
                         isZH ? " (刷新网页更新当前等级)" : " (Refresh page to update current level)"
                     }`;
                 } else {
