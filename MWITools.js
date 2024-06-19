@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      10.9
+// @version      11.0
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -2480,6 +2480,13 @@
     const lang = {
         toggleButtonHide: isZH ? "收起" : "Hide",
         toggleButtonShow: isZH ? "展开" : "Show",
+        players: isZH ? "玩家" : "Players",
+        dpsTextDPS: isZH ? "DPS" : "DPS",
+        dpsTextTotalDamage: isZH ? "总伤害" : "Total Damage",
+        totalRuntime: isZH ? "运行时间" : "Runtime",
+        totalTeamDPS: isZH ? "团队DPS" : "Total Team DPS",
+        totalTeamDamage: isZH ? "团队总伤害" : "Total Team Damage",
+        damagePercentage: isZH ? "伤害占比" : "Damage %",
     };
 
     let totalDamage = [];
@@ -2512,6 +2519,7 @@
                 </div>
                 <div id="script_panelContent">
                     <canvas id="script_dpsChart" width="300" height="200"></canvas>
+                    <div id="script_dpsText"></div>
                 </div>`;
             panel.className = "statistics-panel";
             let offsetX, offsetY;
@@ -2641,6 +2649,8 @@
     const updateStatisticsPanel = () => {
         const totalTime = totalDuration + (endTime - startTime) / 1000;
         const dps = totalDamage.map((damage) => (totalTime ? Math.round(damage / totalTime) : 0));
+        const totalTeamDamage = totalDamage.reduce((acc, damage) => acc + damage, 0);
+        const totalTeamDPS = totalTime ? Math.round(totalTeamDamage / totalTime) : 0;
 
         // 人物头像下方显示数字
         const playersContainer = document.querySelector(".BattlePanel_combatUnitGrid__2hTAM");
@@ -2668,6 +2678,52 @@
             chart.data.labels = players.map((player) => player?.name);
             chart.data.datasets[0].data = dps;
             chart.update();
+
+            // Update text information
+            const days = Math.floor(totalTime / (24 * 3600));
+            const hours = Math.floor((totalTime % (24 * 3600)) / 3600);
+            const minutes = Math.floor((totalTime % 3600) / 60);
+            const seconds = Math.floor(totalTime % 60);
+            const formattedTime = `${days}d ${hours}h ${minutes}m ${seconds}s`;
+
+            const dpsText = document.getElementById("script_dpsText");
+            const playerRows = totalDamage.reduce((prev, cur, index) => {
+                const dpsFormatted = dps[index].toLocaleString();
+                const totalDamageFormatted = cur.toLocaleString();
+                const damagePercentage = totalTeamDamage ? ((cur / totalTeamDamage) * 100).toFixed(2) : 0;
+                return (
+                    prev +
+                    `
+                <tr>
+                    <td>${players[index]?.name}</td>
+                    <td>${dpsFormatted}</td>
+                    <td>${totalDamageFormatted}</td>
+                    <td>${damagePercentage}%</td>
+                </tr>`
+                );
+            }, "");
+            dpsText.innerHTML = `
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr style="text-align: left;">
+                        <th>${lang.players}</th>
+                        <th>${lang.dpsTextDPS}</th>
+                        <th>${lang.dpsTextTotalDamage}</th>
+                        <th>${lang.damagePercentage}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${playerRows}
+                </tbody>
+                <tfoot>
+                    <tr style="border-top: 2px solid black; font-weight: bold; text-align: left;">
+                        <td>${formattedTime}</td>
+                        <td>${totalTeamDPS.toLocaleString()}</td>
+                        <td>${totalTeamDamage.toLocaleString()}</td>
+                        <td>100%</td>
+                    </tr>
+                </tfoot>
+            </table>`;
         }
     };
 })();
