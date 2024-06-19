@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      10.7
+// @version      10.8
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -12,18 +12,19 @@
 // @connect      raw.githubusercontent.com
 // @connect      43.129.194.214
 // @require      https://cdnjs.cloudflare.com/ajax/libs/mathjs/12.4.2/math.js
-// @require     https://cdn.jsdelivr.net/npm/chart.js@3.7.0/dist/chart.min.js
-// @require     https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0/dist/chartjs-plugin-datalabels.min.js
+// @require      https://cdn.jsdelivr.net/npm/chart.js@3.7.0/dist/chart.min.js
+// @require      https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0/dist/chartjs-plugin-datalabels.min.js
 // ==/UserScript==
-
-/* 插件说明见游戏左侧栏下方绿字链接 */
 
 (() => {
     "use strict";
+    const userLanguage = navigator.language || navigator.userLanguage;
+    const isZH = userLanguage.startsWith("zh");
 
     /* 自定义插件字体颜色 */
     /* 找颜色自行网上搜索"CSS颜色" */
     /* 可以是颜色名称，比如"red"；也可以是颜色Hex，比如"#ED694D" */
+    // Customization
     const SCRIPT_COLOR_MAIN = "green"; // 脚本主要字体颜色
     const SCRIPT_COLOR_TOOLTIP = "darkgreen"; // 物品悬浮窗的字体颜色
     const SCRIPT_COLOR_ALERT = "red"; // 警告字体颜色
@@ -34,132 +35,166 @@
     let settingsMap = {
         totalActionTime: {
             id: "totalActionTime",
-            desc: "左上角显示：当前动作预计总耗时、预计何时完成",
+            desc: isZH
+                ? "左上角显示：当前动作预计总耗时、预计何时完成"
+                : "Top left: Estimated total time of the current action, estimated complete time.",
             isTrue: true,
         },
         actionPanel_totalTime: {
             id: "actionPanel_totalTime",
-            desc: "动作面板显示：动作预计总耗时、到多少级还需做多少次、每小时经验",
+            desc: isZH
+                ? "动作面板显示：动作预计总耗时、到多少级还需做多少次、每小时经验"
+                : "Action panel: Estimated total time of the action, times needed to reach a target skill level, exp/hour.",
             isTrue: true,
         },
         actionPanel_foragingTotal: {
             id: "actionPanel_foragingTotal",
-            desc: "动作面板显示：采摘综合图显示综合收益 [依赖上一项]",
+            desc: isZH
+                ? "动作面板显示：采摘综合图显示综合收益 [依赖上一项]"
+                : "Action panel: Overall profit of the foraging maps with multiple outcomes. [Depends on the previous selection]",
             isTrue: true,
         },
         networth: {
             id: "networth",
-            desc: "右上角显示：Networth总资产(+2及以上物品按强化模拟成本计算)",
+            desc: isZH
+                ? "右上角显示：Networth总资产(+2及以上物品按强化模拟成本计算)"
+                : "Top right: Networth(Items with at least 2 enhancement levels are valued by enchancing simulator).",
             isTrue: true,
         },
         invWorth: {
             id: "invWorth",
-            desc: "仓库搜索栏显示：仓库中物品总价值 [依赖上一项]",
+            desc: isZH
+                ? "仓库搜索栏显示：仓库中物品总价值 [依赖上一项]"
+                : "Inventory search bar: Total value of the items in the inventory. [Depends on the previous selection]",
             isTrue: true,
         },
         itemTooltip_prices: {
             id: "itemTooltip_prices",
-            desc: "物品悬浮窗显示：24小时市场均价",
+            desc: isZH ? "物品悬浮窗显示：24小时市场均价" : "Item tooltip: 24 hours average market price.",
             isTrue: true,
         },
         itemTooltip_profit: {
             id: "itemTooltip_profit",
-            desc: "物品悬浮窗显示：生产成本和利润计算 [依赖上一项]",
+            desc: isZH
+                ? "物品悬浮窗显示：生产成本和利润计算 [依赖上一项]"
+                : "Item tooltip: Production cost and profit. [Depends on the previous selection]",
             isTrue: true,
         },
         showConsumTips: {
             id: "showConsumTips",
-            desc: "物品悬浮窗显示：消耗品回血回魔速度、回复性价比、每天最多消耗数量",
+            desc: isZH
+                ? "物品悬浮窗显示：消耗品回血回魔速度、回复性价比、每天最多消耗数量"
+                : "Item tooltip: HP/MP consumables restore speed, cost performance, max cost per day.",
             isTrue: true,
         },
         networkAlert: {
             id: "networkAlert",
-            desc: "右上角显示：无法联网更新市场数据时，红字警告",
+            desc: isZH ? "右上角显示：无法联网更新市场数据时，红字警告" : "Top right: Alert message when market price data can not be fetched.",
             isTrue: true,
         },
         expPercentage: {
             id: "expPercentage",
-            desc: "左侧栏显示：技能经验百分比",
+            desc: isZH ? "左侧栏显示：技能经验百分比" : "Left sidebar: Percentages of exp of the skill levels.",
             isTrue: true,
         },
         battlePanel: {
             id: "battlePanel",
-            desc: "战斗总结面板（战斗时点击玩家头像）显示：平均每小时战斗次数、收入、经验",
+            desc: isZH
+                ? "战斗总结面板（战斗时点击玩家头像）显示：平均每小时战斗次数、收入、经验"
+                : "Battle info panel(click on player avatar during combat): Encounters/hour, revenue, exp.",
             isTrue: true,
         },
         itemIconLevel: {
             id: "itemIconLevel",
-            desc: "装备图标右上角显示：装备等级",
+            desc: isZH ? "装备图标右上角显示：装备等级" : "Top right corner of equipment icons: Equipment level.",
             isTrue: true,
         },
         showsKeyInfoInIcon: {
             id: "showsKeyInfoInIcon",
-            desc: "钥匙和钥匙碎片图标右上角显示：对应的地图序号 [依赖上一项]",
+            desc: isZH
+                ? "钥匙和钥匙碎片图标右上角显示：对应的地图序号 [依赖上一项]"
+                : "Top right corner of key/fragment icons: Corresponding combat zone index number. [Depends on the previous selection]",
             isTrue: true,
         },
         marketFilter: {
             id: "marketFilter",
-            desc: "市场页面显示：装备按等级、职业、部位筛选",
+            desc: isZH ? "市场页面显示：装备按等级、职业、部位筛选" : "Marketplace: Filter by equipment level, class, slot.",
             isTrue: true,
         },
         taskMapIndex: {
             id: "taskMapIndex",
-            desc: "任务页面显示：目标战斗地图序号",
+            desc: isZH ? "任务页面显示：目标战斗地图序号" : "Tasks page: Combat zone index number.",
             isTrue: true,
         },
         mapIndex: {
             id: "mapIndex",
-            desc: "战斗地图选择页面显示：地图序号",
+            desc: isZH ? "战斗地图选择页面显示：地图序号" : "Combat zones page: Combat zone index number.",
             isTrue: true,
         },
         skillbook: {
             id: "skillbook",
-            desc: "技能书的物品词典面板显示：到多少级还需要多少本技能书",
+            desc: isZH
+                ? "技能书的物品词典面板显示：到多少级还需要多少本技能书"
+                : "Item dictionary of skill books: Number of books needed to reach target skill level.",
             isTrue: true,
         },
         ThirdPartyLinks: {
             id: "ThirdPartyLinks",
-            desc: "左侧菜单栏显示：第三方工具网站链接、脚本设置链接、脚本说明链接",
+            desc: isZH ? "左侧菜单栏显示：第三方工具网站链接、脚本设置链接" : "Left sidebar: Links to 3rd-party websites, script settings.",
             isTrue: true,
         },
         actionQueue: {
             id: "actionQueue",
-            desc: "上方动作队列菜单显示：队列中每个动作预计总时间、到何时完成",
+            desc: isZH
+                ? "上方动作队列菜单显示：队列中每个动作预计总时间、到何时完成"
+                : "Queued actions panel at the top: Estimated total time and complete time of each queued action.",
             isTrue: true,
         },
         enhanceSim: {
             id: "enhanceSim",
-            desc: "带强化等级的装备的悬浮菜单显示：强化模拟计算",
+            desc: isZH
+                ? "带强化等级的装备的悬浮菜单显示：强化模拟计算"
+                : "Tooltip of equipment with enhancement level: Enhancing simulator calculations.",
             isTrue: true,
         },
         checkEquipment: {
             id: "checkEquipment",
-            desc: "页面上方显示：战斗时穿了生产装备，或者生产时没有穿对应的生产装备而仓库里有，红字警告",
+            desc: isZH
+                ? "页面上方显示：战斗时穿了生产装备，或者生产时没有穿对应的生产装备而仓库里有，红字警告"
+                : "Top: Alert message when combating with production equipments equipted, or producing when there are unequipted corresponding production equipment in the inventory.",
             isTrue: true,
         },
         notifiEmptyAction: {
             id: "notifiEmptyAction",
-            desc: "弹窗通知：正在空闲（游戏网页打开时才有效）",
+            desc: isZH
+                ? "弹窗通知：正在空闲（游戏网页打开时才有效）"
+                : "Browser notification: Action queue is empty. (Works only when the game page is open.)",
             isTrue: true,
         },
         tryBackupApiUrl: {
             id: "tryBackupApiUrl",
-            desc: "无法从Github更新市场数据时，尝试使用备份地址（备份地址不保证长期维护）",
+            desc: isZH
+                ? "无法从Github更新市场数据时，尝试使用备份地址（备份地址不保证长期维护）"
+                : "Try backup mirror server when failing to fetch market price API on Github. (Long-term maintenance of the backup server is not guarenteed.) (This is mainly for mainland China users.)",
             isTrue: true,
         },
         fillMarketOrderPrice: {
             id: "fillMarketOrderPrice",
-            desc: "发布市场订单时自动填写为最小压价",
+            desc: isZH
+                ? "发布市场订单时自动填写为最小压价"
+                : "Automatically input price with the smallest increasement/decreasement when posting marketplace bid/sell orders.",
             isTrue: true,
         },
         showDamage: {
             id: "showDamage",
-            desc: "战斗时，人物头像下方显示：伤害统计数字",
+            desc: isZH ? "战斗时，人物头像下方显示：伤害统计数字" : "Bottom of player avatar during combat: DPS.",
             isTrue: true,
         },
         showDamageGraph: {
             id: "showDamageGraph",
-            desc: "战斗时，悬浮窗显示：伤害统计图表 [依赖上一项]",
+            desc: isZH
+                ? "战斗时，悬浮窗显示：伤害统计图表 [依赖上一项]"
+                : "Floating window during combat: DPS chart. [Depends on the previous selection]",
             isTrue: true,
         },
     };
@@ -412,7 +447,9 @@
             const waitForInvInput = () => {
                 const targetNodes = document.querySelectorAll("input.Inventory_inventoryFilterInput__1Kiwh");
                 for (const elem of targetNodes) {
-                    elem.placeholder = `物品价值: ${numberFormatter(networthAskInv)} / ${numberFormatter(networthBidInv)}`;
+                    elem.placeholder = `${isZH ? "物品价值: " : "Items value: "}${numberFormatter(networthAskInv)} / ${numberFormatter(
+                        networthBidInv
+                    )}`;
                 }
                 setTimeout(waitForInvInput, 1000);
             };
@@ -426,7 +463,9 @@
                     "afterend",
                     `<div>Networth: ${numberFormatter(networthAsk)} / ${numberFormatter(networthBid)}${
                         isUsingLocalMarketJson && settingsMap.networkAlert.isTrue
-                            ? `<div style="color: ${SCRIPT_COLOR_ALERT}">网络问题无法更新市场数据</div>`
+                            ? `<div style="color: ${SCRIPT_COLOR_ALERT}">${
+                                  isZH ? "网络问题无法更新市场数据" : "Can't update market prices due to Internet error"
+                              }</div>`
                             : ""
                     }</div>`
                 );
@@ -494,7 +533,7 @@
 
     function timeReadable(sec) {
         if (sec >= 86400) {
-            return Number(sec / 86400).toFixed(1) + " 天";
+            return Number(sec / 86400).toFixed(1) + (isZH ? " 天" : " days");
         }
         const d = new Date(Math.round(sec * 1000));
         function pad(i) {
@@ -703,9 +742,9 @@
             ask = jsonObj?.market[itemName]?.ask;
             bid = jsonObj?.market[itemName]?.bid;
             appendHTMLStr += `
-        <div style="color: ${SCRIPT_COLOR_TOOLTIP};">日均价: ${numberFormatter(ask)} / ${numberFormatter(bid)} (${
-                ask && ask > 0 ? numberFormatter(ask * amount) : ""
-            } / ${bid && bid > 0 ? numberFormatter(bid * amount) : ""})</div>
+        <div style="color: ${SCRIPT_COLOR_TOOLTIP};">${isZH ? "日均价: " : "Daily average price: "}${numberFormatter(ask)} / ${numberFormatter(
+                bid
+            )} (${ask && ask > 0 ? numberFormatter(ask * amount) : ""} / ${bid && bid > 0 ? numberFormatter(bid * amount) : ""})</div>
         `;
         }
 
@@ -725,18 +764,18 @@
                 const pricePer100Hp = ask ? ask / (hp / 100) : null;
                 const usePerday = (24 * 60 * 60) / (cd / 1000000000);
                 appendHTMLStr += `<div style="color: ${SCRIPT_COLOR_TOOLTIP}">${
-                    pricePer100Hp ? pricePer100Hp.toFixed(0) + "金/100hp, " : ""
-                }${hpPerMiniute.toFixed(0)}hp/min, ${usePerday.toFixed(0)}个/天</div>`;
+                    pricePer100Hp ? pricePer100Hp.toFixed(0) + (isZH ? "金/100hp, " : "coins/100hp, ") : ""
+                }${hpPerMiniute.toFixed(0)}hp/min, ${usePerday.toFixed(0)}${isZH ? "个/天" : "/day"}</div>`;
             } else if (mp && cd) {
                 const mpPerMiniute = (60 / (cd / 1000000000)) * mp;
                 const pricePer100Mp = ask ? ask / (mp / 100) : null;
                 const usePerday = (24 * 60 * 60) / (cd / 1000000000);
                 appendHTMLStr += `<div style="color: ${SCRIPT_COLOR_TOOLTIP}">${
-                    pricePer100Mp ? pricePer100Mp.toFixed(0) + "金/100mp, " : ""
-                }${mpPerMiniute.toFixed(0)}mp/min, ${usePerday.toFixed(0)}个/天</div>`;
+                    pricePer100Mp ? pricePer100Mp.toFixed(0) + (isZH ? "金/100mp, " : "coins/100hp, ") : ""
+                }${mpPerMiniute.toFixed(0)}mp/min, ${usePerday.toFixed(0)}${isZH ? "个/天" : "/day"}</div>`;
             } else if (cd) {
                 const usePerday = (24 * 60 * 60) / (cd / 1000000000);
-                appendHTMLStr += `<div style="color: ${SCRIPT_COLOR_TOOLTIP}">${usePerday.toFixed(0)}个/天</div>`;
+                appendHTMLStr += `<div style="color: ${SCRIPT_COLOR_TOOLTIP}">${usePerday.toFixed(0)}${isZH ? "个/天" : "/day"}</div>`;
             }
         }
 
@@ -767,9 +806,9 @@
                     totalBidPrice += item.perBidPrice * item.count;
                 }
 
-                appendHTMLStr += `<div style="color: ${SCRIPT_COLOR_TOOLTIP}; font-size: 10px;">原料价： ${numberFormatter(
-                    totalAskPrice
-                )}  / ${numberFormatter(totalBidPrice)}</div>`;
+                appendHTMLStr += `<div style="color: ${SCRIPT_COLOR_TOOLTIP}; font-size: 10px;">${
+                    isZH ? "原料: " : "Source materials: "
+                }${numberFormatter(totalAskPrice)}  / ${numberFormatter(totalBidPrice)}</div>`;
                 for (const item of inputItems) {
                     appendHTMLStr += `
                 <div style="color: ${SCRIPT_COLOR_TOOLTIP}; font-size: 10px;"> ${item.name} x${item.count}: ${numberFormatter(
@@ -806,20 +845,30 @@
                 // 茶额外数量
                 let extraQuantityPerHour = (produceItemPerHour * teaBuffs.quantity) / 100;
 
-                appendHTMLStr += `<div style="color: ${SCRIPT_COLOR_TOOLTIP}; font-size: 10px;">生产利润(卖单价进、买单价出；不包括Processing Tea、社区buff、稀有掉落；刷新网页更新人物数据)：</div>`;
-                appendHTMLStr += `<div style="color: ${SCRIPT_COLOR_TOOLTIP}; font-size: 10px;">x${droprate}基础掉率 +${toolPercent}%工具速度 +${levelEffBuff}%等级效率 +${houseEffBuff}%房子效率 +${teaBuffs.efficiency}%茶效率 +${itemEffiBuff}%装备效率 +${teaBuffs.quantity}%茶额外数量 +${teaBuffs.lessResource}%茶减少消耗</div>`;
-                appendHTMLStr += `<div style="color: ${SCRIPT_COLOR_TOOLTIP}; font-size: 10px;">每小时生产 ${Number(
-                    (produceItemPerHour + extraQuantityPerHour) * droprate
-                ).toFixed(1)} 个</div>`;
-                appendHTMLStr += `<div style="color: ${SCRIPT_COLOR_TOOLTIP};">利润: ${numberFormatter(
+                appendHTMLStr += `<div style="color: ${SCRIPT_COLOR_TOOLTIP}; font-size: 10px;">${
+                    isZH
+                        ? "生产利润(卖单价进、买单价出；不包括Processing Tea、社区buff、稀有掉落；刷新网页更新人物数据)："
+                        : "Production profit(Sell price in, bid price out; Not including processing tea, comm buffs, rare drops; Refresh page to update player data): "
+                }</div>`;
+                appendHTMLStr += `<div style="color: ${SCRIPT_COLOR_TOOLTIP}; font-size: 10px;">x${droprate}${
+                    isZH ? "基础掉率" : "base drop rate,"
+                } +${toolPercent}%${isZH ? "工具速度" : " tool speed,"} +${levelEffBuff}%${isZH ? "等级效率" : " level eff,"} +${houseEffBuff}%${
+                    isZH ? "房子效率" : " house eff,"
+                } +${teaBuffs.efficiency}%${isZH ? "茶效率" : " tea eff,"} +${itemEffiBuff}%${isZH ? "装备效率" : " equipment eff,"} +${
+                    teaBuffs.quantity
+                }%${isZH ? "茶额外数量" : " tea extra outcome,"} +${teaBuffs.lessResource}%${isZH ? "茶减少消耗" : " tea lower resource"}</div>`;
+                appendHTMLStr += `<div style="color: ${SCRIPT_COLOR_TOOLTIP}; font-size: 10px;">${
+                    isZH ? "每小时生产" : "Production per hour"
+                } ${Number((produceItemPerHour + extraQuantityPerHour) * droprate).toFixed(1)}${isZH ? " 个" : " items"}</div>`;
+                appendHTMLStr += `<div style="color: ${SCRIPT_COLOR_TOOLTIP};">${isZH ? "利润: " : "Profit: "}${numberFormatter(
                     bid - (totalAskPrice * (1 - teaBuffs.lessResource / 100)) / droprate
-                )}/个, ${numberFormatter(
+                )}${isZH ? "/个" : "/item"}, ${numberFormatter(
                     produceItemPerHour * (bid * droprate - totalAskPrice * (1 - teaBuffs.lessResource / 100)) + extraQuantityPerHour * bid * droprate
-                )}/小时, ${numberFormatter(
+                )}${isZH ? "/小时" : "/hour"}, ${numberFormatter(
                     24 *
                         (produceItemPerHour * (bid * droprate - totalAskPrice * (1 - teaBuffs.lessResource / 100)) +
                             extraQuantityPerHour * bid * droprate)
-                )}/天</div>`;
+                )}${isZH ? "/天" : "/day"}</div>`;
             } else if (
                 getActionHridFromItemName(itemName) &&
                 initData_actionDetailMap[getActionHridFromItemName(itemName)].inputItems === null &&
@@ -858,14 +907,26 @@
                 // 茶额外数量
                 let extraQuantityPerHour = (produceItemPerHour * teaBuffs.quantity) / 100;
 
-                appendHTMLStr += `<div style="color: ${SCRIPT_COLOR_TOOLTIP}; font-size: 10px;">生产利润(卖单价进、买单价出；不包括Processing Tea、社区buff、稀有掉落；刷新网页更新人物数据)：</div>`;
-                appendHTMLStr += `<div style="color: ${SCRIPT_COLOR_TOOLTIP}; font-size: 10px;">x${droprate}基础掉率 +${toolPercent}%工具速度 +${levelEffBuff}%等级效率 +${houseEffBuff}%房子效率 +${teaBuffs.efficiency}%茶效率 +${itemEffiBuff}%装备效率 +${teaBuffs.quantity}%茶额外数量 +${teaBuffs.lessResource}%茶减少消耗</div>`;
-                appendHTMLStr += `<div style="color: ${SCRIPT_COLOR_TOOLTIP}; font-size: 10px;">每小时生产 ${Number(
-                    produceItemPerHour + extraQuantityPerHour
-                ).toFixed(1)} 个</div>`;
-                appendHTMLStr += `<div style="color: ${SCRIPT_COLOR_TOOLTIP};">利润: ${numberFormatter(bid)}/个, ${numberFormatter(
-                    produceItemPerHour * bid + extraQuantityPerHour * bid
-                )}/小时, ${numberFormatter(24 * (produceItemPerHour * bid + extraQuantityPerHour * bid))}/天</div>`;
+                appendHTMLStr += `<div style="color: ${SCRIPT_COLOR_TOOLTIP}; font-size: 10px;">${
+                    isZH
+                        ? "生产利润(卖单价进、买单价出；不包括Processing Tea、社区buff、稀有掉落；刷新网页更新人物数据)："
+                        : "Production profit(Sell price in, bid price out; Not including processing tea, comm buffs, rare drops; Refresh page to update player data): "
+                }</div>`;
+                appendHTMLStr += `<div style="color: ${SCRIPT_COLOR_TOOLTIP}; font-size: 10px;">x${droprate}${
+                    isZH ? "基础掉率" : "base drop rate,"
+                } +${toolPercent}%${isZH ? "工具速度" : " tool speed,"} +${levelEffBuff}%${isZH ? "等级效率" : " level eff,"} +${houseEffBuff}%${
+                    isZH ? "房子效率" : " house eff,"
+                } +${teaBuffs.efficiency}%${isZH ? "茶效率" : " tea eff,"} +${itemEffiBuff}%${isZH ? "装备效率" : " equipment eff,"} +${
+                    teaBuffs.quantity
+                }%${isZH ? "茶额外数量" : " tea extra outcome,"} +${teaBuffs.lessResource}%${isZH ? "茶减少消耗" : " tea lower resource"}</div>`;
+                appendHTMLStr += `<div style="color: ${SCRIPT_COLOR_TOOLTIP}; font-size: 10px;">${
+                    isZH ? "每小时生产" : "Production per hour"
+                }${Number(produceItemPerHour + extraQuantityPerHour).toFixed(1)}${isZH ? " 个" : " items"}</div>`;
+                appendHTMLStr += `<div style="color: ${SCRIPT_COLOR_TOOLTIP};">${isZH ? "利润: " : "Profit: "}${numberFormatter(bid)}${
+                    isZH ? "/个" : "/item"
+                }, ${numberFormatter(produceItemPerHour * bid + extraQuantityPerHour * bid)}${isZH ? "/小时" : "/hour"}, ${numberFormatter(
+                    24 * (produceItemPerHour * bid + extraQuantityPerHour * bid)
+                )}${isZH ? "/天" : "/day"}</div>`;
             }
         }
 
@@ -1085,7 +1146,7 @@
         });
 
         // 显示快捷按钮
-        hTMLStr = `<div id="quickInputButtons" style="color: ${SCRIPT_COLOR_MAIN}; text-align: left;">做 </div>`;
+        hTMLStr = `<div id="quickInputButtons" style="color: ${SCRIPT_COLOR_MAIN}; text-align: left;">${isZH ? "做 " : "Do "}</div>`;
         showTotalTimeDiv.insertAdjacentHTML("afterend", hTMLStr);
         const quickInputButtonsDiv = panel.querySelector("div#quickInputButtons");
 
@@ -1101,10 +1162,10 @@
             };
             quickInputButtonsDiv.append(btn);
         }
-        quickInputButtonsDiv.append(document.createTextNode(" 小时"));
+        quickInputButtonsDiv.append(document.createTextNode(isZH ? " 小时" : " hours"));
 
         quickInputButtonsDiv.append(document.createElement("div"));
-        quickInputButtonsDiv.append(document.createTextNode("做 "));
+        quickInputButtonsDiv.append(document.createTextNode(isZH ? "做 " : "Do "));
         const presetTimes = [10, 100, 300, 500, 1000, 2000];
         for (const value of presetTimes) {
             const btn = document.createElement("button");
@@ -1117,7 +1178,7 @@
             };
             quickInputButtonsDiv.append(btn);
         }
-        quickInputButtonsDiv.append(document.createTextNode(" 次"));
+        quickInputButtonsDiv.append(document.createTextNode(isZH ? " 次" : " times"));
 
         // 还有多久到多少技能等级
         const skillHrid = initData_actionDetailMap[getActionHridFromItemName(actionName)].experienceGain.skillHrid;
@@ -1150,11 +1211,13 @@
             };
 
             const need = calculateNeedToLevel(currentLevel, currentLevel + 1, effBuff, duration, exp);
-            hTMLStr = `<div id="tillLevel" style="color: ${SCRIPT_COLOR_MAIN}; text-align: left;">到 <input id="tillLevelInput" type="number" value="${
-                currentLevel + 1
-            }" min="${currentLevel + 1}" max="200"> 级还需做 <span id="tillLevelNumber">${need.numOfActions} 次[${timeReadable(
-                need.timeSec
-            )}] (刷新网页更新当前等级)</span></div>`;
+            hTMLStr = `<div id="tillLevel" style="color: ${SCRIPT_COLOR_MAIN}; text-align: left;">${
+                isZH ? "到 " : "To "
+            }<input id="tillLevelInput" type="number" value="${currentLevel + 1}" min="${currentLevel + 1}" max="200">${
+                isZH ? " 级还需做 " : " level need to do "
+            }<span id="tillLevelNumber">${need.numOfActions}${isZH ? " 次" : " times "}[${timeReadable(need.timeSec)}]${
+                isZH ? " (刷新网页更新当前等级)" : " (Refresh page to update current level)"
+            }</span></div>`;
 
             quickInputButtonsDiv.insertAdjacentHTML("afterend", hTMLStr);
             const tillLevelInput = panel.querySelector("input#tillLevelInput");
@@ -1163,7 +1226,9 @@
                 const targetLevel = Number(tillLevelInput.value);
                 if (targetLevel > currentLevel && targetLevel <= 200) {
                     const need = calculateNeedToLevel(currentLevel, targetLevel, effBuff, duration, exp);
-                    tillLevelNumber.textContent = `${need.numOfActions} 次[${timeReadable(need.timeSec)}] (刷新网页更新当前等级)`;
+                    tillLevelNumber.textContent = `${need.numOfActions} 次[${timeReadable(need.timeSec)}]${
+                        isZH ? " (刷新网页更新当前等级)" : " (Refresh page to update current level)"
+                    }`;
                 } else {
                     tillLevelNumber.textContent = "Error";
                 }
@@ -1172,7 +1237,9 @@
                 const targetLevel = Number(tillLevelInput.value);
                 if (targetLevel > currentLevel && targetLevel <= 200) {
                     const need = calculateNeedToLevel(currentLevel, targetLevel, effBuff, duration, exp);
-                    tillLevelNumber.textContent = `${need.numOfActions} 次[${timeReadable(need.timeSec)}] (刷新网页更新当前等级)`;
+                    tillLevelNumber.textContent = `${need.numOfActions} 次[${timeReadable(need.timeSec)}]${
+                        isZH ? " (刷新网页更新当前等级)" : " (Refresh page to update current level)"
+                    }`;
                 } else {
                     tillLevelNumber.textContent = "Error";
                 }
@@ -1184,9 +1251,9 @@
             .querySelector("div#tillLevel")
             .insertAdjacentHTML(
                 "afterend",
-                `<div id="expPerHour" style="color: ${SCRIPT_COLOR_MAIN}; text-align: left;">每小时经验: ${numberFormatter(
+                `<div id="expPerHour" style="color: ${SCRIPT_COLOR_MAIN}; text-align: left;">${isZH ? "每小时经验: " : "Exp/hour: "}${numberFormatter(
                     Math.round((3600 / duration) * exp * effBuff)
-                )} (+${Number((effBuff - 1) * 100).toFixed(1)}%效率)</div>`
+                )} (+${Number((effBuff - 1) * 100).toFixed(1)}%${isZH ? "效率" : " eff"})</div>`
             );
 
         // 显示Foraging最后一个图综合收益
@@ -1225,9 +1292,11 @@
             // 茶额外数量
             let extraQuantityPerHour = (numOfActionsPerHour * teaBuffs.quantity) / 100;
 
-            let htmlStr = `<div id="totalProfit"  style="color: ${SCRIPT_COLOR_MAIN}; text-align: left;">综合利润: ${numberFormatter(
-                numOfActionsPerHour * virtualItemBid + extraQuantityPerHour * virtualItemBid
-            )}/小时, ${numberFormatter(24 * numOfActionsPerHour * virtualItemBid + extraQuantityPerHour * virtualItemBid)}/天</div>`;
+            let htmlStr = `<div id="totalProfit"  style="color: ${SCRIPT_COLOR_MAIN}; text-align: left;">${
+                isZH ? "综合利润: " : "Overall profit: "
+            }${numberFormatter(numOfActionsPerHour * virtualItemBid + extraQuantityPerHour * virtualItemBid)}${
+                isZH ? "/小时" : "/hour"
+            }, ${numberFormatter(24 * numOfActionsPerHour * virtualItemBid + extraQuantityPerHour * virtualItemBid)}${isZH ? "/天" : "/day"}</div>`;
             panel.querySelector("div#expPerHour").insertAdjacentHTML("afterend", htmlStr);
         }
     }
@@ -1379,7 +1448,9 @@
                         let efficiencyPerHour = ((battles / battleDurationSec) * 3600).toFixed(1);
                         elem.insertAdjacentHTML(
                             "afterend",
-                            `<div id="script_battleNumbers" style="color: ${SCRIPT_COLOR_MAIN};">每小时战斗 ${efficiencyPerHour} 次</div>`
+                            `<div id="script_battleNumbers" style="color: ${SCRIPT_COLOR_MAIN};">${
+                                isZH ? "每小时战斗: " : "Encounters/hour: "
+                            }${efficiencyPerHour}${isZH ? " 次" : ""}</div>`
                         );
                     }
                 }
@@ -1388,7 +1459,7 @@
                     .querySelector("div#script_battleNumbers")
                     .insertAdjacentHTML(
                         "afterend",
-                        `<div id="script_totalIncome" style="color: ${SCRIPT_COLOR_MAIN};">总收获: ${numberFormatter(
+                        `<div id="script_totalIncome" style="color: ${SCRIPT_COLOR_MAIN};">${isZH ? "总收获: " : "Total revenue: "}${numberFormatter(
                             totalPriceAsk
                         )} / ${numberFormatter(totalPriceAskBid)}</div>`
                     );
@@ -1398,17 +1469,21 @@
                         .querySelector("div#script_totalIncome")
                         .insertAdjacentHTML(
                             "afterend",
-                            `<div id="script_averageIncome" style="color: ${SCRIPT_COLOR_MAIN};">每小时收获: ${numberFormatter(
-                                totalPriceAsk / (battleDurationSec / 60 / 60)
-                            )} / ${numberFormatter(totalPriceAskBid / (battleDurationSec / 60 / 60))}</div>`
+                            `<div id="script_averageIncome" style="color: ${SCRIPT_COLOR_MAIN};">${
+                                isZH ? "每小时收获: " : "Revenue/hour: "
+                            }${numberFormatter(totalPriceAsk / (battleDurationSec / 60 / 60))} / ${numberFormatter(
+                                totalPriceAskBid / (battleDurationSec / 60 / 60)
+                            )}</div>`
                         );
                     document
                         .querySelector("div#script_averageIncome")
                         .insertAdjacentHTML(
                             "afterend",
-                            `<div id="script_totalIncomeDay" style="color: ${SCRIPT_COLOR_MAIN};">每天收获: ${numberFormatter(
-                                (totalPriceAsk / (battleDurationSec / 60 / 60)) * 24
-                            )} / ${numberFormatter((totalPriceAskBid / (battleDurationSec / 60 / 60)) * 24)}</div>`
+                            `<div id="script_totalIncomeDay" style="color: ${SCRIPT_COLOR_MAIN};">${
+                                isZH ? "每天收获: " : "Revenue/day: "
+                            }${numberFormatter((totalPriceAsk / (battleDurationSec / 60 / 60)) * 24)} / ${numberFormatter(
+                                (totalPriceAskBid / (battleDurationSec / 60 / 60)) * 24
+                            )}</div>`
                         );
                 } else {
                     console.error("handleBattleSummary unable to display average income due to null battleDurationSec");
@@ -1418,7 +1493,9 @@
                     .querySelector("div#script_totalIncomeDay")
                     .insertAdjacentHTML(
                         "afterend",
-                        `<div id="script_totalSkillsExp" style="color: ${SCRIPT_COLOR_MAIN};">总经验: ${numberFormatter(totalSkillsExp)}</div>`
+                        `<div id="script_totalSkillsExp" style="color: ${SCRIPT_COLOR_MAIN};">${isZH ? "总经验: " : "Total exp: "}${numberFormatter(
+                            totalSkillsExp
+                        )}</div>`
                     );
                 // 平均经验
                 if (battleDurationSec) {
@@ -1426,9 +1503,9 @@
                         .querySelector("div#script_totalSkillsExp")
                         .insertAdjacentHTML(
                             "afterend",
-                            `<div id="script_averageSkillsExp" style="color: ${SCRIPT_COLOR_MAIN};">每小时总经验: ${numberFormatter(
-                                totalSkillsExp / (battleDurationSec / 60 / 60)
-                            )}</div>`
+                            `<div id="script_averageSkillsExp" style="color: ${SCRIPT_COLOR_MAIN};">${
+                                isZH ? "每小时总经验: " : "Total exp/hour: "
+                            }${numberFormatter(totalSkillsExp / (battleDurationSec / 60 / 60))}</div>`
                         );
 
                     for (const [key, value] of Object.entries(message.unit.totalSkillExperienceMap)) {
@@ -1438,9 +1515,9 @@
                             .querySelector("div#script_totalSkillsExp")
                             .parentElement.insertAdjacentHTML(
                                 "beforeend",
-                                `<div style="color: ${SCRIPT_COLOR_MAIN};">每小时${str}经验: ${numberFormatter(
-                                    value / (battleDurationSec / 60 / 60)
-                                )}</div>`
+                                `<div style="color: ${SCRIPT_COLOR_MAIN};">${isZH ? "每小时" : ""}${str}${
+                                    isZH ? "经验: " : " exp/hour: "
+                                }${numberFormatter(value / (battleDurationSec / 60 / 60))}</div>`
                             );
                     }
                 } else {
@@ -1488,15 +1565,15 @@
                 }
             } else if (settingsMap.showsKeyInfoInIcon.isTrue && (itemHrid.includes("_key_fragment") || itemHrid.includes("_key"))) {
                 const map = new Map();
-                map.set("/items/blue_key_fragment", "图3");
-                map.set("/items/green_key_fragment", "图4");
-                map.set("/items/purple_key_fragment", "图5");
-                map.set("/items/white_key_fragment", "图6");
-                map.set("/items/orange_key_fragment", "图7");
-                map.set("/items/brown_key_fragment", "图8");
-                map.set("/items/stone_key_fragment", "图9");
-                map.set("/items/dark_key_fragment", "图10");
-                map.set("/items/burning_key_fragment", "图11");
+                map.set("/items/blue_key_fragment", isZH ? "图3" : "Z3");
+                map.set("/items/green_key_fragment", isZH ? "图4" : "Z4");
+                map.set("/items/purple_key_fragment", isZH ? "图5" : "Z5");
+                map.set("/items/white_key_fragment", isZH ? "图6" : "Z6");
+                map.set("/items/orange_key_fragment", isZH ? "图7" : "Z7");
+                map.set("/items/brown_key_fragment", isZH ? "图8" : "Z8");
+                map.set("/items/stone_key_fragment", isZH ? "图9" : "Z9");
+                map.set("/items/dark_key_fragment", isZH ? "图10" : "Z10");
+                map.set("/items/burning_key_fragment", isZH ? "图11" : "Z11");
 
                 map.set("/items/chimerical_key", "3.4.5.8");
                 map.set("/items/sinister_key", "5.7.8.10");
@@ -1531,7 +1608,7 @@
             filters = document.querySelector("#script_filters");
             filters.insertAdjacentHTML(
                 "beforeend",
-                `<span id="script_filter_level" style="float: left; color: ${SCRIPT_COLOR_MAIN};">等级: 大于等于
+                `<span id="script_filter_level" style="float: left; color: ${SCRIPT_COLOR_MAIN};">${isZH ? "等级: 大于等于 " : "Equipment level: >= "}
                 <select name="script_filter_level_select" id="script_filter_level_select">
                 <option value="1">All</option>
                 <option value="10">10</option>
@@ -1552,7 +1629,7 @@
             );
             filters.insertAdjacentHTML(
                 "beforeend",
-                `<span id="script_filter_level_to" style="float: left; color: ${SCRIPT_COLOR_MAIN};">小于 
+                `<span id="script_filter_level_to" style="float: left; color: ${SCRIPT_COLOR_MAIN};">${isZH ? "小于 " : "< "}
                 <select name="script_filter_level_select_to" id="script_filter_level_select_to">
                 <option value="1000">All</option>
                 <option value="10">10</option>
@@ -1573,7 +1650,7 @@
             );
             filters.insertAdjacentHTML(
                 "beforeend",
-                `<span id="script_filter_skill" style="float: left; color: ${SCRIPT_COLOR_MAIN};">职业: 
+                `<span id="script_filter_skill" style="float: left; color: ${SCRIPT_COLOR_MAIN};">${isZH ? "职业: " : "Class: "}
                 <select name="script_filter_skill_select" id="script_filter_skill_select">
                     <option value="all">All</option>
                     <option value="attack">Attack</option>
@@ -1585,7 +1662,7 @@
             );
             filters.insertAdjacentHTML(
                 "beforeend",
-                `<span id="script_filter_location" style="float: left; color: ${SCRIPT_COLOR_MAIN};">部位: 
+                `<span id="script_filter_location" style="float: left; color: ${SCRIPT_COLOR_MAIN};">${isZH ? "部位: " : "Slot: "}
                 <select name="script_filter_location_select" id="script_filter_location_select">
                     <option value="all">All</option>
                     <option value="main_hand">Main Hand</option>
@@ -1684,7 +1761,9 @@
                 if (!div.querySelector("span.script_taskMapIndex")) {
                     div.insertAdjacentHTML(
                         "beforeend",
-                        `<span class="script_taskMapIndex" style="text-align: right; color: ${SCRIPT_COLOR_MAIN};"> 图 ${index}</span>`
+                        `<span class="script_taskMapIndex" style="text-align: right; color: ${SCRIPT_COLOR_MAIN};"> ${
+                            isZH ? "图" : "Z"
+                        }${index}</span>`
                     );
                 }
             }
@@ -1766,9 +1845,13 @@
         };
 
         let numBooks = getNeedBooksToLevel(currentLevel, currentExp, currentLevel + 1, abilityPerBookExp);
-        let hTMLStr = `<div id="tillLevel" style="color: ${SCRIPT_COLOR_MAIN}; text-align: left;">到 <input id="tillLevelInput" type="number" value="${
-            currentLevel + 1
-        }" min="${currentLevel + 1}" max="200"> 级还需 <span id="tillLevelNumber">${numBooks} 本书 (刷新网页更新当前等级)</span></div>`;
+        let hTMLStr = `<div id="tillLevel" style="color: ${SCRIPT_COLOR_MAIN}; text-align: left;">${
+            isZH ? "到 " : "To "
+        }<input id="tillLevelInput" type="number" value="${currentLevel + 1}" min="${currentLevel + 1}" max="200">${
+            isZH ? " 级还需 " : " level need "
+        }<span id="tillLevelNumber">${numBooks}${
+            isZH ? " 本书 (刷新网页更新当前等级)" : " books (Refresh page to update current level.)"
+        }</span></div>`;
         panel.insertAdjacentHTML("beforeend", hTMLStr);
         const tillLevelInput = panel.querySelector("input#tillLevelInput");
         const tillLevelNumber = panel.querySelector("span#tillLevelNumber");
@@ -1776,7 +1859,9 @@
             const targetLevel = Number(tillLevelInput.value);
             if (targetLevel > currentLevel && targetLevel <= 200) {
                 let numBooks = getNeedBooksToLevel(currentLevel, currentExp, targetLevel, abilityPerBookExp);
-                tillLevelNumber.textContent = `${numBooks} 本书 (刷新网页更新当前等级)`;
+                tillLevelNumber.textContent = `${numBooks}${
+                    isZH ? " 本书 (刷新网页更新当前等级)" : " books (Refresh page to update current level.)"
+                }`;
             } else {
                 tillLevelNumber.textContent = "Error";
             }
@@ -1785,7 +1870,9 @@
             const targetLevel = Number(tillLevelInput.value);
             if (targetLevel > currentLevel && targetLevel <= 200) {
                 let numBooks = getNeedBooksToLevel(currentLevel, currentExp, targetLevel, abilityPerBookExp);
-                tillLevelNumber.textContent = `${numBooks} 本书 (刷新网页更新当前等级)`;
+                tillLevelNumber.textContent = `${numBooks}${
+                    isZH ? " 本书 (刷新网页更新当前等级)" : " books (Refresh page to update current level.)"
+                }`;
             } else {
                 tillLevelNumber.textContent = "Error";
             }
@@ -1800,7 +1887,7 @@
                 let div = document.createElement("div");
                 div.setAttribute("class", "NavigationBar_minorNavigationLink__31K7Y");
                 div.style.color = SCRIPT_COLOR_MAIN;
-                div.innerHTML = "插件设置";
+                div.innerHTML = isZH ? "插件设置" : "Script settings";
                 div.addEventListener("click", () => {
                     const array = document.querySelectorAll(".NavigationBar_navigationLink__3eAHA");
                     array[array.length - 1]?.click();
@@ -1810,7 +1897,7 @@
                 div = document.createElement("div");
                 div.setAttribute("class", "NavigationBar_minorNavigationLink__31K7Y");
                 div.style.color = SCRIPT_COLOR_MAIN;
-                div.innerHTML = "强化模拟 Enhancelator";
+                div.innerHTML = isZH ? "强化模拟 Enhancelator" : "Enhancement sim Enhancelator";
                 div.addEventListener("click", () => {
                     window.open("https://doh-nuts.github.io/Enhancelator/", "_blank");
                 });
@@ -1819,7 +1906,7 @@
                 div = document.createElement("div");
                 div.setAttribute("class", "NavigationBar_minorNavigationLink__31K7Y");
                 div.style.color = SCRIPT_COLOR_MAIN;
-                div.innerHTML = "利润计算 Cowculator";
+                div.innerHTML = isZH ? "利润计算 Cowculator" : "Profit calc Cowculator";
                 div.addEventListener("click", () => {
                     window.open("https://mwisim.github.io/cowculator/", "_blank");
                 });
@@ -1828,7 +1915,7 @@
                 div = document.createElement("div");
                 div.setAttribute("class", "NavigationBar_minorNavigationLink__31K7Y");
                 div.style.color = SCRIPT_COLOR_MAIN;
-                div.innerHTML = "利润计算 Mooneycalc";
+                div.innerHTML = isZH ? "利润计算 Mooneycalc" : "Profit calc Mooneycalc";
                 div.addEventListener("click", () => {
                     window.open("https://mooneycalc.vercel.app/", "_blank");
                 });
@@ -1837,7 +1924,7 @@
                 div = document.createElement("div");
                 div.setAttribute("class", "NavigationBar_minorNavigationLink__31K7Y");
                 div.style.color = SCRIPT_COLOR_MAIN;
-                div.innerHTML = "战斗模拟（批量）";
+                div.innerHTML = isZH ? "战斗模拟（批量）" : "Combat sim (Batch)";
                 div.addEventListener("click", () => {
                     window.open("http://43.129.194.214:5000/mwisim.github.io", "_blank");
                 });
@@ -1846,7 +1933,7 @@
                 div = document.createElement("div");
                 div.setAttribute("class", "NavigationBar_minorNavigationLink__31K7Y");
                 div.style.color = SCRIPT_COLOR_MAIN;
-                div.innerHTML = "战斗模拟 MWISim";
+                div.innerHTML = isZH ? "战斗模拟 MWISim" : "Combat sim MWISim";
                 div.addEventListener("click", () => {
                     window.open("https://mwisim.github.io/", "_blank");
                 });
@@ -1903,14 +1990,15 @@
             timePerActionSec /= 1 + totalEffBuff / 100;
             let totalTimeSec = count * timePerActionSec;
 
-            let str = "到 ∞ ";
+            let str = isZH ? "到 ∞ " : "Complete at ∞ ";
             if (!isAccumulatedTimeInfinite) {
                 accumulatedTimeSec += totalTimeSec;
                 const currentTime = new Date();
                 currentTime.setSeconds(currentTime.getSeconds() + accumulatedTimeSec);
-                str = `到 ${String(currentTime.getHours()).padStart(2, "0")}:${String(currentTime.getMinutes()).padStart(2, "0")}:${String(
-                    currentTime.getSeconds()
-                ).padStart(2, "0")}`;
+                str = `${isZH ? "到 " : "Complete at "}${String(currentTime.getHours()).padStart(2, "0")}:${String(currentTime.getMinutes()).padStart(
+                    2,
+                    "0"
+                )}:${String(currentTime.getSeconds()).padStart(2, "0")}`;
             }
 
             if (hasSkippedfirstActionObj) {
@@ -1926,7 +2014,7 @@
             }
             hasSkippedfirstActionObj = true;
         }
-        const html = `<div id="script_queueTotalTime" style="color: ${SCRIPT_COLOR_MAIN};">总时间：${
+        const html = `<div id="script_queueTotalTime" style="color: ${SCRIPT_COLOR_MAIN};">${isZH ? "总时间：" : "Total time: "}${
             isAccumulatedTimeInfinite ? "[ ∞ ] " : `[${timeReadable(accumulatedTimeSec)}]`
         }</div>`;
         if (document.querySelector("div#script_queueTotalTime")) {
@@ -1961,7 +2049,9 @@
                 .querySelector(".ItemTooltipText_itemTooltipText__zFq3A")
                 .insertAdjacentHTML(
                     "beforeend",
-                    `<div style="color: ${SCRIPT_COLOR_ALERT};">由于网络问题无法强化模拟: 1. 手机可能不支持脚本联网；2. 请尝试科学网络；</div>`
+                    `<div style="color: ${SCRIPT_COLOR_ALERT};">${
+                        isZH ? "由于网络问题无法强化模拟: 1. 手机可能不支持脚本联网；2. 请尝试科学网络；" : "Enhancement sim Internet error"
+                    }</div>`
                 );
             return;
         }
@@ -1985,19 +2075,32 @@
         input_data.stop_at = enhancementLevel;
         const best = await findBestEnhanceStrat(input_data);
 
-        let appendHTMLStr = `<div style="color: ${SCRIPT_COLOR_TOOLTIP};">不支持模拟+1装备</div>`;
+        let appendHTMLStr = `<div style="color: ${SCRIPT_COLOR_TOOLTIP};">${
+            isZH ? "不支持模拟+1装备" : "Enhancement sim of +1 equipments not supported"
+        }</div>`;
         if (best) {
             let needMatStr = "";
             for (const [key, value] of Object.entries(best.costs.needMap)) {
-                needMatStr += `<div>${key} 单价: ${numberFormatter(value)}<div>`;
+                needMatStr += `<div>${key} ${isZH ? "单价: " : "price per item: "}${numberFormatter(value)}<div>`;
             }
-            appendHTMLStr = `<div style="color: ${SCRIPT_COLOR_TOOLTIP};"><div>强化模拟（默认90级强化，2级房子，5级工具，0级手套，超级茶，幸运茶，卖单价收货，无工时费）：</div><div>总成本 ${numberFormatter(
-                best.totalCost.toFixed(0)
-            )}</div><div>耗时 ${best.simResult.totalActionTimeStr}</div>${
-                best.protect_count > 0 ? "<div>从 " + best.protect_at + " 级开始保护</div>" : "<div>不需要保护</div>"
-            }<div>保护 ${best.protect_count.toFixed(1)} 次</div><div>+0底子: ${numberFormatter(best.costs.baseCost)}</div><div>${
+            appendHTMLStr = `<div style="color: ${SCRIPT_COLOR_TOOLTIP};"><div>${
+                isZH
+                    ? "强化模拟（默认90级强化，2级房子，5级工具，0级手套，超级茶，幸运茶，卖单价收货，无工时费）："
+                    : "Enhancement simulator: Default level 90 enhancing, level 2 house, level 5 tool, level 0 gloves, super tea, blessed tea, sell order price in, no player time fee"
+            }</div><div>${isZH ? "总成本 " : "Total cost "}${numberFormatter(best.totalCost.toFixed(0))}</div><div>${isZH ? "耗时 " : "Time spend "}${
+                best.simResult.totalActionTimeStr
+            }</div>${
                 best.protect_count > 0
-                    ? "保护单价: " + initData_itemDetailMap[best.costs.choiceOfProtection].name + " " + numberFormatter(best.costs.minProtectionCost)
+                    ? `<div>${isZH ? "从 " : "Use protection from level "}` + best.protect_at + `${isZH ? " 级开始保护" : ""}</div>`
+                    : `<div>${isZH ? "不需要保护" : "No protection use"}</div>`
+            }<div>${isZH ? "保护 " : "Protection "}${best.protect_count.toFixed(1)}${isZH ? " 次" : " times"}</div><div>${
+                isZH ? "+0底子: " : "+0 Base item: "
+            }${numberFormatter(best.costs.baseCost)}</div><div>${
+                best.protect_count > 0
+                    ? (isZH ? "保护单价: " : "Price per protection: ") +
+                      initData_itemDetailMap[best.costs.choiceOfProtection].name +
+                      " " +
+                      numberFormatter(best.costs.minProtectionCost)
                     : ""
             } 
              </div>${needMatStr}</div>`;
@@ -2114,6 +2217,7 @@
     }
 
     // 自定义强化模拟输入参数
+    // Customization
     let input_data = {
         item_hrid: null,
         stop_at: null,
@@ -2192,7 +2296,9 @@
                 const insertElem = targetNode.querySelector("div#script_settings");
                 insertElem.insertAdjacentHTML(
                     "beforeend",
-                    `<div style="float: left; color: ${SCRIPT_COLOR_MAIN}">MWITools 设置 （刷新生效）：</div></br>`
+                    `<div style="float: left; color: ${SCRIPT_COLOR_MAIN}">${
+                        isZH ? "MWITools 设置 （刷新生效）：" : "MWITools Settings (refresh page to apply): "
+                    }</div></br>`
                 );
 
                 for (const setting of Object.values(settingsMap)) {
@@ -2206,7 +2312,19 @@
 
                 insertElem.insertAdjacentHTML(
                     "beforeend",
-                    `<div style="float: left;">代码里搜索“自定义”可以手动修改字体颜色、强化模拟默认参数</div></br>`
+                    `<div style="float: left;">${
+                        isZH
+                            ? "代码里搜索“自定义”可以手动修改字体颜色、强化模拟默认参数"
+                            : `Search "Customization" in code to customize font colors and default enhancement simulation parameters.`
+                    }</div></br>`
+                );
+                insertElem.insertAdjacentHTML(
+                    "beforeend",
+                    `<div style="float: left;">${
+                        isZH
+                            ? "推荐配合使用我的另一个插件：https://greasyfork.org/en/scripts/494468-mooneycalc-importer"
+                            : `Check out my other script for exporting player data to 3rd-party tool websites: https://greasyfork.org/en/scripts/494468-mooneycalc-importer`
+                    }</div></br>`
                 );
                 insertElem.addEventListener("change", saveSettings);
             }
@@ -2248,11 +2366,11 @@
         let warningStr = null;
         if (currentActionHrid.includes("/actions/combat/")) {
             if (hasHat || hasOffHand || hasBoot || hasGlove) {
-                warningStr = "正穿着生产装备";
+                warningStr = isZH ? "正穿着生产装备" : "Production equipment equipted";
             }
         } else if (currentActionHrid.includes("/actions/cooking/") || currentActionHrid.includes("/actions/brewing/")) {
             if (!hasHat && hasItemHridInInv("/items/red_chefs_hat")) {
-                warningStr = "没穿生产帽";
+                warningStr = isZH ? "没穿生产帽" : "Not wearing produciotn hat";
             }
         } else if (
             currentActionHrid.includes("/actions/cheesesmithing/") ||
@@ -2260,7 +2378,7 @@
             currentActionHrid.includes("/actions/tailoring/")
         ) {
             if (!hasOffHand && hasItemHridInInv("/items/eye_watch")) {
-                warningStr = "没穿生产副手";
+                warningStr = isZH ? "没穿生产副手" : "Not wearing produciotn off-hand";
             }
         } else if (
             currentActionHrid.includes("/actions/milking/") ||
@@ -2268,11 +2386,11 @@
             currentActionHrid.includes("/actions/woodcutting/")
         ) {
             if (!hasBoot && hasItemHridInInv("/items/collectors_boots")) {
-                warningStr = "没穿生产鞋";
+                warningStr = isZH ? "没穿生产鞋" : "Not wearing produciotn boots";
             }
         } else if (currentActionHrid.includes("/actions/enhancing")) {
             if (!hasGlove && hasItemHridInInv("/items/enchanted_gloves")) {
-                warningStr = "没穿强化手套";
+                warningStr = isZH ? "没穿强化手套" : "Not wearing enhancing gloves";
             }
         }
 
@@ -2307,7 +2425,7 @@
         }
         console.log("notificate empty action");
         GM_notification({
-            text: "动作队列为空",
+            text: isZH ? "动作队列为空" : "Action queue is empty.",
             title: "MWITools",
         });
     }
@@ -2359,12 +2477,9 @@
     // 伤害统计 by ponchain
     // 图表 by Stella
     // 头像下方显示数字 by Truth_Light
-    const userLanguage = navigator.language || navigator.userLanguage;
-    const isChinese = userLanguage.startsWith("zh");
     const lang = {
-        panelHeader: isChinese ? "伤害统计" : "Damage Statistics",
-        toggleButtonHide: isChinese ? "收起" : "Hide",
-        toggleButtonShow: isChinese ? "展开" : "Show",
+        toggleButtonHide: isZH ? "收起" : "Hide",
+        toggleButtonShow: isZH ? "展开" : "Show",
     };
 
     let totalDamage = [];
@@ -2392,7 +2507,7 @@
             panel.style.color = SCRIPT_COLOR_MAIN;
             panel.innerHTML = `
                 <div id="panelHeader" style="display: flex; justify-content: space-between; align-items: center;">
-                    <span>${lang.panelHeader}</span>
+                    <span>DPS</span>
                     <button id="toggleButton">${lang.toggleButtonHide}</button>
                 </div>
                 <div id="panelContent">
