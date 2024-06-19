@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      10.8
+// @version      10.9
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -2508,16 +2508,16 @@
             panel.innerHTML = `
                 <div id="panelHeader" style="display: flex; justify-content: space-between; align-items: center;">
                     <span>DPS</span>
-                    <button id="toggleButton">${lang.toggleButtonHide}</button>
+                    <button id="script_toggleButton">${lang.toggleButtonHide}</button>
                 </div>
-                <div id="panelContent">
-                    <canvas id="dpsChart" width="300" height="200"></canvas>
+                <div id="script_panelContent">
+                    <canvas id="script_dpsChart" width="300" height="200"></canvas>
                 </div>`;
             panel.className = "statistics-panel";
             let offsetX, offsetY;
 
             panel.addEventListener("mousedown", function (e) {
-                if (e.target.id === "toggleButton") return;
+                if (e.target.id === "script_toggleButton") return;
                 dragging = true;
                 offsetX = e.clientX - panel.offsetLeft;
                 offsetY = e.clientY - panel.offsetTop;
@@ -2537,7 +2537,7 @@
             });
 
             panel.addEventListener("touchstart", function (e) {
-                if (e.target.id === "toggleButton") return;
+                if (e.target.id === "script_toggleButton") return;
                 dragging = true;
                 let touch = e.touches[0];
                 offsetX = touch.clientX - panel.offsetLeft;
@@ -2561,15 +2561,15 @@
             document.body.appendChild(panel);
 
             // Toggle button functionality
-            document.getElementById("toggleButton").addEventListener("click", function () {
+            document.getElementById("script_toggleButton").addEventListener("click", function () {
                 panelExpanded = !panelExpanded;
-                document.getElementById("panelContent").style.display = panelExpanded ? "block" : "none";
+                document.getElementById("script_panelContent").style.display = panelExpanded ? "block" : "none";
                 this.textContent = panelExpanded ? lang.toggleButtonHide : lang.toggleButtonShow;
             });
 
             // Create chart
             Chart.defaults.color = "black";
-            const ctx = document.getElementById("dpsChart").getContext("2d");
+            const ctx = document.getElementById("script_dpsChart").getContext("2d");
             const numPlayers = players.length;
             const chartHeight = numPlayers * 40; // 设置每个条目的高度
             ctx.canvas.height = chartHeight;
