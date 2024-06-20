@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      11.1
+// @version      11.2
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -2370,7 +2370,7 @@
             }
         } else if (currentActionHrid.includes("/actions/cooking/") || currentActionHrid.includes("/actions/brewing/")) {
             if (!hasHat && hasItemHridInInv("/items/red_chefs_hat")) {
-                warningStr = isZH ? "没穿生产帽" : "Not wearing produciotn hat";
+                warningStr = isZH ? "没穿生产帽" : "Not wearing production hat";
             }
         } else if (
             currentActionHrid.includes("/actions/cheesesmithing/") ||
@@ -2378,7 +2378,7 @@
             currentActionHrid.includes("/actions/tailoring/")
         ) {
             if (!hasOffHand && hasItemHridInInv("/items/eye_watch")) {
-                warningStr = isZH ? "没穿生产副手" : "Not wearing produciotn off-hand";
+                warningStr = isZH ? "没穿生产副手" : "Not wearing production off-hand";
             }
         } else if (
             currentActionHrid.includes("/actions/milking/") ||
@@ -2386,7 +2386,7 @@
             currentActionHrid.includes("/actions/woodcutting/")
         ) {
             if (!hasBoot && hasItemHridInInv("/items/collectors_boots")) {
-                warningStr = isZH ? "没穿生产鞋" : "Not wearing produciotn boots";
+                warningStr = isZH ? "没穿生产鞋" : "Not wearing production boots";
             }
         } else if (currentActionHrid.includes("/actions/enhancing")) {
             if (!hasGlove && hasItemHridInInv("/items/enchanted_gloves")) {
