@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      11.2
+// @version      11.3
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -344,6 +344,23 @@
                 if (!totalDamage.length) {
                     totalDamage = new Array(players.length).fill(0);
                 }
+                // Accumulate monster counts and store evasion ratings by combat style
+                obj.monsters.forEach((monster) => {
+                    const name = monster.name;
+                    monsterCounts[name] = (monsterCounts[name] || 0) + 1;
+                    if (!monsterEvasion[name]) {
+                        monsterEvasion[name] = {};
+                    }
+                    players.forEach((player) => {
+                        if (player.combatDetails && player.combatDetails.combatStats.combatStyleHrids) {
+                            player.combatDetails.combatStats.combatStyleHrids.forEach((styleHrid) => {
+                                const style = styleHrid.split("/").pop(); // Get the combat style (e.g., "ranged")
+                                const evasionRating = monster.combatDetails[`${style}EvasionRating`];
+                                monsterEvasion[name][player.name + "-" + style] = evasionRating;
+                            });
+                        }
+                    });
+                });
             }
         } else if (obj && obj.type === "battle_updated" && monstersHP.length) {
             if (settingsMap.showDamage.isTrue) {
@@ -2487,6 +2504,9 @@
         totalTeamDPS: isZH ? "团队DPS" : "Total Team DPS",
         totalTeamDamage: isZH ? "团队总伤害" : "Total Team Damage",
         damagePercentage: isZH ? "伤害占比" : "Damage %",
+        monstername: isZH ? "怪物" : "Monster",
+        encountertimes: isZH ? "遭遇数" : "Encounter",
+        hitChance: isZH ? "命中率" : "Hit Chance",
     };
 
     let totalDamage = [];
@@ -2498,34 +2518,45 @@
     let dragging = false;
     let panelExpanded = true;
     let chart = null;
+    const monsterCounts = {}; // Object to store monster counts
+    const monsterEvasion = {}; // Object to store monster evasion ratings by combat style
+    const calculateHitChance = (accuracy, evasion) => {
+        const hitChance = (Math.pow(accuracy, 1.4) / (Math.pow(accuracy, 1.4) + Math.pow(evasion, 1.4))) * 100;
+        return hitChance;
+    };
 
     const getStatisticsDom = () => {
-        if (!document.querySelector(".statistics-panel")) {
+        if (!document.querySelector(".script_dps_panel")) {
             let panel = document.createElement("div");
             panel.style.position = "fixed";
             panel.style.top = "50px";
             panel.style.left = "50px";
-            panel.style.backgroundColor = "rgba(230, 230, 230, 0.95)";
+            panel.style.background = "#f0f0f0";
             panel.style.border = "1px solid #ccc";
             panel.style.zIndex = "9999";
             panel.style.cursor = "move";
-            panel.style.fontSize = "13px";
+            panel.style.fontSize = "12px";
             panel.style.padding = "2px";
-            panel.style.color = SCRIPT_COLOR_MAIN;
+            panel.style.resize = "both"; // Enable resizing
+            panel.style.overflow = "auto"; // Ensure content is scrollable when resized
+
             panel.innerHTML = `
                 <div id="panelHeader" style="display: flex; justify-content: space-between; align-items: center;">
-                    <span>DPS</span>
+                    <span style="color: ${SCRIPT_COLOR_MAIN};">DPS</span>
                     <button id="script_toggleButton">${lang.toggleButtonHide}</button>
                 </div>
                 <div id="script_panelContent">
                     <canvas id="script_dpsChart" width="300" height="200"></canvas>
                     <div id="script_dpsText"></div>
+                    <div id="script_hitChanceTable" style="margin-top: 10px;"></div>
                 </div>`;
-            panel.className = "statistics-panel";
+            panel.className = "script_dps_panel";
             let offsetX, offsetY;
 
             panel.addEventListener("mousedown", function (e) {
-                if (e.target.id === "script_toggleButton") return;
+                const rect = panel.getBoundingClientRect();
+                const isResizing = e.clientX > rect.right - 10 || e.clientY > rect.bottom - 10;
+                if (isResizing || e.target.id === "script_toggleButton") return;
                 dragging = true;
                 offsetX = e.clientX - panel.offsetLeft;
                 offsetY = e.clientY - panel.offsetTop;
@@ -2545,7 +2576,9 @@
             });
 
             panel.addEventListener("touchstart", function (e) {
-                if (e.target.id === "script_toggleButton") return;
+                const rect = panel.getBoundingClientRect();
+                const isResizing = e.clientX > rect.right - 10 || e.clientY > rect.bottom - 10;
+                if (isResizing || e.target.id === "script_toggleButton") return;
                 dragging = true;
                 let touch = e.touches[0];
                 offsetX = touch.clientX - panel.offsetLeft;
@@ -2571,15 +2604,26 @@
             // Toggle button functionality
             document.getElementById("script_toggleButton").addEventListener("click", function () {
                 panelExpanded = !panelExpanded;
-                document.getElementById("script_panelContent").style.display = panelExpanded ? "block" : "none";
-                this.textContent = panelExpanded ? lang.toggleButtonHide : lang.toggleButtonShow;
+                this.textContent = lang.toggleButtonShow;
+                const panelContent = document.getElementById("script_panelContent");
+                if (panelExpanded) {
+                    panelContent.style.display = "block";
+                    this.textContent = lang.toggleButtonHide;
+                    panel.style.width = "auto";
+                    panel.style.height = "auto";
+                } else {
+                    panelContent.style.display = "none";
+                    this.textContent = lang.toggleButtonShow;
+                    panel.style.width = "auto";
+                    panel.style.height = "auto";
+                }
             });
 
             // Create chart
-            Chart.defaults.color = "black";
+            // Chart.defaults.color = "black";
             const ctx = document.getElementById("script_dpsChart").getContext("2d");
             const numPlayers = players.length;
-            const chartHeight = numPlayers * 40; // 设置每个条目的高度
+            const chartHeight = numPlayers * 35; // 设置每个条目的高度
             ctx.canvas.height = chartHeight;
             chart = new Chart(ctx, {
                 type: "bar",
@@ -2588,8 +2632,23 @@
                     datasets: [
                         {
                             data: [],
-                            backgroundColor: ["#7445b8", "#ce4317", "#2fc4a7", "#1d8ce0", "#faa21e"],
-                            borderWidth: 0,
+                            backgroundColor: [
+                                "rgba(75, 192, 192, 0.2)",
+                                "rgba(54, 162, 235, 0.2)",
+                                "rgba(255, 206, 86, 0.2)",
+                                "rgba(75, 192, 192, 0.2)",
+                                "rgba(153, 102, 255, 0.2)",
+                                "rgba(255, 159, 64, 0.2)",
+                            ],
+                            borderColor: [
+                                "rgba(75, 192, 192, 1)",
+                                "rgba(54, 162, 235, 1)",
+                                "rgba(255, 206, 86, 1)",
+                                "rgba(75, 192, 192, 1)",
+                                "rgba(153, 102, 255, 1)",
+                                "rgba(255, 159, 64, 1)",
+                            ],
+                            borderWidth: 1,
                             barPercentage: 0.9,
                             categoryPercentage: 1.0,
                         },
@@ -2631,7 +2690,13 @@
                         datalabels: {
                             anchor: "end",
                             align: "right",
-                            color: SCRIPT_COLOR_MAIN,
+                            color: function (context) {
+                                const value = context.dataset.data[context.dataIndex];
+                                return value > 0 ? "black" : "transparent";
+                            },
+                            font: {
+                                weight: "bold",
+                            },
                             formatter: function (value) {
                                 return `${value.toLocaleString()}`;
                             },
@@ -2643,7 +2708,7 @@
                 plugins: [ChartDataLabels],
             });
         }
-        return document.querySelector(".statistics-panel");
+        return document.querySelector(".script_dps_panel");
     };
 
     const updateStatisticsPanel = () => {
@@ -2702,28 +2767,69 @@
                 </tr>`
                 );
             }, "");
+
+            // Display monster counts
+            const monsterRows = Object.entries(monsterCounts)
+                .map(([name, count]) => {
+                    return `<tr><td>${name} (${count})</td></tr>`;
+                })
+                .join("");
+
             dpsText.innerHTML = `
-            <table style="width: 100%; border-collapse: collapse;">
-                <thead>
-                    <tr style="text-align: left;">
-                        <th>${lang.players}</th>
-                        <th>${lang.dpsTextDPS}</th>
-                        <th>${lang.dpsTextTotalDamage}</th>
-                        <th>${lang.damagePercentage}</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${playerRows}
-                </tbody>
-                <tfoot>
-                    <tr style="border-top: 2px solid black; font-weight: bold; text-align: left;">
-                        <td>${formattedTime}</td>
-                        <td>${totalTeamDPS.toLocaleString()}</td>
-                        <td>${totalTeamDamage.toLocaleString()}</td>
-                        <td>100%</td>
-                    </tr>
-                </tfoot>
-            </table>`;
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="text-align: left;">
+                    <th>${lang.players}</th>
+                    <th>${lang.dpsTextDPS}</th>
+                    <th>${lang.dpsTextTotalDamage}</th>
+                    <th>${lang.damagePercentage}</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${playerRows}
+            </tbody>
+            <tbody>
+                <tr style="border-top: 2px solid black; font-weight: bold; text-align: left;">
+                    <td>${formattedTime}</td>
+                    <td>${totalTeamDPS.toLocaleString()}</td>
+                    <td>${totalTeamDamage.toLocaleString()}</td>
+                    <td>100%</td>
+                </tr>
+            </tbody>
+        </table>`;
+
+            // Update hit chance table
+            const hitChanceTable = document.getElementById("script_hitChanceTable");
+            const hitChanceRows = players
+                .map((player) => {
+                    const playerName = player.name;
+                    const playerHitChances = Object.entries(monsterCounts)
+                        .map(([monsterName, count]) => {
+                            const combatStyle = player.combatDetails.combatStats.combatStyleHrids[0].split("/").pop(); // Assuming only one combat style for simplicity
+                            const evasionRating = monsterEvasion[monsterName][`${player.name}-${combatStyle}`];
+                            const accuracy = player.combatDetails[`${combatStyle}AccuracyRating`];
+                            const hitChance = calculateHitChance(accuracy, evasionRating);
+                            return `<td>${hitChance.toFixed(0)}%</td>`;
+                        })
+                        .join("");
+                    return `<tr><td>${playerName}</td>${playerHitChances}</tr>`;
+                })
+                .join("");
+
+            hitChanceTable.innerHTML = `
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr>
+                    <th style="font-size: smaller; white-space: normal;">${lang.hitChance}</th>
+                    ${Object.entries(monsterCounts)
+                        .map(([monsterName, count]) => `<th style="font-size: smaller; white-space: normal;">${monsterName} (${count})</th>`)
+                        .join("")}
+                </tr>
+            </thead>
+            <tbody>
+                ${hitChanceRows}
+            </tbody>
+        </table>`;
         }
     };
 })();
