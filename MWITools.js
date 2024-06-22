@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      11.6
+// @version      11.7
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -312,8 +312,8 @@
                 endTime = null;
                 totalDuration = 0;
                 totalDamage = new Array(players.length).fill(0);
-                chart = null;
-                document.querySelector(".statistics-panel")?.remove();
+                monsterCounts = {};
+                monsterEvasion = {};
             }
         } else if (obj && obj.type === "action_completed") {
             const action = obj.endCharacterAction;
@@ -2530,8 +2530,8 @@
     let dragging = false;
     let panelExpanded = true;
     let chart = null;
-    const monsterCounts = {}; // Object to store monster counts
-    const monsterEvasion = {}; // Object to store monster evasion ratings by combat style
+    let monsterCounts = {}; // Object to store monster counts
+    let monsterEvasion = {}; // Object to store monster evasion ratings by combat style
     const calculateHitChance = (accuracy, evasion) => {
         const hitChance = (Math.pow(accuracy, 1.4) / (Math.pow(accuracy, 1.4) + Math.pow(evasion, 1.4))) * 100;
         return hitChance;
