@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      11.3
+// @version      11.4
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -1135,7 +1135,9 @@
         }
         const actionName = getOriTextFromElement(panel.querySelector("div.SkillActionDetail_name__3erHV"));
         const exp = Number(getOriTextFromElement(panel.querySelector("div.SkillActionDetail_expGain__F5xHu")).replaceAll(",", ""));
-        const duration = Number(getOriTextFromElement(panel.querySelectorAll("div.SkillActionDetail_value__dQjYH")[4]).replace("s", ""));
+        const duration = Number(
+            getOriTextFromElement(panel.querySelectorAll("div.SkillActionDetail_value__dQjYH")[4]).replace(/,/g, ".").replace("s", "")
+        );
         const inputElem = panel.querySelector("div.SkillActionDetail_maxActionCountInput__1C0Pw input");
 
         const actionHrid = initData_actionDetailMap[getActionHridFromItemName(actionName)].hrid;
@@ -2507,6 +2509,7 @@
         monstername: isZH ? "怪物" : "Monster",
         encountertimes: isZH ? "遭遇数" : "Encounter",
         hitChance: isZH ? "命中率" : "Hit Chance",
+        aura: isZH ? "光环" : "Aura",
     };
 
     let totalDamage = [];
@@ -2539,6 +2542,7 @@
             panel.style.padding = "2px";
             panel.style.resize = "both"; // Enable resizing
             panel.style.overflow = "auto"; // Ensure content is scrollable when resized
+            panel.style.width = "400px";
 
             panel.innerHTML = `
                 <div id="panelHeader" style="display: flex; justify-content: space-between; align-items: center;">
@@ -2752,21 +2756,45 @@
             const formattedTime = `${days}d ${hours}h ${minutes}m ${seconds}s`;
 
             const dpsText = document.getElementById("script_dpsText");
-            const playerRows = totalDamage.reduce((prev, cur, index) => {
-                const dpsFormatted = dps[index].toLocaleString();
-                const totalDamageFormatted = cur.toLocaleString();
-                const damagePercentage = totalTeamDamage ? ((cur / totalTeamDamage) * 100).toFixed(2) : 0;
-                return (
-                    prev +
-                    `
-                <tr>
-                    <td>${players[index]?.name}</td>
-                    <td>${dpsFormatted}</td>
-                    <td>${totalDamageFormatted}</td>
-                    <td>${damagePercentage}%</td>
-                </tr>`
-                );
-            }, "");
+            const playerRows = players
+                .map((player, index) => {
+                    const dpsFormatted = dps[index].toLocaleString();
+                    const totalDamageFormatted = totalDamage[index].toLocaleString();
+                    const damagePercentage = totalTeamDamage ? ((totalDamage[index] / totalTeamDamage) * 100).toFixed(2) : 0;
+
+                    // Get auraskill for the current player
+                    let auraskill = "N/A";
+                    if (player.combatAbilities && Array.isArray(player.combatAbilities)) {
+                        const firstAbility = player.combatAbilities[0];
+                        if (firstAbility && firstAbility.abilityHrid) {
+                            auraskill = firstAbility.abilityHrid.split("/").pop().replace(/_/g, " ");
+                            const validSkills = [
+                                "revive",
+                                "insanity",
+                                "invincible",
+                                "fierce aura",
+                                "aqua aura",
+                                "sylvan aura",
+                                "flame aura",
+                                "speed aura",
+                                "critical aura",
+                            ];
+                            if (!validSkills.includes(auraskill)) {
+                                auraskill = "N/A";
+                            }
+                        }
+                    }
+
+                    return `
+                    <tr>
+                        <td>${player.name}</td>
+                        <td>${auraskill}</td>
+                        <td>${dpsFormatted}</td>
+                        <td>${totalDamageFormatted}</td>
+                        <td>${damagePercentage}%</td>
+                    </tr>`;
+                })
+                .join("");
 
             // Display monster counts
             const monsterRows = Object.entries(monsterCounts)
@@ -2780,6 +2808,7 @@
             <thead>
                 <tr style="text-align: left;">
                     <th>${lang.players}</th>
+                    <th>${lang.aura}</th>
                     <th>${lang.dpsTextDPS}</th>
                     <th>${lang.dpsTextTotalDamage}</th>
                     <th>${lang.damagePercentage}</th>
@@ -2791,6 +2820,7 @@
             <tbody>
                 <tr style="border-top: 2px solid black; font-weight: bold; text-align: left;">
                     <td>${formattedTime}</td>
+                    <td></td>
                     <td>${totalTeamDPS.toLocaleString()}</td>
                     <td>${totalTeamDamage.toLocaleString()}</td>
                     <td>100%</td>
@@ -2820,9 +2850,12 @@
         <table style="width: 100%; border-collapse: collapse;">
             <thead>
                 <tr>
-                    <th style="font-size: smaller; white-space: normal;">${lang.hitChance}</th>
+                    <th style="font-size: smaller; white-space: normal; text-align: left;">${lang.hitChance}</th>
                     ${Object.entries(monsterCounts)
-                        .map(([monsterName, count]) => `<th style="font-size: smaller; white-space: normal;">${monsterName} (${count})</th>`)
+                        .map(
+                            ([monsterName, count]) =>
+                                `<th style="font-size: smaller; white-space: normal; text-align: left;">${monsterName} (${count})</th>`
+                        )
                         .join("")}
                 </tr>
             </thead>
