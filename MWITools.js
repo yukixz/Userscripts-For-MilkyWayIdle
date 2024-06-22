@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      11.4
+// @version      11.5
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -314,6 +314,15 @@
                 totalDamage = new Array(players.length).fill(0);
                 chart = null;
                 document.querySelector(".statistics-panel")?.remove();
+            }
+        } else if (obj && obj.type === "action_completed") {
+            const action = obj.endCharacterAction;
+            if (action.isDone === false) {
+                for (const a of currentActionsHridList) {
+                    if (a.id !== action.id) {
+                        a.currentCount = action.currentCount;
+                    }
+                }
             }
         } else if (obj && obj.type === "battle_unit_fetched") {
             if (settingsMap.battlePanel.isTrue) {
