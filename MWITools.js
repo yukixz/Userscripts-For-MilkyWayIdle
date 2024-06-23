@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      11.7
+// @version      11.8
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -1434,11 +1434,15 @@
         }
         let totalPriceAsk = 0;
         let totalPriceAskBid = 0;
+        let totalRawCoins = 0; // For IC
 
         if (hasMarketJson) {
             for (const loot of Object.values(message.unit.totalLootMap)) {
                 const itemName = initData_itemDetailMap[loot.itemHrid].name;
                 const itemCount = loot.count;
+                if (itemName === "Coin") {
+                    totalRawCoins += itemCount;
+                }
                 if (marketJson.market[itemName]) {
                     totalPriceAsk += marketJson.market[itemName].ask * itemCount;
                     totalPriceAskBid += marketJson.market[itemName].bid * itemCount;
@@ -1513,12 +1517,18 @@
                                 (totalPriceAskBid / (battleDurationSec / 60 / 60)) * 24
                             )}</div>`
                         );
-                } else {
-                    console.error("handleBattleSummary unable to display average income due to null battleDurationSec");
+                    document
+                        .querySelector("div#script_totalIncomeDay")
+                        .insertAdjacentHTML(
+                            "afterend",
+                            `<div id="script_avgRawCoinHour" style="color: ${SCRIPT_COLOR_MAIN};">${
+                                isZH ? "每小时仅金币收获: " : "Raw coins/hour: "
+                            }${numberFormatter(totalRawCoins / (battleDurationSec / 60 / 60))}</div>`
+                        );
                 }
                 // 总经验
                 document
-                    .querySelector("div#script_totalIncomeDay")
+                    .querySelector("div#script_avgRawCoinHour")
                     .insertAdjacentHTML(
                         "afterend",
                         `<div id="script_totalSkillsExp" style="color: ${SCRIPT_COLOR_MAIN};">${isZH ? "总经验: " : "Total exp: "}${numberFormatter(
