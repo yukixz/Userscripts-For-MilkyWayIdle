@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Mooneycalc-Importer
 // @namespace    http://tampermonkey.net/
-// @version      4.8
+// @version      4.9
 // @description  For the game MilkyWayIdle. This script imports player info to the following websites. https://mooneycalc.vercel.app/, https://mwisim.github.io/.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -458,6 +458,11 @@
                 skillLevels[skill].currentLevel + 1
             }" max="200">${isZH ? "级" : ""}</div>`;
         }
+
+        hTMLStr += `<div id="script_afterDays" style="display: flex; justify-content: flex-end"><input id="script_afterDays_input" type="number" value="1" min="0" max="200">${
+            isZH ? "天后" : "days after"
+        }</div>`;
+
         hTMLStr += `<div id="needDiv"></div>`;
         hTMLStr += `<div id="needListDiv"></div>`;
         parentDiv.innerHTML = hTMLStr;
@@ -476,6 +481,18 @@
             };
         }
 
+        const daysAfterDiv = parentDiv.querySelector(`div#script_afterDays`);
+        const daysAfterInput = parentDiv.querySelector(`input#script_afterDays_input`);
+        daysAfterInput.onchange = () => {
+            calculateAfterDays(daysAfterInput, skillLevels, parentDiv, perHourGainExp, skillNamesInOrder);
+        };
+        daysAfterInput.addEventListener("keyup", function (evt) {
+            calculateAfterDays(daysAfterInput, skillLevels, parentDiv, perHourGainExp, skillNamesInOrder);
+        });
+        daysAfterDiv.onclick = () => {
+            calculateAfterDays(daysAfterInput, skillLevels, parentDiv, perHourGainExp, skillNamesInOrder);
+        };
+
         // 提取成本和收益
         const expensesSpan = document.querySelector(`span#expensesSpan`);
         const revenueSpan = document.querySelector(`span#revenueSpan`);
@@ -491,6 +508,40 @@
                 `<div id="script_expense" style="background-color: #DCDCDC; color: black;">${expensesSpan.parentNode.textContent}</div><div id="script_revenue" style="background-color: #DCDCDC; color: black;">${revenueSpan.parentNode.textContent}</div>`
             );
         }
+    }
+
+    function calculateAfterDays(daysAfterInput, skillLevels, parentDiv, perHourGainExp, skillNamesInOrder) {
+        const initData_levelExperienceTable = JSON.parse(GM_getValue("init_client_data", null)).levelExperienceTable;
+        const days = Number(daysAfterInput.value);
+        parentDiv.querySelector(`div#needDiv`).textContent = `${isZH ? "" : "After"} ${days} ${isZH ? "天后：" : "days: "}`;
+        const listDiv = parentDiv.querySelector(`div#needListDiv`);
+
+        let html = "";
+        let resultLevels = {};
+        for (const skillName of skillNamesInOrder) {
+            for (const skill of Object.values(skillLevels)) {
+                if (skill.skillName.toLowerCase() === skillName.toLowerCase()) {
+                    const exp = skill.currentExp + perHourGainExp[skill.skillName.toLowerCase()] * days * 24;
+                    let level = 1;
+                    while (initData_levelExperienceTable[level] < exp) {
+                        level++;
+                    }
+                    level--;
+                    const minExpAtLevel = initData_levelExperienceTable[level];
+                    const maxExpAtLevel = initData_levelExperienceTable[level + 1] - 1;
+                    const expSpanInLevel = maxExpAtLevel - minExpAtLevel;
+                    const levelPercentage = Number(((exp - minExpAtLevel) / expSpanInLevel) * 100).toFixed(1);
+                    resultLevels[skillName.toLowerCase()] = level;
+                    html += `<div>${skill.skillName} ${isZH ? "" : "level"} ${level} ${isZH ? "级" : ""} ${levelPercentage}%</div>`;
+                    break;
+                }
+            }
+        }
+        const combatLevel =
+            0.2 * (resultLevels.stamina + resultLevels.intelligence + resultLevels.defense) +
+            0.4 * Math.max(0.5 * (resultLevels.attack + resultLevels.power), resultLevels.ranged, resultLevels.magic);
+        html += `<div>${isZH ? "战斗等级：" : "Combat level: "} ${combatLevel.toFixed(1)}</div>`;
+        listDiv.innerHTML = html;
     }
 
     function calculateTill(skillName, skillInputElem, skillLevels, parentDiv, perHourGainExp) {
