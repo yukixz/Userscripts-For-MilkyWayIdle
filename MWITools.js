@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      11.8
+// @version      11.9
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -307,6 +307,7 @@
             if (settingsMap.showDamage.isTrue) {
                 // Clear damage statistics panel
                 players = [];
+                monsters = [];
                 monstersHP = [];
                 startTime = null;
                 endTime = null;
@@ -342,6 +343,7 @@
                 checkEquipment();
             }
         } else if (obj && obj.type === "new_battle") {
+            // console.log("--- new battle ---");
             if (settingsMap.showDamage.isTrue) {
                 if (startTime && endTime) {
                     totalDuration += (endTime - startTime) / 1000;
@@ -350,6 +352,15 @@
                 endTime = null;
                 monstersHP = obj.monsters.map((monster) => monster.currentHitpoints);
                 players = obj.players;
+                const playerIndices = Object.keys(players);
+                playerIndices.forEach((userIndex) => {
+                    players[userIndex].currentAction = players[userIndex].preparingAbilityHrid
+                        ? players[userIndex].preparingAbilityHrid
+                        : players[userIndex].isPreparingAutoAttack
+                        ? "auto"
+                        : null;
+                });
+                monsters = obj.monsters;
                 if (!totalDamage.length) {
                     totalDamage = new Array(players.length).fill(0);
                 }
@@ -372,20 +383,83 @@
                 });
             }
         } else if (obj && obj.type === "battle_updated" && monstersHP.length) {
+            /* Logging start */
+            // console.log("------");
+            // const mMap = obj.mMap;
+            // if (Object.keys(mMap).length === 0) {
+            //     const playerIndices = Object.keys(obj.pMap);
+            //     if (playerIndices.length === 0) {
+            //         console.log(`【错误：无变化】`);
+            //     }
+            //     playerIndices.forEach((userIndex) => {
+            //         const statusTxt = `${obj.pMap.isStunned ? "【眩晕】" : ""}${
+            //             obj.pMap[userIndex].abilityHrid ? "【" + obj.pMap[userIndex].abilityHrid.replace("/abilities/", "") + "】" : ""
+            //         }${obj.pMap[userIndex].isAutoAtk ? "【普攻】" : ""}`;
+            //         console.log(`【玩家自行变化】${statusTxt} ${players[userIndex].name}`);
+            //     });
+            // }
+            // monstersHP.forEach((mHP, mIndex) => {
+            //     const monster = mMap[mIndex];
+            //     if (monster) {
+            //         const playerIndices = Object.keys(obj.pMap);
+            //         if (playerIndices.length === 0) {
+            //             const hpDiff = mHP - monster.cHP;
+            //             console.log(`【怪物自行变化】${monsters[mIndex].name} 自行变化 ${hpDiff} 点血量`);
+            //         }
+            //         playerIndices.forEach((userIndex) => {
+            //             const hpDiff = mHP - monster.cHP;
+            //             const statusTxt = `${obj.pMap.isStunned ? "【眩晕】" : ""}${
+            //                 obj.pMap[userIndex].abilityHrid ? "【" + obj.pMap[userIndex].abilityHrid.replace("/abilities/", "") + "】" : ""
+            //             }${obj.pMap[userIndex].isAutoAtk ? "【普攻】" : ""}`;
+            //             if (hpDiff > 0) {
+            //                 console.log(`【伤害】${statusTxt} ${players[userIndex].name} 对 ${monsters[mIndex].name} 造成了 ${hpDiff} 点伤害`);
+            //             } else if (hpDiff === 0) {
+            //                 console.log(`【Miss】${statusTxt} ${players[userIndex].name} 对 ${monsters[mIndex].name} MISS (造成0点伤害)`);
+            //             } else {
+            //                 console.log(`【治疗】${statusTxt} ${players[userIndex].name} 对 ${monsters[mIndex].name} 造成了 ${-hpDiff} 点治疗`);
+            //             }
+            //         });
+            //     }
+            // });
+            /* Logging end */
             if (settingsMap.showDamage.isTrue) {
                 const mMap = obj.mMap;
+                const pMap = obj.pMap;
+                const playerIndices = Object.keys(obj.pMap);
+
                 monstersHP.forEach((mHP, mIndex) => {
                     const monster = mMap[mIndex];
                     if (monster) {
-                        const playerIndices = Object.keys(obj.pMap);
-                        playerIndices.forEach((userIndex) => {
-                            const hpDiff = mHP - monster.cHP;
-                            if (hpDiff > 0) {
-                                totalDamage[userIndex] += hpDiff;
-                            }
-                        });
+                        const hpDiff = mHP - monster.cHP;
                         monstersHP[mIndex] = monster.cHP;
+                        if (hpDiff > 0) {
+                            if (playerIndices.length > 1) {
+                                // Damage is resulted by ManaSpring from one of the players.
+                                playerIndices.forEach((userIndex) => {
+                                    const action = pMap[userIndex].abilityHrid
+                                        ? pMap[userIndex].abilityHrid
+                                        : pMap[userIndex].isAutoAtk
+                                        ? "auto"
+                                        : null;
+                                    // console.log(`${players[userIndex].name} ${players[userIndex].currentAction} -> ${action}`);
+                                    if (players[userIndex].currentAction !== action && players[userIndex].currentAction?.includes("mana_spring")) {
+                                        totalDamage[playerIndices[0]] += hpDiff;
+                                        console.log("mana_spring by " + players[userIndex].name);
+                                    }
+                                });
+                            } else {
+                                totalDamage[playerIndices[0]] += hpDiff;
+                            }
+                        }
                     }
+                });
+
+                playerIndices.forEach((userIndex) => {
+                    players[userIndex].currentAction = pMap[userIndex].abilityHrid
+                        ? pMap[userIndex].abilityHrid
+                        : pMap[userIndex].isAutoAtk
+                        ? "auto"
+                        : null;
                 });
                 endTime = Date.now();
                 updateStatisticsPanel();
@@ -2537,6 +2611,7 @@
     let endTime = null;
     let monstersHP = [];
     let players = [];
+    let monsters = [];
     let dragging = false;
     let panelExpanded = true;
     let chart = null;
