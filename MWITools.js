@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      12.0
+// @version      12.1
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -447,12 +447,32 @@
                                         : null;
                                     // console.log(`${players[userIndex].name} ${players[userIndex].currentAction} -> ${action}`);
                                     if (players[userIndex].currentAction !== action && players[userIndex].currentAction?.includes("mana_spring")) {
-                                        totalDamage[playerIndices[0]] += hpDiff;
+                                        if (!players[userIndex].damageMap) {
+                                            players[userIndex].damageMap = new Map();
+                                        }
+                                        players[userIndex].damageMap.set(
+                                            players[userIndex].currentAction,
+                                            players[userIndex].damageMap.has(players[userIndex].currentAction)
+                                                ? players[userIndex].damageMap.get(players[userIndex].currentAction) + hpDiff
+                                                : hpDiff
+                                        );
+                                        totalDamage[userIndex] += hpDiff;
                                         console.log("mana_spring by " + players[userIndex].name);
+                                        console.log(players[userIndex].damageMap);
                                     }
                                 });
                             } else {
+                                if (!players[playerIndices[0]].damageMap) {
+                                    players[playerIndices[0]].damageMap = new Map();
+                                }
+                                players[playerIndices[0]].damageMap.set(
+                                    players[playerIndices[0]].currentAction,
+                                    players[playerIndices[0]].damageMap.has(players[playerIndices[0]].currentAction)
+                                        ? players[playerIndices[0]].damageMap.get(players[playerIndices[0]].currentAction) + hpDiff
+                                        : hpDiff
+                                );
                                 totalDamage[playerIndices[0]] += hpDiff;
+                                console.log(players[playerIndices[0]].damageMap);
                             }
                         }
                     }
