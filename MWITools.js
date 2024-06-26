@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      11.9
+// @version      12.0
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -20,6 +20,10 @@
     "use strict";
     const userLanguage = navigator.language || navigator.userLanguage;
     const isZH = userLanguage.startsWith("zh");
+    const sampleNumber = 1111.1;
+    const sampleLocaleNumber = new Intl.NumberFormat().format(sampleNumber);
+    const THOUSAND_SEPERATOR = sampleLocaleNumber.replaceAll("1", "").at(0);
+    const DECIMAL_SEPERATOR = sampleLocaleNumber.replaceAll("1", "").at(1);
 
     /* 自定义插件字体颜色 */
     /* 找颜色自行网上搜索"CSS颜色" */
@@ -819,7 +823,7 @@
         let amount = 0;
         let insertAfterElem = null;
         if (amountSpan) {
-            amount = +getOriTextFromElement(amountSpan).split(": ")[1].replaceAll(",", "");
+            amount = +getOriTextFromElement(amountSpan).split(": ")[1].replaceAll(THOUSAND_SEPERATOR, "");
             insertAfterElem = amountSpan.parentNode.nextSibling;
         } else {
             insertAfterElem = tooltip.querySelectorAll("span")[0].parentNode.nextSibling;
@@ -1217,9 +1221,16 @@
             return; // 不处理战斗ActionPanel
         }
         const actionName = getOriTextFromElement(panel.querySelector("div.SkillActionDetail_name__3erHV"));
-        const exp = Number(getOriTextFromElement(panel.querySelector("div.SkillActionDetail_expGain__F5xHu")).replaceAll(",", ""));
+        const exp = Number(
+            getOriTextFromElement(panel.querySelector("div.SkillActionDetail_expGain__F5xHu"))
+                .replaceAll(THOUSAND_SEPERATOR, "")
+                .replaceAll(DECIMAL_SEPERATOR, ".")
+        );
         const duration = Number(
-            getOriTextFromElement(panel.querySelectorAll("div.SkillActionDetail_value__dQjYH")[4]).replace(/,/g, ".").replace("s", "")
+            getOriTextFromElement(panel.querySelectorAll("div.SkillActionDetail_value__dQjYH")[4])
+                .replaceAll(THOUSAND_SEPERATOR, "")
+                .replaceAll(DECIMAL_SEPERATOR, ".")
+                .replace("s", "")
         );
         const inputElem = panel.querySelector("div.SkillActionDetail_maxActionCountInput__1C0Pw input");
 
