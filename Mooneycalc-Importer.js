@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Mooneycalc-Importer
 // @namespace    http://tampermonkey.net/
-// @version      5.0
+// @version      5.1
 // @description  For the game MilkyWayIdle. This script imports player info to the following websites. https://mooneycalc.vercel.app/, https://mwisim.github.io/.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -104,7 +104,7 @@
             : "Imported, updated " + timeReadable(now - timestamp) + " ago";
 
         await new Promise((r) => setTimeout(r, 500));
-        //location.reload();
+        location.reload();
     }
 
     function constructMooneycalcLocalStorage(obj) {
