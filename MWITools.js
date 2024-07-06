@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      12.2
+// @version      12.3
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -476,7 +476,7 @@
                                                 : hpDiff
                                         );
                                         totalDamage[userIndex] += hpDiff;
-                                        console.log("mana_spring by " + players[userIndex].name);
+                                        // console.log("mana_spring by " + players[userIndex].name);
                                         // console.log(players[userIndex].damageMap);
                                     }
                                 });
@@ -543,7 +543,7 @@
                     networthBidInv += item.count * (marketPrices.bid > 0 ? marketPrices.bid : 0);
                 }
             } else {
-                console.error("calculateNetworth cannot find price of " + itemName);
+                // console.error("calculateNetworth cannot find price of " + itemName);
             }
         }
 
@@ -877,9 +877,6 @@
             jsonObj = await fetchMarketJSON();
             if (!jsonObj || !jsonObj.market) {
                 console.error("jsonObj null");
-            }
-            if (!jsonObj.market[itemName]) {
-                console.error("itemName not found in market API json: " + itemName);
             }
             // 市场价格
             ask = jsonObj?.market[itemName]?.ask;
@@ -2397,25 +2394,30 @@
     };
 
     function getCosts(hrid, price_data) {
-        const itemDetalObj = initData_itemDetailMap[hrid];
+        const itemDetailObj = initData_itemDetailMap[hrid];
+
         // +0本体成本
-        let baseCost = null;
+        const baseItemProductionCost = getItemProductionCost(itemDetailObj.name, price_data);
+        const baseItemMarketPrice = getItemMarketPrice(hrid, price_data);
+        let baseCost = baseItemProductionCost;
+        if (!baseCost || baseCost < 0 || (baseItemMarketPrice > 0 && baseItemMarketPrice < baseCost)) {
+            baseCost = baseItemMarketPrice;
+        }
 
         // 保护成本
         let minProtectionPrice = null;
         let minProtectionHrid = null;
         let protect_item_hrids =
-            itemDetalObj.protectionItemHrids == null
+            itemDetailObj.protectionItemHrids == null
                 ? [hrid, "/items/mirror_of_protection"]
-                : [hrid, "/items/mirror_of_protection"].concat(itemDetalObj.protectionItemHrids);
+                : [hrid, "/items/mirror_of_protection"].concat(itemDetailObj.protectionItemHrids);
         protect_item_hrids.forEach((protection_hrid, i) => {
-            const this_cost = get_full_item_price(protection_hrid, price_data);
-            if (i == 0) {
-                baseCost = this_cost;
+            const this_cost = getItemMarketPrice(protection_hrid, price_data);
+            if (i === 0) {
                 minProtectionPrice = this_cost;
                 minProtectionHrid = protection_hrid;
             } else {
-                if (this_cost < minProtectionPrice) {
+                if (this_cost > 0 && (minProtectionPrice < 0 || this_cost < minProtectionPrice)) {
                     minProtectionPrice = this_cost;
                     minProtectionHrid = protection_hrid;
                 }
@@ -2425,8 +2427,8 @@
         // 强化材料成本
         const needMap = {};
         let totalNeedPrice = 0;
-        for (const need of itemDetalObj.enhancementCosts) {
-            const price = get_full_item_price(need.itemHrid, price_data);
+        for (const need of itemDetailObj.enhancementCosts) {
+            const price = getItemMarketPrice(need.itemHrid, price_data);
             totalNeedPrice += price * need.count;
             if (!need.itemHrid.includes("/coin")) {
                 needMap[initData_itemDetailMap[need.itemHrid].name] = price;
@@ -2442,11 +2444,47 @@
         };
     }
 
-    function get_full_item_price(hrid, price_data) {
+    function getItemMarketPrice(hrid, price_data) {
         const fullName = initData_itemDetailMap[hrid].name;
         const item_price_data = price_data.market[fullName];
         let final_cost = item_price_data.ask * input_data.priceAskBidRatio + item_price_data.bid * (1 - input_data.priceAskBidRatio);
         return final_cost;
+    }
+
+    function getItemProductionCost(itemName, jsonObj) {
+        const actionHrid = getActionHridFromItemName(itemName);
+        if (!actionHrid || !initData_actionDetailMap[actionHrid]) {
+            return -1;
+        }
+
+        const inputItems = JSON.parse(JSON.stringify(initData_actionDetailMap[actionHrid].inputItems));
+        const upgradedFromItemHrid = initData_actionDetailMap[actionHrid]?.upgradeItemHrid;
+        if (upgradedFromItemHrid) {
+            inputItems.push({ itemHrid: upgradedFromItemHrid, count: 1 });
+        }
+
+        let totalAskPrice = 0;
+        let totalBidPrice = 0;
+        for (let item of inputItems) {
+            const itemDetail = initData_itemDetailMap[item.itemHrid];
+            if (!itemDetail) {
+                return -1;
+            }
+            let itemAskPrice = jsonObj?.market[itemDetail.name]?.ask;
+            let itemBidPrice = jsonObj?.market[itemDetail.name]?.bid;
+            if (itemAskPrice === undefined || itemAskPrice === -1) {
+                if (itemBidPrice === undefined || itemBidPrice === -1) {
+                    return -1; // Ask和Bid价都没有，返回-1
+                }
+                itemAskPrice = itemBidPrice;
+            }
+            if (itemBidPrice === undefined || itemBidPrice === -1) {
+                itemBidPrice = itemAskPrice;
+            }
+            totalAskPrice += itemAskPrice * item.count;
+            totalBidPrice += itemBidPrice * item.count;
+        }
+        return totalAskPrice * input_data.priceAskBidRatio + totalBidPrice * (1 - input_data.priceAskBidRatio);
     }
 
     /* 脚本设置面板 */

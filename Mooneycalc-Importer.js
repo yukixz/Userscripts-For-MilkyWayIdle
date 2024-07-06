@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Mooneycalc-Importer
 // @namespace    http://tampermonkey.net/
-// @version      5.1
+// @version      5.2
 // @description  For the game MilkyWayIdle. This script imports player info to the following websites. https://mooneycalc.vercel.app/, https://mwisim.github.io/.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -878,7 +878,11 @@
         // Zone
         let hasMap = false;
         for (const action of obj.characterActions) {
-            if (action && action.actionHrid.includes("/actions/combat/")) {
+            if (
+                action &&
+                action.actionHrid.includes("/actions/combat/") &&
+                !clientObj.actionDetailMap[action.actionHrid]?.combatZoneInfo?.isDungeon
+            ) {
                 hasMap = true;
                 exportObj.zone = action.actionHrid;
                 break;
