@@ -1,13 +1,14 @@
 // ==UserScript==
 // @name         Mooneycalc-Importer
 // @namespace    http://tampermonkey.net/
-// @version      5.2
+// @version      5.3
 // @description  For the game MilkyWayIdle. This script imports player info to the following websites. https://mooneycalc.vercel.app/, https://mwisim.github.io/.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
 // @match        https://mooneycalc.vercel.app/*
 // @match        https://mwisim.github.io/*
 // @match        http://43.129.194.214:5000/mwisim.github.io
+// @match        https://tobytorn.github.io/mwisim.github.io/*
 // @run-at       document-start
 // @grant        GM_getValue
 // @grant        GM_setValue
