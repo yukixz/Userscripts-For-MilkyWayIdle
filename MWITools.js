@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      12.4
+// @version      12.5
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -775,16 +775,31 @@
         let buff = 0;
         const propertyName = initData_actionDetailMap[actionHrid].type.replace("/action_types/", "") + "Efficiency";
         for (const item of initData_characterItems) {
+            if (item.itemLocationHrid === "/item_locations/inventory") {
+                continue;
+            }
             const itemDetail = initData_itemDetailMap[item.itemHrid];
-            const stat = itemDetail?.equipmentDetail?.noncombatStats[propertyName];
-            if (stat && stat > 0) {
+
+            const specificStat = itemDetail?.equipmentDetail?.noncombatStats[propertyName];
+            if (specificStat && specificStat > 0) {
                 let enhanceBonus = 1;
                 if (item.itemLocationHrid.includes("earrings") || item.itemLocationHrid.includes("ring") || item.itemLocationHrid.includes("neck")) {
                     enhanceBonus = 1 + (itemEnhanceLevelToBuffBonusMap[item.enhancementLevel] * 5) / 100;
                 } else {
                     enhanceBonus = 1 + itemEnhanceLevelToBuffBonusMap[item.enhancementLevel] / 100;
                 }
-                buff += stat * enhanceBonus;
+                buff += specificStat * enhanceBonus;
+            }
+
+            const skillingStat = itemDetail?.equipmentDetail?.noncombatStats["skillingEfficiency"];
+            if (skillingStat && skillingStat > 0) {
+                let enhanceBonus = 1;
+                if (item.itemLocationHrid.includes("earrings") || item.itemLocationHrid.includes("ring") || item.itemLocationHrid.includes("neck")) {
+                    enhanceBonus = 1 + (itemEnhanceLevelToBuffBonusMap[item.enhancementLevel] * 5) / 100;
+                } else {
+                    enhanceBonus = 1 + itemEnhanceLevelToBuffBonusMap[item.enhancementLevel] / 100;
+                }
+                buff += skillingStat * enhanceBonus;
             }
         }
         return Number(buff * 100).toFixed(1);
