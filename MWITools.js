@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      12.5
+// @version      12.6
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -2260,8 +2260,8 @@
             }
             appendHTMLStr = `<div style="color: ${SCRIPT_COLOR_TOOLTIP};"><div>${
                 isZH
-                    ? "强化模拟（默认90级强化，2级房子，5级工具，0级手套，超级茶，幸运茶，卖单价收货，无工时费）："
-                    : "Enhancement simulator: Default level 90 enhancing, level 2 house, level 5 tool, level 0 gloves, super tea, blessed tea, sell order price in, no player time fee"
+                    ? "强化模拟（默认95级强化，4级房子，10级工具，5级手套，超级茶，幸运茶，卖单价收货，无工时费）："
+                    : "Enhancement simulator: Default level 95 enhancing, level 4 house, level 10 tool, level 5 gloves, super tea, blessed tea, sell order price in, no player time fee"
             }</div><div>${isZH ? "总成本 " : "Total cost "}${numberFormatter(best.totalCost.toFixed(0))}</div><div>${isZH ? "耗时 " : "Time spend "}${
                 best.simResult.totalActionTimeStr
             }</div>${
@@ -2397,10 +2397,10 @@
         item_hrid: null,
         stop_at: null,
 
-        enhancing_level: 90, // 人物 Enhancing 技能等级
-        laboratory_level: 2, // 房子等级
-        enhancer_bonus: 4.03, // 工具提高成功率，0级=3.6，5级=4.03，10级=4.64
-        glove_bonus: 10, // 手套提高强化速度，0级=10，5级=11.2，10级=12.9
+        enhancing_level: 95, // 人物 Enhancing 技能等级
+        laboratory_level: 4, // 房子等级
+        enhancer_bonus: 4.64, // 工具提高成功率，0级=3.6，5级=4.03，10级=4.64
+        glove_bonus: 11.2, // 手套提高强化速度，0级=10，5级=11.2，10级=12.9
 
         tea_enhancing: false, // 强化茶
         tea_super_enhancing: true, // 超级强化茶
