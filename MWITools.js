@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      12.6
+// @version      12.7
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -310,16 +310,18 @@
                 notificate();
             }
             if (settingsMap.showDamage.isTrue) {
-                // Clear damage statistics panel
-                players = [];
-                monsters = [];
-                monstersHP = [];
-                startTime = null;
-                endTime = null;
-                totalDuration = 0;
-                totalDamage = new Array(players.length).fill(0);
-                monsterCounts = {};
-                monsterEvasion = {};
+                if (currentActionsHridList.length === 0 || !currentActionsHridList[0].actionHrid.startsWith("/actions/combat/")) {
+                    // Clear damage statistics panel
+                    players = [];
+                    monsters = [];
+                    monstersHP = [];
+                    startTime = null;
+                    endTime = null;
+                    totalDuration = 0;
+                    totalDamage = new Array(players.length).fill(0);
+                    monsterCounts = {};
+                    monsterEvasion = {};
+                }
             }
         } else if (obj && obj.type === "action_completed") {
             const action = obj.endCharacterAction;
