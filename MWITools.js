@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      12.8
+// @version      12.9
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -1990,7 +1990,7 @@
     };
 
     function handleItemDict(panel) {
-        const itemName = getOriTextFromElement(panel.querySelector("div.ItemDictionary_title__27cTd")).toLowerCase().replaceAll(" ", "_");
+        const itemName = getOriTextFromElement(panel.querySelector("div.ItemDictionary_title__27cTd")).toLowerCase().replaceAll(" ", "_").replaceAll("'", "");
         let abilityHrid = null;
         for (const skillHrid of Object.keys(initData_abilityDetailMap)) {
             if (skillHrid.includes("/" + itemName)) {
