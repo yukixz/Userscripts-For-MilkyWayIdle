@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      13.1
+// @version      13.2
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -1928,8 +1928,18 @@
             const monsterName = taskStr.replace("Defeat ", "");
             let actionObj = null;
             for (const action of Object.values(initData_actionDetailMap)) {
-                if (action.hrid.includes("/combat/") && action.name === monsterName) {
-                    actionObj = action;
+                if (action.hrid.includes("/combat/")) {
+                    if (action.name === monsterName) {
+                        actionObj = action;
+                        break;
+                    }
+                    else if (action.combatZoneInfo.fightInfo.battlesPerBoss === 10) {
+                        const monsterHrid = "/monsters/" + monsterName.toLowerCase().replaceAll(" ", "_");
+                        if (monsterHrid === action.combatZoneInfo.fightInfo.bossSpawns[0].combatMonsterHrid) {
+                            actionObj = action;
+                            break;
+                        }
+                    }
                 }
             }
             const actionCategoryHrid = actionObj?.category;
