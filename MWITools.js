@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      13.2
+// @version      13.3
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -639,42 +639,36 @@
     };
 
     function calculateTotalTime() {
-        const targetNode = document.querySelector("div.Header_actionName__31-L2 > div.Header_actionName__31-L2");
-        const textNode = [...targetNode.childNodes]
-            .filter((child) => child.nodeType === Node.TEXT_NODE)
-            .filter((child) => child.textContent.trim())
-            .map((textNode) => textNode)[0];
-        if (textNode.textContent.includes("[")) {
+        const targetNode = document.querySelector("div.Header_actionName__31-L2 > div.Header_displayName__1hN09");
+        if (targetNode.textContent.includes("[")) {
             return;
         }
-        let totalTimeStr = "Error";
-        if (targetNode.childNodes.length === 1) {
-            totalTimeStr = " [" + timeReadable(0) + "]";
-        } else if (targetNode.childNodes.length === 2) {
-            const content = targetNode.innerText;
-            const match = content.match(/\((\d+)\)/);
-            if (match) {
-                const numOfTimes = +match[1];
-                const timePerActionSec = +getOriTextFromElement(document.querySelector(".ProgressBar_text__102Yn")).match(/[\d\.]+/)[0];
-                const actionHrid = currentActionsHridList[0].actionHrid;
-                let effBuff = 1 + getTotalEffiPercentage(actionHrid) / 100;
-                if (actionHrid.includes("enhanc")) {
-                    effBuff = 1;
-                }
-                const actualNumberOfTimes = Math.round(numOfTimes / effBuff);
-                const totalTimeSeconds = actualNumberOfTimes * timePerActionSec;
-                totalTimeStr = " [" + timeReadable(totalTimeSeconds) + "]";
 
-                const currentTime = new Date();
-                currentTime.setSeconds(currentTime.getSeconds() + totalTimeSeconds);
-                totalTimeStr += ` ${String(currentTime.getHours()).padStart(2, "0")}:${String(currentTime.getMinutes()).padStart(2, "0")}:${String(
-                    currentTime.getSeconds()
-                ).padStart(2, "0")}`;
-            } else {
-                totalTimeStr = " [∞]";
+        let totalTimeStr = "Error";
+        const content = targetNode.innerText;
+        const match = content.match(/\((\d+)\)/);
+        if (match) {
+            const numOfTimes = +match[1];
+            const timePerActionSec = +getOriTextFromElement(document.querySelector(".ProgressBar_text__102Yn")).match(/[\d\.]+/)[0];
+            const actionHrid = currentActionsHridList[0].actionHrid;
+            let effBuff = 1 + getTotalEffiPercentage(actionHrid) / 100;
+            if (actionHrid.includes("enhanc")) {
+                effBuff = 1;
             }
+            const actualNumberOfTimes = Math.round(numOfTimes / effBuff);
+            const totalTimeSeconds = actualNumberOfTimes * timePerActionSec;
+            totalTimeStr = " [" + timeReadable(totalTimeSeconds) + "]";
+
+            const currentTime = new Date();
+            currentTime.setSeconds(currentTime.getSeconds() + totalTimeSeconds);
+            totalTimeStr += ` ${String(currentTime.getHours()).padStart(2, "0")}:${String(currentTime.getMinutes()).padStart(2, "0")}:${String(
+                currentTime.getSeconds()
+            ).padStart(2, "0")}`;
+        } else {
+            totalTimeStr = " [∞]";
         }
-        textNode.textContent += totalTimeStr;
+
+        targetNode.textContent += totalTimeStr;
     }
 
     function timeReadable(sec) {
