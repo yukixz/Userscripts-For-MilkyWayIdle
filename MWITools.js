@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      13.3
+// @version      13.4
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -1086,8 +1086,9 @@
     }
 
     async function fetchMarketJSON(forceFetch = false) {
-        if (!GM?.xmlHttpRequest) {
-            console.error("fetchMarketJSON GM.xmlHttpRequest null function");
+        let sendRequest = GM.xmlHttpRequest || GM_xmlHttpRequest;
+        if (typeof sendRequest != 'function') {
+            console.error("fetchMarketJSON null function");
             isUsingLocalMarketJson = true;
             const jsonStr = MARKET_JSON_LOCAL_BACKUP;
             const jsonObj = JSON.parse(jsonStr);
@@ -1112,7 +1113,7 @@
         console.log("fetchMarketJSON fetch github start");
         let jsonStr = null;
         jsonStr = await new Promise((resolve, reject) => {
-            GM.xmlHttpRequest({
+            sendRequest({
                 url: MARKET_API_URL,
                 method: "GET",
                 synchronous: true,
@@ -1144,7 +1145,7 @@
         if (jsonStr === null && settingsMap.tryBackupApiUrl.isTrue) {
             console.log("fetchMarketJSON fetch backup start");
             jsonStr = await new Promise((resolve, reject) => {
-                GM.xmlHttpRequest({
+                sendRequest({
                     url: MARKET_API_URL_BACKUP,
                     method: "GET",
                     synchronous: true,
