@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      13.6
+// @version      13.7
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -173,14 +173,14 @@
             desc: isZH
                 ? "弹窗通知：正在空闲（游戏网页打开时才有效）"
                 : "Browser notification: Action queue is empty. (Works only when the game page is open.)",
-            isTrue: true,
+            isTrue: false,
         },
         tryBackupApiUrl: {
             id: "tryBackupApiUrl",
             desc: isZH
                 ? "无法从Github更新市场数据时，尝试使用备份地址（备份地址不保证长期维护）"
                 : "Try backup mirror server when failing to fetch market price API on Github. (Long-term maintenance of the backup server is not guarenteed.) (This is mainly for mainland China users.)",
-            isTrue: true,
+            isTrue: false,
         },
         fillMarketOrderPrice: {
             id: "fillMarketOrderPrice",
@@ -1260,9 +1260,9 @@
                     for (const added of mutation.addedNodes) {
                         if (
                             added?.classList?.contains("Modal_modalContainer__3B80m") &&
-                            added.querySelector("div.SkillActionDetail_nonenhancingComponent__1Y-ZY")
+                            added.querySelector("div.SkillActionDetail_regularComponent__3oCgr")
                         ) {
-                            handleActionPanel(added.querySelector("div.SkillActionDetail_nonenhancingComponent__1Y-ZY"));
+                            handleActionPanel(added.querySelector("div.SkillActionDetail_regularComponent__3oCgr"));
                         }
                     }
                 }
@@ -1287,8 +1287,9 @@
                 .replaceAll(THOUSAND_SEPERATOR, "")
                 .replaceAll(DECIMAL_SEPERATOR, ".")
         );
+
         const duration = Number(
-            getOriTextFromElement(panel.querySelectorAll("div.SkillActionDetail_value__dQjYH")[4])
+            getOriTextFromElement(panel.querySelectorAll("div.SkillActionDetail_value__dQjYH")[5])
                 .replaceAll(THOUSAND_SEPERATOR, "")
                 .replaceAll(DECIMAL_SEPERATOR, ".")
                 .replace("s", "")
@@ -1728,7 +1729,7 @@
             const itemLevel = initData_itemDetailMap[itemHrid]?.itemLevel;
             const itemAbilityLevel = initData_itemDetailMap[itemHrid]?.abilityBookDetail?.levelRequirements?.[0]?.level;
 
-            if (itemLevel && itemLevel > 0) {
+            if (initData_itemDetailMap[itemHrid]?.equipmentDetail && itemLevel && itemLevel > 0) {
                 if (!div.querySelector("div.script_itemLevel")) {
                     div.insertAdjacentHTML(
                         "beforeend",
