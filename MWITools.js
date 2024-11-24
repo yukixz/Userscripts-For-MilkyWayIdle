@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      13.7
+// @version      13.8
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -768,15 +768,16 @@
     };
 
     function getToolsSpeedBuffByActionHrid(actionHrid) {
-        let buff = 0;
+        let totalBuff = 0;
         for (const item of initData_characterItems) {
             if (item.itemLocationHrid.includes("_tool")) {
                 const buffName = actionHridToToolsSpeedBuffNamesMap[initData_actionDetailMap[actionHrid].type];
                 const enhanceBonus = 1 + itemEnhanceLevelToBuffBonusMap[item.enhancementLevel] / 100;
-                buff += initData_itemDetailMap[item.itemHrid].equipmentDetail.noncombatStats[buffName] * enhanceBonus;
+                const buff = initData_itemDetailMap[item.itemHrid].equipmentDetail.noncombatStats[buffName] || 0;
+                totalBuff += buff * enhanceBonus;
             }
         }
-        return Number(buff * 100).toFixed(1);
+        return Number(totalBuff * 100).toFixed(1);
     }
 
     function getItemEffiBuffByActionHrid(actionHrid) {
