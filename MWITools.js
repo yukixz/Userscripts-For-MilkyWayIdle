@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      13.8
+// @version      13.9
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -34,7 +34,7 @@
     const SCRIPT_COLOR_ALERT = "red"; // 警告字体颜色
 
     const MARKET_API_URL = "https://raw.githubusercontent.com/holychikenz/MWIApi/main/medianmarket.json";
-    const MARKET_API_URL_BACKUP = "http://43.129.194.214:5500/apijson";
+    const MARKET_API_URL_BACKUP = MARKET_API_URL;
 
     let settingsMap = {
         totalActionTime: {
@@ -2131,18 +2131,9 @@
                 div = document.createElement("div");
                 div.setAttribute("class", "NavigationBar_minorNavigationLink__31K7Y");
                 div.style.color = SCRIPT_COLOR_MAIN;
-                div.innerHTML = isZH ? "战斗模拟（批量）" : "Combat sim (Batch)";
+                div.innerHTML = isZH ? "战斗模拟 AmVoidGuy" : "Combat sim AmVoidGuy";
                 div.addEventListener("click", () => {
-                    window.open("http://43.129.194.214:5000/mwisim.github.io", "_blank");
-                });
-                targetNode.insertAdjacentElement("afterbegin", div);
-
-                div = document.createElement("div");
-                div.setAttribute("class", "NavigationBar_minorNavigationLink__31K7Y");
-                div.style.color = SCRIPT_COLOR_MAIN;
-                div.innerHTML = isZH ? "战斗模拟 MWISim" : "Combat sim MWISim";
-                div.addEventListener("click", () => {
-                    window.open("https://mwisim.github.io/", "_blank");
+                    window.open("https://amvoidguy.github.io/MWICombatSimulatorTest/dist/index.html", "_blank");
                 });
                 targetNode.insertAdjacentElement("afterbegin", div);
             } else {
