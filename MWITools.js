@@ -1,16 +1,18 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      13.9
+// @version      14.0
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
 // @match        https://test.milkywayidle.com/*
+// @match        https://amvoidguy.github.io/MWICombatSimulatorTest/*
 // @grant        GM_addStyle
 // @grant        GM_xmlhttpRequest
 // @grant        GM_notification
+// @grant        GM_getValue
+// @grant        GM_setValue
 // @connect      raw.githubusercontent.com
-// @connect      43.129.194.214
 // @require      https://cdnjs.cloudflare.com/ajax/libs/mathjs/12.4.2/math.js
 // @require      https://cdn.jsdelivr.net/npm/chart.js@3.7.0/dist/chart.min.js
 // @require      https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0/dist/chartjs-plugin-datalabels.min.js
@@ -32,6 +34,14 @@
     const SCRIPT_COLOR_MAIN = "green"; // 脚本主要字体颜色
     const SCRIPT_COLOR_TOOLTIP = "darkgreen"; // 物品悬浮窗的字体颜色
     const SCRIPT_COLOR_ALERT = "red"; // 警告字体颜色
+
+    if (document.URL.includes("amvoidguy.github.io")) {
+        // Customization
+        // Features for https://amvoidguy.github.io/MWICombatSimulatorTest/. Remove the following two lines of code to disable.
+        addImportButtonForAmvoidguy();
+        observeResultsForAmvoidguy();
+        return;
+    }
 
     const MARKET_API_URL = "https://raw.githubusercontent.com/holychikenz/MWIApi/main/medianmarket.json";
     const MARKET_API_URL_BACKUP = MARKET_API_URL;
@@ -226,6 +236,8 @@
         console.log("update init_client_data from LocalStorage");
         const obj = JSON.parse(localStorage.getItem("initClientData"));
         console.log(obj);
+        GM_setValue("init_client_data", localStorage.getItem("initClientData"));
+
         initData_actionDetailMap = obj.actionDetailMap;
         initData_levelExperienceTable = obj.levelExperienceTable;
         initData_itemDetailMap = obj.itemDetailMap;
@@ -263,6 +275,9 @@
     function handleMessage(message) {
         let obj = JSON.parse(message);
         if (obj && obj.type === "init_character_data") {
+            console.log(obj);
+            GM_setValue("init_character_data", message);
+
             initData_characterSkills = obj.characterSkills;
             initData_characterItems = obj.characterItems;
             initData_characterHouseRoomMap = obj.characterHouseRoomMap;
@@ -300,6 +315,8 @@
         } else if (obj && obj.type === "init_client_data") {
             console.log("update init_client_data from WS");
             console.log(obj);
+            GM_setValue("init_client_data", message);
+
             initData_actionDetailMap = obj.actionDetailMap;
             initData_levelExperienceTable = obj.levelExperienceTable;
             initData_itemDetailMap = obj.itemDetailMap;
@@ -2560,14 +2577,6 @@
                             : `Search "Customization" in code to customize font colors and default enhancement simulation parameters.`
                     }</div></br>`
                 );
-                insertElem.insertAdjacentHTML(
-                    "beforeend",
-                    `<div style="float: left;">${
-                        isZH
-                            ? "推荐配合使用我的另一个插件：https://greasyfork.org/en/scripts/494468-mooneycalc-importer"
-                            : `Check out my other script for exporting player data to 3rd-party tool websites: https://greasyfork.org/en/scripts/494468-mooneycalc-importer`
-                    }</div></br>`
-                );
                 insertElem.addEventListener("change", saveSettings);
             }
         }
@@ -3089,4 +3098,460 @@
         </table>`;
         }
     };
+
+    // 为 https://amvoidguy.github.io/MWICombatSimulatorTest/ 添加导入按钮
+    function addImportButtonForAmvoidguy() {
+        const checkElem = () => {
+            const selectedElement = document.querySelector(`button#buttonImportExport`);
+            if (selectedElement) {
+                clearInterval(timer);
+                let button = document.createElement("button");
+                selectedElement.parentNode.parentElement.parentElement.insertBefore(button, selectedElement.parentElement.parentElement.nextSibling);
+                button.textContent = isZH
+                    ? "导入单人人物数据并开始模拟(刷新游戏网页更新人物数据)"
+                    : "Import solo character set and start sim (Refresh game page to update character set)";
+                button.style.backgroundColor = "green";
+                button.style.padding = "5px";
+                button.onclick = function () {
+                    console.log("Mooneycalc-Importer: Import button onclick");
+                    const getPriceButton = document.querySelector(`button#buttonGetPrices`);
+                    if (getPriceButton) {
+                        console.log("Click getPriceButton");
+                        getPriceButton.click();
+                    }
+                    importDataForAmvoidguy(button);
+                    return false;
+                };
+            }
+        };
+        let timer = setInterval(checkElem, 200);
+    }
+
+    async function importDataForAmvoidguy(button) {
+        let data = GM_getValue("init_character_data", "");
+        let obj = JSON.parse(data);
+        console.log(obj);
+        if (!obj || !obj.characterSkills || !obj.currentTimestamp) {
+            button.textContent = isZH ? "错误：没有人物数据" : "Error: no character settings found";
+            return;
+        }
+
+        let jsonObj = constructImportJsonObjForAmvoidguy(obj);
+        console.log(jsonObj);
+        const importInputElem = document.querySelector(`input#inputSetSolo`);
+        importInputElem.value = JSON.stringify(jsonObj);
+        document.querySelector(`a#solo-tab`).click();
+        document.querySelector(`input#player1`).checked = true;
+        document.querySelector(`button#buttonImportSet`).click();
+
+        let timestamp = new Date(obj.currentTimestamp).getTime();
+        let now = new Date().getTime();
+        button.textContent = isZH
+            ? "已导入，人物数据更新时间：" + timeReadableForAmvoidguy(now - timestamp) + " 前"
+            : "Imported, updated " + timeReadableForAmvoidguy(now - timestamp) + " ago";
+
+        const isStartSimAfterImport = true;
+        if (isStartSimAfterImport) {
+            setTimeout(() => {
+                document.querySelector(`button#buttonStartSimulation`).click();
+            }, 500);
+        }
+    }
+
+    function constructImportJsonObjForAmvoidguy(obj) {
+        let clientObj = JSON.parse(GM_getValue("init_client_data", ""));
+        console.log(clientObj);
+
+        let exportObj = {};
+
+        exportObj.player = {};
+        // Levels
+        for (const skill of obj.characterSkills) {
+            if (skill.skillHrid.includes("stamina")) {
+                exportObj.player.staminaLevel = skill.level;
+            } else if (skill.skillHrid.includes("intelligence")) {
+                exportObj.player.intelligenceLevel = skill.level;
+            } else if (skill.skillHrid.includes("attack")) {
+                exportObj.player.attackLevel = skill.level;
+            } else if (skill.skillHrid.includes("power")) {
+                exportObj.player.powerLevel = skill.level;
+            } else if (skill.skillHrid.includes("defense")) {
+                exportObj.player.defenseLevel = skill.level;
+            } else if (skill.skillHrid.includes("ranged")) {
+                exportObj.player.rangedLevel = skill.level;
+            } else if (skill.skillHrid.includes("magic")) {
+                exportObj.player.magicLevel = skill.level;
+            }
+        }
+        // Items
+        exportObj.player.equipment = [];
+        for (const item of obj.characterItems) {
+            if (!item.itemLocationHrid.includes("/item_locations/inventory")) {
+                exportObj.player.equipment.push({
+                    itemLocationHrid: item.itemLocationHrid,
+                    itemHrid: item.itemHrid,
+                    enhancementLevel: item.enhancementLevel,
+                });
+            }
+        }
+
+        // Food
+        exportObj.food = {};
+        exportObj.food["/action_types/combat"] = [];
+        for (const food of obj.actionTypeFoodSlotsMap["/action_types/combat"]) {
+            if (food) {
+                exportObj.food["/action_types/combat"].push({
+                    itemHrid: food.itemHrid,
+                });
+            } else {
+                exportObj.food["/action_types/combat"].push({
+                    itemHrid: "",
+                });
+            }
+        }
+
+        // Drinks
+        exportObj.drinks = {};
+        exportObj.drinks["/action_types/combat"] = [];
+        for (const drink of obj.actionTypeDrinkSlotsMap["/action_types/combat"]) {
+            if (drink) {
+                exportObj.drinks["/action_types/combat"].push({
+                    itemHrid: drink.itemHrid,
+                });
+            } else {
+                exportObj.drinks["/action_types/combat"].push({
+                    itemHrid: "",
+                });
+            }
+        }
+
+        // Abilities
+        exportObj.abilities = [
+            {
+                abilityHrid: "",
+                level: "1",
+            },
+            {
+                abilityHrid: "",
+                level: "1",
+            },
+            {
+                abilityHrid: "",
+                level: "1",
+            },
+            {
+                abilityHrid: "",
+                level: "1",
+            },
+            {
+                abilityHrid: "",
+                level: "1",
+            },
+        ];
+        let normalAbillityIndex = 1;
+        for (const ability of obj.combatUnit.combatAbilities) {
+            if (ability && clientObj.abilityDetailMap[ability.abilityHrid].isSpecialAbility) {
+                exportObj.abilities[0] = {
+                    abilityHrid: ability.abilityHrid,
+                    level: ability.level,
+                };
+            } else if (ability) {
+                exportObj.abilities[normalAbillityIndex++] = {
+                    abilityHrid: ability.abilityHrid,
+                    level: ability.level,
+                };
+            }
+        }
+
+        // TriggerMap
+        exportObj.triggerMap = { ...obj.abilityCombatTriggersMap, ...obj.consumableCombatTriggersMap };
+
+        // Zone
+        let hasMap = false;
+        for (const action of obj.characterActions) {
+            if (
+                action &&
+                action.actionHrid.includes("/actions/combat/") &&
+                !clientObj.actionDetailMap[action.actionHrid]?.combatZoneInfo?.isDungeon
+            ) {
+                hasMap = true;
+                exportObj.zone = action.actionHrid;
+                break;
+            }
+        }
+        if (!hasMap) {
+            exportObj.zone = "/actions/combat/fly";
+        }
+
+        // SimulationTime
+        exportObj.simulationTime = "24";
+
+        // HouseRooms
+        exportObj.houseRooms = {};
+        for (const house of Object.values(obj.characterHouseRoomMap)) {
+            exportObj.houseRooms[house.houseRoomHrid] = house.level;
+        }
+
+        return exportObj;
+    }
+
+    function timeReadableForAmvoidguy(ms) {
+        const d = new Date(1000 * Math.round(ms / 1000));
+        function pad(i) {
+            return ("0" + i).slice(-2);
+        }
+        let str = d.getUTCHours() + ":" + pad(d.getUTCMinutes()) + ":" + pad(d.getUTCSeconds());
+        console.log("Mooneycalc-Importer: " + str);
+        return str;
+    }
+
+    async function observeResultsForAmvoidguy() {
+        let resultDiv = document.querySelector(`div.row`)?.querySelectorAll(`div.col-md-5`)?.[2]?.querySelector(`div.row > div.col-md-5`);
+        while (!resultDiv) {
+            await new Promise((resolve) => setTimeout(resolve, 100));
+            resultDiv = document.querySelector(`div.row`)?.querySelectorAll(`div.col-md-5`)?.[2]?.querySelector(`div.row > div.col-md-5`);
+        }
+
+        const deathDiv = document.querySelector(`div#simulationResultPlayerDeaths`);
+        const expDiv = document.querySelector(`div#simulationResultExperienceGain`);
+        const consumeDiv = document.querySelector(`div#simulationResultConsumablesUsed`);
+        deathDiv.style.backgroundColor = "#FFEAE9";
+        deathDiv.style.color = "black";
+        expDiv.style.backgroundColor = "#CDFFDD";
+        expDiv.style.color = "black";
+        consumeDiv.style.backgroundColor = "#F0F8FF";
+        consumeDiv.style.color = "black";
+
+        let div = document.createElement("div");
+        div.id = "tillLevel";
+        div.style.backgroundColor = "#FFFFE0";
+        div.style.color = "black";
+        div.textContent = "";
+        resultDiv.append(div);
+
+        new MutationObserver((mutationsList) => {
+            mutationsList.forEach((mutation) => {
+                if (mutation.addedNodes.length >= 3) {
+                    handleResultForAmvoidguy(mutation.addedNodes, div);
+                }
+            });
+        }).observe(expDiv, { childList: true, subtree: true });
+    }
+
+    function handleResultForAmvoidguy(expNodes, parentDiv) {
+        let perHourGainExp = {
+            stamina: 0,
+            intelligence: 0,
+            attack: 0,
+            power: 0,
+            defense: 0,
+            ranged: 0,
+            magic: 0,
+        };
+
+        expNodes.forEach((expNodes) => {
+            if (expNodes.textContent.includes("Stamina")) {
+                perHourGainExp.stamina = Number(expNodes.children[1].textContent);
+            } else if (expNodes.textContent.includes("Intelligence")) {
+                perHourGainExp.intelligence = Number(expNodes.children[1].textContent);
+            } else if (expNodes.textContent.includes("Attack")) {
+                perHourGainExp.attack = Number(expNodes.children[1].textContent);
+            } else if (expNodes.textContent.includes("Power")) {
+                perHourGainExp.power = Number(expNodes.children[1].textContent);
+            } else if (expNodes.textContent.includes("Defense")) {
+                perHourGainExp.defense = Number(expNodes.children[1].textContent);
+            } else if (expNodes.textContent.includes("Ranged")) {
+                perHourGainExp.ranged = Number(expNodes.children[1].textContent);
+            } else if (expNodes.textContent.includes("Magic")) {
+                perHourGainExp.magic = Number(expNodes.children[1].textContent);
+            }
+        });
+
+        let data = GM_getValue("init_character_data", null);
+        let obj = JSON.parse(data);
+        if (!obj || !obj.characterSkills || !obj.currentTimestamp) {
+            console.error("handleResult no character localstorage");
+            return;
+        }
+
+        let skillLevels = {};
+        for (const skill of obj.characterSkills) {
+            if (skill.skillHrid.includes("stamina")) {
+                skillLevels.stamina = {};
+                skillLevels.stamina.skillName = "Stamina";
+                skillLevels.stamina.currentLevel = skill.level;
+                skillLevels.stamina.currentExp = skill.experience;
+            } else if (skill.skillHrid.includes("intelligence")) {
+                skillLevels.intelligence = {};
+                skillLevels.intelligence.skillName = "Intelligence";
+                skillLevels.intelligence.currentLevel = skill.level;
+                skillLevels.intelligence.currentExp = skill.experience;
+            } else if (skill.skillHrid.includes("attack")) {
+                skillLevels.attack = {};
+                skillLevels.attack.skillName = "Attack";
+                skillLevels.attack.currentLevel = skill.level;
+                skillLevels.attack.currentExp = skill.experience;
+            } else if (skill.skillHrid.includes("power")) {
+                skillLevels.power = {};
+                skillLevels.power.skillName = "Power";
+                skillLevels.power.currentLevel = skill.level;
+                skillLevels.power.currentExp = skill.experience;
+            } else if (skill.skillHrid.includes("defense")) {
+                skillLevels.defense = {};
+                skillLevels.defense.skillName = "Defense";
+                skillLevels.defense.currentLevel = skill.level;
+                skillLevels.defense.currentExp = skill.experience;
+            } else if (skill.skillHrid.includes("ranged")) {
+                skillLevels.ranged = {};
+                skillLevels.ranged.skillName = "Ranged";
+                skillLevels.ranged.currentLevel = skill.level;
+                skillLevels.ranged.currentExp = skill.experience;
+            } else if (skill.skillHrid.includes("magic")) {
+                skillLevels.magic = {};
+                skillLevels.magic.skillName = "Magic";
+                skillLevels.magic.currentLevel = skill.level;
+                skillLevels.magic.currentExp = skill.experience;
+            }
+        }
+
+        const skillNamesInOrder = ["stamina", "intelligence", "attack", "power", "defense", "ranged", "magic"];
+        let hTMLStr = "";
+        for (const skill of skillNamesInOrder) {
+            hTMLStr += `<div id="${"inputDiv_" + skill}" style="display: flex; justify-content: flex-end">${skillLevels[skill].skillName}${
+                isZH ? "到" : " to level "
+            }<input id="${"input_" + skill}" type="number" value="${skillLevels[skill].currentLevel + 1}" min="${
+                skillLevels[skill].currentLevel + 1
+            }" max="200">${isZH ? "级" : ""}</div>`;
+        }
+
+        hTMLStr += `<div id="script_afterDays" style="display: flex; justify-content: flex-end"><input id="script_afterDays_input" type="number" value="1" min="0" max="200">${
+            isZH ? "天后" : "days after"
+        }</div>`;
+
+        hTMLStr += `<div id="needDiv"></div>`;
+        hTMLStr += `<div id="needListDiv"></div>`;
+        parentDiv.innerHTML = hTMLStr;
+
+        for (const skill of skillNamesInOrder) {
+            const skillDiv = parentDiv.querySelector(`div#${"inputDiv_" + skill}`);
+            const skillInput = parentDiv.querySelector(`input#${"input_" + skill}`);
+            skillInput.onchange = () => {
+                calculateTill(skill, skillInput, skillLevels, parentDiv, perHourGainExp);
+            };
+            skillInput.addEventListener("keyup", function (evt) {
+                calculateTill(skill, skillInput, skillLevels, parentDiv, perHourGainExp);
+            });
+            skillDiv.onclick = () => {
+                calculateTill(skill, skillInput, skillLevels, parentDiv, perHourGainExp);
+            };
+        }
+
+        const daysAfterDiv = parentDiv.querySelector(`div#script_afterDays`);
+        const daysAfterInput = parentDiv.querySelector(`input#script_afterDays_input`);
+        daysAfterInput.onchange = () => {
+            calculateAfterDays(daysAfterInput, skillLevels, parentDiv, perHourGainExp, skillNamesInOrder);
+        };
+        daysAfterInput.addEventListener("keyup", function (evt) {
+            calculateAfterDays(daysAfterInput, skillLevels, parentDiv, perHourGainExp, skillNamesInOrder);
+        });
+        daysAfterDiv.onclick = () => {
+            calculateAfterDays(daysAfterInput, skillLevels, parentDiv, perHourGainExp, skillNamesInOrder);
+        };
+
+        // 提取成本和收益
+        const expensesSpan = document.querySelector(`span#expensesSpan`);
+        const revenueSpan = document.querySelector(`span#revenueSpan`);
+        const profitSpan = document.querySelector(`span#profitPreview`);
+        const expenseDiv = document.querySelector(`div#script_expense`);
+        const revenueDiv = document.querySelector(`div#script_revenue`);
+        if (expenseDiv && expenseDiv) {
+            expenseDiv.textContent = expensesSpan.parentNode.textContent;
+            revenueDiv.textContent = revenueSpan.parentNode.textContent;
+        } else {
+            profitSpan.parentNode.insertAdjacentHTML(
+                "beforeend",
+                `<div id="script_expense" style="background-color: #DCDCDC; color: black;">${expensesSpan.parentNode.textContent}</div><div id="script_revenue" style="background-color: #DCDCDC; color: black;">${revenueSpan.parentNode.textContent}</div>`
+            );
+        }
+    }
+
+    function calculateAfterDays(daysAfterInput, skillLevels, parentDiv, perHourGainExp, skillNamesInOrder) {
+        const initData_levelExperienceTable = JSON.parse(GM_getValue("init_client_data", null)).levelExperienceTable;
+        const days = Number(daysAfterInput.value);
+        parentDiv.querySelector(`div#needDiv`).textContent = `${isZH ? "" : "After"} ${days} ${isZH ? "天后：" : "days: "}`;
+        const listDiv = parentDiv.querySelector(`div#needListDiv`);
+
+        let html = "";
+        let resultLevels = {};
+        for (const skillName of skillNamesInOrder) {
+            for (const skill of Object.values(skillLevels)) {
+                if (skill.skillName.toLowerCase() === skillName.toLowerCase()) {
+                    const exp = skill.currentExp + perHourGainExp[skill.skillName.toLowerCase()] * days * 24;
+                    let level = 1;
+                    while (initData_levelExperienceTable[level] < exp) {
+                        level++;
+                    }
+                    level--;
+                    const minExpAtLevel = initData_levelExperienceTable[level];
+                    const maxExpAtLevel = initData_levelExperienceTable[level + 1] - 1;
+                    const expSpanInLevel = maxExpAtLevel - minExpAtLevel;
+                    const levelPercentage = Number(((exp - minExpAtLevel) / expSpanInLevel) * 100).toFixed(1);
+                    resultLevels[skillName.toLowerCase()] = level;
+                    html += `<div>${skill.skillName} ${isZH ? "" : "level"} ${level} ${isZH ? "级" : ""} ${levelPercentage}%</div>`;
+                    break;
+                }
+            }
+        }
+        const combatLevel =
+            0.2 * (resultLevels.stamina + resultLevels.intelligence + resultLevels.defense) +
+            0.4 * Math.max(0.5 * (resultLevels.attack + resultLevels.power), resultLevels.ranged, resultLevels.magic);
+        html += `<div>${isZH ? "战斗等级：" : "Combat level: "} ${combatLevel.toFixed(1)}</div>`;
+        listDiv.innerHTML = html;
+    }
+
+    function calculateTill(skillName, skillInputElem, skillLevels, parentDiv, perHourGainExp) {
+        const initData_levelExperienceTable = JSON.parse(GM_getValue("init_client_data", null)).levelExperienceTable;
+        const targetLevel = Number(skillInputElem.value);
+        parentDiv.querySelector(`div#needDiv`).textContent = `${skillLevels[skillName].skillName} ${isZH ? "到" : "to level"} ${targetLevel} ${
+            isZH ? "级 还需：" : " takes: "
+        }`;
+        const listDiv = parentDiv.querySelector(`div#needListDiv`);
+
+        const currentLevel = Number(skillLevels[skillName].currentLevel);
+        const currentExp = Number(skillLevels[skillName].currentExp);
+        if (targetLevel > currentLevel && targetLevel <= 200) {
+            if (perHourGainExp[skillName] === 0) {
+                listDiv.innerHTML = isZH ? "永远" : "Forever";
+            } else {
+                let needExp = initData_levelExperienceTable[targetLevel] - currentExp;
+                let needHours = needExp / perHourGainExp[skillName];
+                let html = "";
+                html += `<div>[${hoursToReadableString(needHours)}]</div>`;
+
+                const consumeDivs = document.querySelectorAll(`div#simulationResultConsumablesUsed div.row`);
+                for (const elem of consumeDivs) {
+                    const conName = elem.children[0].textContent;
+                    const conPerHour = Number(elem.children[1].textContent);
+                    html += `<div>${conName} ${Number(conPerHour * needHours).toFixed(0)}</div>`;
+                }
+
+                listDiv.innerHTML = html;
+            }
+        } else {
+            listDiv.innerHTML = isZH ? "输入错误" : "Input error";
+        }
+    }
+
+    function hoursToReadableString(hours) {
+        const sec = hours * 60 * 60;
+        if (sec >= 86400) {
+            return Number(sec / 86400).toFixed(1) + (isZH ? " 天" : " days");
+        }
+        const d = new Date(Math.round(sec * 1000));
+        function pad(i) {
+            return ("0" + i).slice(-2);
+        }
+        let str = d.getUTCHours() + "h " + pad(d.getUTCMinutes()) + "m " + pad(d.getUTCSeconds()) + "s";
+        return str;
+    }
 })();
