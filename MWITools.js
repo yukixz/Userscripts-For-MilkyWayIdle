@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      14.2
+// @version      14.3
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -3120,6 +3120,7 @@
     };
 
     // 为 https://amvoidguy.github.io/MWICombatSimulatorTest/ 添加导入按钮
+    // Parts of code regarding group export are by Ratatatata (https://greasyfork.org/en/scripts/507255).
     function addImportButtonForAmvoidguy() {
         const checkElem = () => {
             const selectedElement = document.querySelector(`button#buttonImportExport`);
