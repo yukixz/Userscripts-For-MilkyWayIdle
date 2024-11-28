@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      14.5
+// @version      14.6
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -219,6 +219,7 @@
 
     let initData_characterSkills = null;
     let initData_characterItems = null;
+    let initData_combatAbilities = null;
     let initData_characterHouseRoomMap = null;
     let initData_actionTypeDrinkSlotsMap = null;
     let initData_actionDetailMap = null;
@@ -284,6 +285,7 @@
             initData_actionTypeDrinkSlotsMap = obj.actionTypeDrinkSlotsMap;
             initData_characterAbilities = obj.characterAbilities;
             initData_myMarketListings = obj.myMarketListings;
+            initData_combatAbilities = obj.combatUnit.combatAbilities;
             currentActionsHridList = [...obj.characterActions];
             if (settingsMap.totalActionTime.isTrue) {
                 showTotalActionTime();
@@ -666,16 +668,24 @@
         networthBid = equippedNetworthBid + inventoryNetworthBid + marketListingsNetworthBid;
 
         /* 仓库搜索栏下方显示人物总结 */
-        // BuildScore algorithm and code by Ratatatata (https://greasyfork.org/zh-CN/scripts/511240)
-        // Some code of networth summery by Stella.
-        // 注意战力打造分只计算战斗相关房子，房子价值要计算全部房子
-        const addInventorySummery = () => {
+        // Some code of networth summery is by Stella.
+        const addInventorySummery = async () => {
+            const [houseScore, abilityScore, equipmentScore] = await getSelfBuildScores(equippedNetworthBid);
+            const totalScore = houseScore + abilityScore + equipmentScore;
+
             const inventoryFilterNode = document.querySelector("div.Inventory_itemFilter__2goYz");
             inventoryFilterNode.insertAdjacentHTML(
                 "afterend",
                 `<div style="text-align: left; color: ${SCRIPT_COLOR_MAIN}; font-size: 14px;">
                     <!-- 战力打造分 -->
-                    <div style="font-weight: bold">${isZH ? "战力打造分: " : "Character Build Score: "}</div>
+                    <div style="font-weight: bold" id="toggleScores">${isZH ? "→ 战力打造分: " : "→ Character Build Score: "}${totalScore.toFixed(
+                    1
+                )}</div>
+                    <div id="buildScores" style="display: none; margin-left: 20px;">
+                            <div>${isZH ? "房子分：" : "House score: "}${houseScore.toFixed(1)}</div>
+                            <div>${isZH ? "技能分：" : "Ability score: "}${abilityScore.toFixed(1)}</div>
+                            <div>${isZH ? "装备分：" : "Equipment score: "}${equipmentScore.toFixed(1)}</div>
+                    </div>
 
                     <!-- 总NetWorth -->
                     <div style="cursor: pointer; font-weight: bold;" id="toggleNetWorth">
@@ -706,12 +716,20 @@
             );
 
             // 监听点击事件，控制折叠和展开
+            const toggleScores = document.getElementById("toggleScores");
+            const ScoreDetails = document.getElementById("buildScores");
             const toggleButton = document.getElementById("toggleNetWorth");
             const netWorthDetails = document.getElementById("netWorthDetails");
             const toggleCurrentAssets = document.getElementById("toggleCurrentAssets");
             const currentAssets = document.getElementById("currentAssets");
             const toggleNonCurrentAssets = document.getElementById("toggleNonCurrentAssets");
             const nonCurrentAssets = document.getElementById("nonCurrentAssets");
+
+            toggleScores.addEventListener("click", () => {
+                const isCollapsed = ScoreDetails.style.display === "none";
+                ScoreDetails.style.display = isCollapsed ? "block" : "none";
+                toggleScores.textContent = (isCollapsed ? "↓ " : "→ ") + (isZH ? "战力打造分: " : "Character Build Score: ") + totalScore.toFixed(1);
+            });
 
             toggleButton.addEventListener("click", () => {
                 const isCollapsed = netWorthDetails.style.display === "none";
@@ -757,6 +775,84 @@
             }
         };
         waitForHeader();
+    }
+
+    /* 计算打造分 */
+    // BuildScore algorithm by Ratatatata (https://greasyfork.org/zh-CN/scripts/511240)
+    async function getSelfBuildScores(equippedNetworthBid) {
+        // 房子分：战斗相关房子升级所需总金币，不包括升级所需物品
+        let battleHouses = ["dining_room", "library", "dojo", "gym", "armory", "archery_range", "mystical_study"];
+        const house_cost_map = {
+            0: 0,
+            1: 0.5,
+            2: 2.5,
+            3: 7.5,
+            4: 19.5,
+            5: 44.5,
+            6: 94.5,
+            7: 184.5,
+            8: 344.5,
+        };
+        let houseScore = 0;
+        for (const key in initData_characterHouseRoomMap) {
+            if (battleHouses.some((house) => initData_characterHouseRoomMap[key].houseRoomHrid.includes(house))) {
+                houseScore += house_cost_map[initData_characterHouseRoomMap[key].level];
+            }
+        }
+        console.log("houseScore " + houseScore);
+
+        // 技能分：当前使用的战斗技能所需技能书总价，单位M
+        let abilityScore = 0;
+        try {
+            abilityScore = await calculateAbilityScore();
+        } catch (error) {
+            console.error("Error in calculateAbilityScore()", error);
+        }
+        console.log("abilityScore " + abilityScore);
+
+        // 装备分：当前身上装备总价，单位M
+        let equipmentScore = equippedNetworthBid / 1000000;
+        console.log("equipmentScore " + equipmentScore);
+
+        return [houseScore, abilityScore, equipmentScore];
+    }
+
+    //技能价格计算
+    async function calculateAbilityScore() {
+        const marketAPIJson = await fetchMarketJSON();
+        if (!marketAPIJson) {
+            return 0;
+        }
+        let exp_50_skill = ["poke", "scratch", "smack", "quick_shot", "water_strike", "fireball", "entangle", "minor_heal"];
+        const getNeedBooksToLevel = (targetLevel, abilityPerBookExp) => {
+            const needExp = initData_levelExperienceTable[targetLevel];
+            let needBooks = needExp / abilityPerBookExp;
+            needBooks += 1;
+            return needBooks.toFixed(1);
+        };
+        //技能净值
+        let networthAsk = 0;
+        let networthBid = 0;
+        initData_combatAbilities.forEach((item) => {
+            let numBooks = 0;
+            if (exp_50_skill.some((skill) => item.abilityHrid.includes(skill))) {
+                numBooks = getNeedBooksToLevel(item.level, 50);
+            } else {
+                numBooks = getNeedBooksToLevel(item.level, 500);
+            }
+            const itemName = initData_itemDetailMap[item.abilityHrid.replace("/abilities/", "/items/")].name;
+            const marketPrices = marketAPIJson.market[itemName];
+            if (marketPrices) {
+                networthAsk += numBooks * (marketPrices.ask > 0 ? marketPrices.ask : 0);
+                networthBid += numBooks * (marketPrices.bid > 0 ? marketPrices.bid : 0);
+            } else {
+                // console.error("calculateNetworth cannot find price of " + itemName);
+            }
+            //console.log(`技能:${itemName},价值${numBooks * (marketPrices.bid > 0 ? marketPrices.bid : 0)}`)
+        });
+
+        networthBid /= 1000000;
+        return networthBid;
     }
 
     /* 显示当前动作总时间 */
