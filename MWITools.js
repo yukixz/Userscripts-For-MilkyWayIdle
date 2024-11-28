@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      14.6
+// @version      14.7
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -673,9 +673,9 @@
             const [houseScore, abilityScore, equipmentScore] = await getSelfBuildScores(equippedNetworthBid);
             const totalScore = houseScore + abilityScore + equipmentScore;
 
-            const inventoryFilterNode = document.querySelector("div.Inventory_itemFilter__2goYz");
+            const inventoryFilterNode = document.querySelector("div.Inventory_items__6SXv0");
             inventoryFilterNode.insertAdjacentHTML(
-                "afterend",
+                "beforebegin",
                 `<div style="text-align: left; color: ${SCRIPT_COLOR_MAIN}; font-size: 14px;">
                     <!-- 战力打造分 -->
                     <div style="font-weight: bold" id="toggleScores">${isZH ? "→ 战力打造分: " : "→ Character Build Score: "}${totalScore.toFixed(
@@ -708,8 +708,8 @@
                             ${isZH ? "→ 非流动资产价值" : "→ Fixed assets value"}
                         </div>
                         <div id="nonCurrentAssets" style="display: none; margin-left: 20px;">
-                            <div>${isZH ? "房子价值：" : "Houses value: "}</div>
-                            <div>${isZH ? "技能价值：" : "Abilities value: "}</div>
+                            <div>${isZH ? "房子价值：" : "Houses value: "}TBD</div>
+                            <div>${isZH ? "技能价值：" : "Abilities value: "}TBD</div>
                         </div>
                     </div>
                 </div>`
