@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      14.3
+// @version      14.4
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -78,8 +78,8 @@
         invWorth: {
             id: "invWorth",
             desc: isZH
-                ? "仓库搜索栏显示：仓库中物品总价值 [依赖上一项]"
-                : "Inventory search bar: Total value of the items in the inventory. [Depends on the previous selection]",
+                ? "仓库搜索栏下方显示：仓库和战力总结 [依赖上一项]"
+                : "Below inventory search bar: Inventory and character summery. [Depends on the previous selection]",
             isTrue: true,
         },
         itemTooltip_prices: {
@@ -423,14 +423,27 @@
                 });
             }
         } else if (obj && obj.type === "profile_shared") {
+            let profileExportListString = GM_getValue("profile_export_list", null);
+            let profileExportList = null;
+            // Remove invalid
             // GM_setValue("profile_export_list", JSON.stringify(new Array())); // Remove stored profiles. Only for testing.
+            if (profileExportListString) {
+                profileExportList = JSON.parse(profileExportListString);
+                if (!profileExportList || !profileExportList.filter) {
+                    console.log("profileExportList cleared");
+                    GM_setValue("profile_export_list", JSON.stringify(new Array()));
+                }
+            } else {
+                console.log("profileExportList cleared");
+                GM_setValue("profile_export_list", JSON.stringify(new Array()));
+            }
 
             obj.characterID = obj.profile.characterSkills[0].characterID;
             obj.characterName = obj.profile.sharableCharacter.name;
             obj.timestamp = Date.now();
 
-            const profileExportListString = GM_getValue("profile_export_list", message) || JSON.stringify(new Array());
-            let profileExportList = JSON.parse(profileExportListString);
+            profileExportListString = GM_getValue("profile_export_list", null) || JSON.stringify(new Array());
+            profileExportList = JSON.parse(profileExportListString);
             profileExportList = profileExportList.filter((item) => item.characterID !== obj.characterID);
             profileExportList.unshift(obj);
             if (profileExportList.length > 20) {
@@ -573,8 +586,13 @@
 
         let networthAsk = 0;
         let networthBid = 0;
-        let networthAskInv = 0;
-        let networthBidInv = 0;
+        let marketListingsNetworthAsk = 0;
+        let marketListingsNetworthBid = 0;
+        let equippedNetworthAsk = 0;
+        let equippedNetworthBid = 0;
+        let inventoryNetworthAsk = 0;
+        let inventoryNetworthBid = 0;
+
         for (const item of initData_characterItems) {
             const enhanceLevel = item.enhancementLevel;
             const itemName = initData_itemDetailMap[item.itemHrid].name;
@@ -585,14 +603,20 @@
                 const best = await findBestEnhanceStrat(input_data);
                 let totalCost = best?.totalCost;
                 totalCost = totalCost ? Math.round(totalCost) : 0;
-                networthAsk += item.count * (totalCost > 0 ? totalCost : 0);
-                networthBid += item.count * (totalCost > 0 ? totalCost : 0);
+                if (item.itemLocationHrid !== "/item_locations/inventory") {
+                    equippedNetworthAsk += item.count * (totalCost > 0 ? totalCost : 0);
+                    equippedNetworthBid += item.count * (totalCost > 0 ? totalCost : 0);
+                } else {
+                    inventoryNetworthAsk += item.count * (totalCost > 0 ? totalCost : 0);
+                    inventoryNetworthBid += item.count * (totalCost > 0 ? totalCost : 0);
+                }
             } else if (marketPrices) {
-                networthAsk += item.count * (marketPrices.ask > 0 ? marketPrices.ask : 0);
-                networthBid += item.count * (marketPrices.bid > 0 ? marketPrices.bid : 0);
-                if (item.itemLocationHrid === "/item_locations/inventory" && itemName !== "Coin") {
-                    networthAskInv += item.count * (marketPrices.ask > 0 ? marketPrices.ask : 0);
-                    networthBidInv += item.count * (marketPrices.bid > 0 ? marketPrices.bid : 0);
+                if (item.itemLocationHrid !== "/item_locations/inventory") {
+                    equippedNetworthAsk += item.count * (marketPrices.ask > 0 ? marketPrices.ask : 0);
+                    equippedNetworthBid += item.count * (marketPrices.bid > 0 ? marketPrices.bid : 0);
+                } else {
+                    inventoryNetworthAsk += item.count * (marketPrices.ask > 0 ? marketPrices.ask : 0);
+                    inventoryNetworthBid += item.count * (marketPrices.bid > 0 ? marketPrices.bid : 0);
                 }
             } else {
                 // console.error("calculateNetworth cannot find price of " + itemName);
@@ -617,39 +641,98 @@
                     marketPrices.bid *= 1 - 2 / 100;
                 }
                 if (!enhancementLevel || enhancementLevel <= 1) {
-                    networthAsk += quantity * (marketPrices.ask > 0 ? marketPrices.ask : 0);
-                    networthBid += quantity * (marketPrices.bid > 0 ? marketPrices.bid : 0);
+                    marketListingsNetworthAsk += quantity * (marketPrices.ask > 0 ? marketPrices.ask : 0);
+                    marketListingsNetworthBid += quantity * (marketPrices.bid > 0 ? marketPrices.bid : 0);
                 } else {
                     input_data.item_hrid = item.itemHrid;
                     input_data.stop_at = enhancementLevel;
                     const best = await findBestEnhanceStrat(input_data);
                     let totalCost = best?.totalCost;
                     totalCost = totalCost ? Math.round(totalCost) : 0;
-                    networthAsk += quantity * (totalCost > 0 ? totalCost : 0);
-                    networthBid += quantity * (totalCost > 0 ? totalCost : 0);
+                    marketListingsNetworthAsk += quantity * (totalCost > 0 ? totalCost : 0);
+                    marketListingsNetworthBid += quantity * (totalCost > 0 ? totalCost : 0);
                 }
-                networthAsk += item.unclaimedCoinCount;
-                networthBid += item.unclaimedCoinCount;
+                marketListingsNetworthAsk += item.unclaimedCoinCount;
+                marketListingsNetworthBid += item.unclaimedCoinCount;
             } else {
-                networthAsk += quantity * item.price;
-                networthBid += quantity * item.price;
-                networthAsk += item.unclaimedItemCount * (marketPrices.ask > 0 ? marketPrices.ask : 0);
-                networthBid += item.unclaimedItemCount * (marketPrices.bid > 0 ? marketPrices.bid : 0);
+                marketListingsNetworthAsk += quantity * item.price;
+                marketListingsNetworthBid += quantity * item.price;
+                marketListingsNetworthAsk += item.unclaimedItemCount * (marketPrices.ask > 0 ? marketPrices.ask : 0);
+                marketListingsNetworthBid += item.unclaimedItemCount * (marketPrices.bid > 0 ? marketPrices.bid : 0);
             }
         }
 
-        if (settingsMap.invWorth.isTrue) {
-            const waitForInvInput = () => {
-                const targetNodes = document.querySelectorAll("input.Inventory_inventoryFilterInput__1Kiwh");
-                for (const elem of targetNodes) {
-                    elem.placeholder = `${isZH ? "物品价值: " : "Items value: "}${numberFormatter(networthAskInv)} / ${numberFormatter(
-                        networthBidInv
-                    )}`;
-                }
-                setTimeout(waitForInvInput, 1000);
-            };
-            waitForInvInput();
-        }
+        networthAsk = equippedNetworthAsk + inventoryNetworthAsk + marketListingsNetworthAsk;
+        networthBid = equippedNetworthBid + inventoryNetworthBid + marketListingsNetworthBid;
+
+        /* 仓库搜索栏下方显示人物总结 */
+        const addInventorySummery = () => {
+            const inventoryFilterNode = document.querySelector("div.Inventory_itemFilter__2goYz");
+            // 注意战力打造分只计算战斗相关房子，房子价值要计算全部房子
+            inventoryFilterNode.insertAdjacentHTML(
+                "afterend",
+                `<div style="text-align: left; color: ${SCRIPT_COLOR_MAIN}; font-size: 14px;">
+                    <!-- 战力打造分 -->
+                    <div style="font-weight: bold">战力打造分: </div>
+
+                    <!-- 总NetWorth -->
+                    <div style="cursor: pointer; font-weight: bold;" id="toggleNetWorth">
+                        → 总NetWorth
+                    </div>
+
+                    <div id="netWorthDetails" style="display: none; margin-left: 20px;">
+                        <!-- 流动资产 -->
+                        <div style="cursor: pointer;" id="toggleCurrentAssets">
+                            → 流动资产价值
+                        </div>
+                        <div id="currentAssets" style="display: none; margin-left: 20px;">
+                            <div>装备价值: ${numberFormatter(equippedNetworthAsk)}</div>
+                            <div>库存价值: ${numberFormatter(inventoryNetworthAsk)}</div>
+                            <div>市场价值: ${numberFormatter(marketListingsNetworthAsk)}</div>
+                        </div>
+
+                        <!-- 非流动资产 -->
+                        <div style="cursor: pointer;" id="toggleNonCurrentAssets">
+                            → 非流动资产价值
+                        </div>
+                        <div id="nonCurrentAssets" style="display: none; margin-left: 20px;">
+                            <div>房子价值:</div>
+                            <div>技能价值: </div>
+                        </div>
+                    </div>
+                </div>`
+            );
+
+            // 监听点击事件，控制折叠和展开
+            const toggleButton = document.getElementById("toggleNetWorth");
+            const netWorthDetails = document.getElementById("netWorthDetails");
+            const toggleCurrentAssets = document.getElementById("toggleCurrentAssets");
+            const currentAssets = document.getElementById("currentAssets");
+            const toggleNonCurrentAssets = document.getElementById("toggleNonCurrentAssets");
+            const nonCurrentAssets = document.getElementById("nonCurrentAssets");
+
+            toggleButton.addEventListener("click", () => {
+                const isCollapsed = netWorthDetails.style.display === "none";
+                netWorthDetails.style.display = isCollapsed ? "block" : "none";
+                toggleButton.textContent = isCollapsed ? "↓ 总NetWorth" : "→ 总NetWorth";
+                currentAssets.style.display = isCollapsed ? "block" : "none";
+                toggleCurrentAssets.textContent = isCollapsed ? "↓ 流动资产价值" : "→ 流动资产价值";
+                nonCurrentAssets.style.display = isCollapsed ? "block" : "none";
+                toggleNonCurrentAssets.textContent = isCollapsed ? "↓ 非流动资产价值" : "→ 非流动资产价值";
+            });
+
+            toggleCurrentAssets.addEventListener("click", () => {
+                const isCollapsed = currentAssets.style.display === "none";
+                currentAssets.style.display = isCollapsed ? "block" : "none";
+                toggleCurrentAssets.textContent = isCollapsed ? "↓ 流动资产价值" : "→ 流动资产价值";
+            });
+
+            toggleNonCurrentAssets.addEventListener("click", () => {
+                const isCollapsed = nonCurrentAssets.style.display === "none";
+                nonCurrentAssets.style.display = isCollapsed ? "block" : "none";
+                toggleNonCurrentAssets.textContent = isCollapsed ? "↓ 非流动资产价值" : "→ 非流动资产价值";
+            });
+        };
 
         const waitForHeader = () => {
             const targetNode = document.querySelector("div.Header_totalLevel__8LY3Q");
@@ -664,6 +747,9 @@
                             : ""
                     }</div>`
                 );
+                if (settingsMap.invWorth.isTrue) {
+                    addInventorySummery();
+                }
             } else {
                 setTimeout(waitForHeader, 200);
             }
@@ -3119,7 +3205,7 @@
         }
     };
 
-    // 为 https://amvoidguy.github.io/MWICombatSimulatorTest/ 添加导入按钮
+    /* 为 https://amvoidguy.github.io/MWICombatSimulatorTest/ 添加导入按钮 */
     // Parts of code regarding group export are by Ratatatata (https://greasyfork.org/en/scripts/507255).
     function addImportButtonForAmvoidguy() {
         const checkElem = () => {
@@ -3129,8 +3215,8 @@
                 let button = document.createElement("button");
                 selectedElement.parentNode.parentElement.parentElement.insertBefore(button, selectedElement.parentElement.parentElement.nextSibling);
                 button.textContent = isZH
-                    ? "导入单人人物数据并开始模拟(刷新游戏网页更新人物数据)"
-                    : "Import solo character set and start sim (Refresh game page to update character set)";
+                    ? "单人/组队导入(刷新游戏网页更新人物数据)"
+                    : "Import solo/group (Refresh game page to update character set)";
                 button.style.backgroundColor = "green";
                 button.style.padding = "5px";
                 button.onclick = function () {
