@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      14.4
+// @version      14.5
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -666,38 +666,40 @@
         networthBid = equippedNetworthBid + inventoryNetworthBid + marketListingsNetworthBid;
 
         /* 仓库搜索栏下方显示人物总结 */
+        // BuildScore algorithm and code by Ratatatata (https://greasyfork.org/zh-CN/scripts/511240)
+        // Some code of networth summery by Stella.
+        // 注意战力打造分只计算战斗相关房子，房子价值要计算全部房子
         const addInventorySummery = () => {
             const inventoryFilterNode = document.querySelector("div.Inventory_itemFilter__2goYz");
-            // 注意战力打造分只计算战斗相关房子，房子价值要计算全部房子
             inventoryFilterNode.insertAdjacentHTML(
                 "afterend",
                 `<div style="text-align: left; color: ${SCRIPT_COLOR_MAIN}; font-size: 14px;">
                     <!-- 战力打造分 -->
-                    <div style="font-weight: bold">战力打造分: </div>
+                    <div style="font-weight: bold">${isZH ? "战力打造分: " : "Character Build Score: "}</div>
 
                     <!-- 总NetWorth -->
                     <div style="cursor: pointer; font-weight: bold;" id="toggleNetWorth">
-                        → 总NetWorth
+                        ${isZH ? "→ 总NetWorth" : "→ Total NetWorth"}
                     </div>
 
                     <div id="netWorthDetails" style="display: none; margin-left: 20px;">
                         <!-- 流动资产 -->
                         <div style="cursor: pointer;" id="toggleCurrentAssets">
-                            → 流动资产价值
+                            ${isZH ? "→ 流动资产价值" : "→ Current assets value"}
                         </div>
                         <div id="currentAssets" style="display: none; margin-left: 20px;">
-                            <div>装备价值: ${numberFormatter(equippedNetworthAsk)}</div>
-                            <div>库存价值: ${numberFormatter(inventoryNetworthAsk)}</div>
-                            <div>市场价值: ${numberFormatter(marketListingsNetworthAsk)}</div>
+                            <div>${isZH ? "装备价值：" : "Equipment value: "}${numberFormatter(equippedNetworthAsk)}</div>
+                            <div>${isZH ? "库存价值：" : "Inventory value: "}${numberFormatter(inventoryNetworthAsk)}</div>
+                            <div>${isZH ? "订单价值：" : "Market listing value: "}${numberFormatter(marketListingsNetworthAsk)}</div>
                         </div>
 
                         <!-- 非流动资产 -->
                         <div style="cursor: pointer;" id="toggleNonCurrentAssets">
-                            → 非流动资产价值
+                            ${isZH ? "→ 非流动资产价值" : "→ Fixed assets value"}
                         </div>
                         <div id="nonCurrentAssets" style="display: none; margin-left: 20px;">
-                            <div>房子价值:</div>
-                            <div>技能价值: </div>
+                            <div>${isZH ? "房子价值：" : "Houses value: "}</div>
+                            <div>${isZH ? "技能价值：" : "Abilities value: "}</div>
                         </div>
                     </div>
                 </div>`
@@ -714,23 +716,23 @@
             toggleButton.addEventListener("click", () => {
                 const isCollapsed = netWorthDetails.style.display === "none";
                 netWorthDetails.style.display = isCollapsed ? "block" : "none";
-                toggleButton.textContent = isCollapsed ? "↓ 总NetWorth" : "→ 总NetWorth";
+                toggleButton.textContent = (isCollapsed ? "↓ " : "→ ") + (isZH ? "总NetWorth" : "Total NetWorth");
                 currentAssets.style.display = isCollapsed ? "block" : "none";
-                toggleCurrentAssets.textContent = isCollapsed ? "↓ 流动资产价值" : "→ 流动资产价值";
+                toggleCurrentAssets.textContent = (isCollapsed ? "↓ " : "→ ") + (isZH ? "流动资产价值" : "Current assets value");
                 nonCurrentAssets.style.display = isCollapsed ? "block" : "none";
-                toggleNonCurrentAssets.textContent = isCollapsed ? "↓ 非流动资产价值" : "→ 非流动资产价值";
+                toggleNonCurrentAssets.textContent = (isCollapsed ? "↓ " : "→ ") + (isZH ? "非流动资产价值" : "Fixed assets value");
             });
 
             toggleCurrentAssets.addEventListener("click", () => {
                 const isCollapsed = currentAssets.style.display === "none";
                 currentAssets.style.display = isCollapsed ? "block" : "none";
-                toggleCurrentAssets.textContent = isCollapsed ? "↓ 流动资产价值" : "→ 流动资产价值";
+                toggleCurrentAssets.textContent = (isCollapsed ? "↓ " : "→ ") + (isZH ? "流动资产价值" : "Current assets value");
             });
 
             toggleNonCurrentAssets.addEventListener("click", () => {
                 const isCollapsed = nonCurrentAssets.style.display === "none";
                 nonCurrentAssets.style.display = isCollapsed ? "block" : "none";
-                toggleNonCurrentAssets.textContent = isCollapsed ? "↓ 非流动资产价值" : "→ 非流动资产价值";
+                toggleNonCurrentAssets.textContent = (isCollapsed ? "↓ " : "→ ") + (isZH ? "非流动资产价值" : "Fixed assets value");
             });
         };
 
@@ -3745,19 +3747,19 @@
         };
 
         expNodes.forEach((expNodes) => {
-            if (expNodes.textContent.includes("Stamina")) {
+            if (getOriTextFromElement(expNodes).includes("Stamina")) {
                 perHourGainExp.stamina = Number(expNodes.children[1].textContent);
-            } else if (expNodes.textContent.includes("Intelligence")) {
+            } else if (getOriTextFromElement(expNodes).includes("Intelligence")) {
                 perHourGainExp.intelligence = Number(expNodes.children[1].textContent);
-            } else if (expNodes.textContent.includes("Attack")) {
+            } else if (getOriTextFromElement(expNodes).includes("Attack")) {
                 perHourGainExp.attack = Number(expNodes.children[1].textContent);
-            } else if (expNodes.textContent.includes("Power")) {
+            } else if (getOriTextFromElement(expNodes).includes("Power")) {
                 perHourGainExp.power = Number(expNodes.children[1].textContent);
-            } else if (expNodes.textContent.includes("Defense")) {
+            } else if (getOriTextFromElement(expNodes).includes("Defense")) {
                 perHourGainExp.defense = Number(expNodes.children[1].textContent);
-            } else if (expNodes.textContent.includes("Ranged")) {
+            } else if (getOriTextFromElement(expNodes).includes("Ranged")) {
                 perHourGainExp.ranged = Number(expNodes.children[1].textContent);
-            } else if (expNodes.textContent.includes("Magic")) {
+            } else if (getOriTextFromElement(expNodes).includes("Magic")) {
                 perHourGainExp.magic = Number(expNodes.children[1].textContent);
             }
         });
