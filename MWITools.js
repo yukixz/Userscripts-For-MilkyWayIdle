@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      15.0
+// @version      15.1
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -691,7 +691,7 @@
                 "beforebegin",
                 `<div style="text-align: left; color: ${SCRIPT_COLOR_MAIN}; font-size: 14px;">
                     <!-- 战力打造分 -->
-                    <div style="font-weight: bold" id="toggleScores">${isZH ? "→ 战力打造分: " : "→ Character Build Score: "}${totalScore.toFixed(
+                    <div style="font-weight: bold" id="toggleScores">${isZH ? "+ 战力打造分: " : "+ Character Build Score: "}${totalScore.toFixed(
                     1
                 )}</div>
                     <div id="buildScores" style="display: none; margin-left: 20px;">
@@ -702,13 +702,13 @@
 
                     <!-- 总NetWorth -->
                     <div style="cursor: pointer; font-weight: bold;" id="toggleNetWorth">
-                        ${isZH ? "→ 总NetWorth：" : "→ Total NetWorth: "}${numberFormatter(totalNetworthAsk)}
+                        ${isZH ? "+ 总NetWorth：" : "+ Total NetWorth: "}${numberFormatter(totalNetworthAsk)}
                     </div>
 
                     <div id="netWorthDetails" style="display: none; margin-left: 20px;">
                         <!-- 流动资产 -->
                         <div style="cursor: pointer;" id="toggleCurrentAssets">
-                            ${isZH ? "→ 流动资产价值" : "→ Current assets value"}
+                            ${isZH ? "+ 流动资产价值" : "+ Current assets value"}
                         </div>
                         <div id="currentAssets" style="display: none; margin-left: 20px;">
                             <div>${isZH ? "装备价值：" : "Equipment value: "}${numberFormatter(equippedNetworthAsk)}</div>
@@ -718,7 +718,7 @@
 
                         <!-- 非流动资产 -->
                         <div style="cursor: pointer;" id="toggleNonCurrentAssets">
-                            ${isZH ? "→ 非流动资产价值" : "→ Fixed assets value"}
+                            ${isZH ? "+ 非流动资产价值" : "+ Fixed assets value"}
                         </div>
                         <div id="nonCurrentAssets" style="display: none; margin-left: 20px;">
                             <div>${isZH ? "房子价值：" : "Houses value: "}${numberFormatter(totalHouseScore * 1000000)}</div>
@@ -741,30 +741,30 @@
             toggleScores.addEventListener("click", () => {
                 const isCollapsed = ScoreDetails.style.display === "none";
                 ScoreDetails.style.display = isCollapsed ? "block" : "none";
-                toggleScores.textContent = (isCollapsed ? "↓ " : "→ ") + (isZH ? "战力打造分: " : "Character Build Score: ") + totalScore.toFixed(1);
+                toggleScores.textContent = (isCollapsed ? "↓ " : "+ ") + (isZH ? "战力打造分: " : "Character Build Score: ") + totalScore.toFixed(1);
             });
 
             toggleButton.addEventListener("click", () => {
                 const isCollapsed = netWorthDetails.style.display === "none";
                 netWorthDetails.style.display = isCollapsed ? "block" : "none";
                 toggleButton.textContent =
-                    (isCollapsed ? "↓ " : "→ ") + (isZH ? "总NetWorth：" : "Total NetWorth: ") + numberFormatter(totalNetworthAsk);
+                    (isCollapsed ? "↓ " : "+ ") + (isZH ? "总NetWorth：" : "Total NetWorth: ") + numberFormatter(totalNetworthAsk);
                 currentAssets.style.display = isCollapsed ? "block" : "none";
-                toggleCurrentAssets.textContent = (isCollapsed ? "↓ " : "→ ") + (isZH ? "流动资产价值" : "Current assets value");
+                toggleCurrentAssets.textContent = (isCollapsed ? "↓ " : "+ ") + (isZH ? "流动资产价值" : "Current assets value");
                 nonCurrentAssets.style.display = isCollapsed ? "block" : "none";
-                toggleNonCurrentAssets.textContent = (isCollapsed ? "↓ " : "→ ") + (isZH ? "非流动资产价值" : "Fixed assets value");
+                toggleNonCurrentAssets.textContent = (isCollapsed ? "↓ " : "+ ") + (isZH ? "非流动资产价值" : "Fixed assets value");
             });
 
             toggleCurrentAssets.addEventListener("click", () => {
                 const isCollapsed = currentAssets.style.display === "none";
                 currentAssets.style.display = isCollapsed ? "block" : "none";
-                toggleCurrentAssets.textContent = (isCollapsed ? "↓ " : "→ ") + (isZH ? "流动资产价值" : "Current assets value");
+                toggleCurrentAssets.textContent = (isCollapsed ? "↓ " : "+ ") + (isZH ? "流动资产价值" : "Current assets value");
             });
 
             toggleNonCurrentAssets.addEventListener("click", () => {
                 const isCollapsed = nonCurrentAssets.style.display === "none";
                 nonCurrentAssets.style.display = isCollapsed ? "block" : "none";
-                toggleNonCurrentAssets.textContent = (isCollapsed ? "↓ " : "→ ") + (isZH ? "非流动资产价值" : "Fixed assets value");
+                toggleNonCurrentAssets.textContent = (isCollapsed ? "↓ " : "+ ") + (isZH ? "非流动资产价值" : "Fixed assets value");
             });
         };
 
