@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      14.8
+// @version      14.9
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -49,7 +49,7 @@
     let settingsMap = {
         useOrangeAsMainColor: {
             id: "useOrangeAsMainColor",
-            desc: isZH ? "使用橙色字体" : "Use orange as the main color for the scrip.",
+            desc: isZH ? "使用橙色字体" : "Use orange as the main color for the script.",
             isTrue: true,
         },
         totalActionTime: {
@@ -219,10 +219,10 @@
     };
     readSettings();
 
-    if (settingsMap.useOrangeAsMainColor.isTrue & (SCRIPT_COLOR_MAIN === "green")) {
+    if (settingsMap.useOrangeAsMainColor.isTrue && SCRIPT_COLOR_MAIN === "green") {
         SCRIPT_COLOR_MAIN = "orange";
     }
-    if (settingsMap.useOrangeAsMainColor.isTrue & (SCRIPT_COLOR_TOOLTIP === "darkgreen")) {
+    if (settingsMap.useOrangeAsMainColor.isTrue && SCRIPT_COLOR_TOOLTIP === "darkgreen") {
         SCRIPT_COLOR_TOOLTIP = "#804600";
     }
 
@@ -681,14 +681,13 @@
 
         /* 仓库搜索栏下方显示人物总结 */
         // Some code of networth summery is by Stella.
-        const addInventorySummery = async () => {
+        const addInventorySummery = async (invElem) => {
             const [battleHouseScore, nonBattleHouseScore, abilityScore, equipmentScore] = await getSelfBuildScores(equippedNetworthBid);
             const totalScore = battleHouseScore + abilityScore + equipmentScore;
             const totalHouseScore = battleHouseScore + nonBattleHouseScore;
             const totalNetworthAsk = networthAsk + (totalHouseScore + abilityScore) * 1000000;
 
-            const inventoryFilterNode = document.querySelector("div.Inventory_items__6SXv0");
-            inventoryFilterNode.insertAdjacentHTML(
+            invElem.insertAdjacentHTML(
                 "beforebegin",
                 `<div style="text-align: left; color: ${SCRIPT_COLOR_MAIN}; font-size: 14px;">
                     <!-- 战力打造分 -->
@@ -790,12 +789,14 @@
 
         if (settingsMap.invWorth.isTrue) {
             const waitForInv = () => {
-                const targetNode = document.querySelector("div.Inventory_items__6SXv0");
-                if (targetNode) {
-                    addInventorySummery();
-                } else {
-                    setTimeout(waitForInv, 200);
+                const targetNodes = document.querySelectorAll("div.Inventory_items__6SXv0");
+                for (const node of targetNodes) {
+                    if (!node.classList.contains("script_buildScore_added")) {
+                        node.classList.add("script_buildScore_added");
+                        addInventorySummery(node);
+                    }
                 }
+                setTimeout(waitForInv, 1000);
             };
             waitForInv();
         }
