@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      14.9
+// @version      15.0
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -76,8 +76,8 @@
         networth: {
             id: "networth",
             desc: isZH
-                ? "右上角显示：Networth总资产(+2及以上物品按强化模拟成本计算)"
-                : "Top right: Networth(Items with at least 2 enhancement levels are valued by enchancing simulator).",
+                ? "右上角显示：流动资产(+2及以上物品按强化模拟成本计算)"
+                : "Top right: Current assets (Items with at least 2 enhancement levels are valued by enchancing simulator).",
             isTrue: true,
         },
         invWorth: {
@@ -193,8 +193,8 @@
         tryBackupApiUrl: {
             id: "tryBackupApiUrl",
             desc: isZH
-                ? "无法从Github更新市场数据时，尝试使用备份地址（备份地址不保证长期维护）"
-                : "Try backup mirror server when failing to fetch market price API on Github. (Long-term maintenance of the backup server is not guarenteed.) (This is mainly for mainland China users.)",
+                ? "无法从Github更新市场数据时，尝试使用备份地址（此功能目前无效）"
+                : "Try backup mirror server when failing to fetch market price API on Github. (Currently not working.)",
             isTrue: false,
         },
         fillMarketOrderPrice: {
@@ -773,7 +773,9 @@
             if (targetNode) {
                 targetNode.insertAdjacentHTML(
                     "afterend",
-                    `<div>Networth: ${numberFormatter(networthAsk)} / ${numberFormatter(networthBid)}${
+                    `<div style="font-size: 13px; font-weight: 500; color: ${SCRIPT_COLOR_MAIN}">Current Assets: ${numberFormatter(
+                        networthAsk
+                    )} / ${numberFormatter(networthBid)}${
                         isUsingLocalMarketJson && settingsMap.networkAlert.isTrue
                             ? `<div style="color: ${SCRIPT_COLOR_ALERT}">${
                                   isZH ? "无法从API更新市场数据" : "Can't update market prices from API."
