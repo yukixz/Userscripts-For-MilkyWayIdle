@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      15.1
+// @version      15.2
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -691,9 +691,9 @@
                 "beforebegin",
                 `<div style="text-align: left; color: ${SCRIPT_COLOR_MAIN}; font-size: 14px;">
                     <!-- 战力打造分 -->
-                    <div style="font-weight: bold" id="toggleScores">${isZH ? "+ 战力打造分: " : "+ Character Build Score: "}${totalScore.toFixed(
-                    1
-                )}</div>
+                    <div style="cursor: pointer; font-weight: bold" id="toggleScores">${
+                        isZH ? "+ 战力打造分: " : "+ Character Build Score: "
+                    }${totalScore.toFixed(1)}</div>
                     <div id="buildScores" style="display: none; margin-left: 20px;">
                             <div>${isZH ? "房子分：" : "House score: "}${battleHouseScore.toFixed(1)}</div>
                             <div>${isZH ? "技能分：" : "Ability score: "}${abilityScore.toFixed(1)}</div>
