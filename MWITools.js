@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      15.3
+// @version      15.4
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -911,6 +911,7 @@
     async function showBuildScoreOnProfile(profile_shared_obj) {
         const [battleHouseScore, abilityScore, equipmentScore] = await getBuildScoreByProfile(profile_shared_obj);
         const totalBuildScore = battleHouseScore + abilityScore + equipmentScore;
+        const isEquipmentHiddenText = abilityScore + equipmentScore <= 0 ? (isZH ? " (装备隐藏)" : " (Equipment hidden)") : " ";
 
         const panel = await getInfoPanel();
         panel.insertAdjacentHTML(
@@ -918,7 +919,7 @@
             `<div style="text-align: left; color: ${SCRIPT_COLOR_MAIN}; font-size: 14px;">
                 <div style="cursor: pointer; font-weight: bold" id="toggleScores_profile">${
                     isZH ? "+ 战力打造分: " : "+ Character Build Score: "
-                }${totalBuildScore.toFixed(1)}</div>
+                }${totalBuildScore.toFixed(1)}${isEquipmentHiddenText}</div>
                 <div id="buildScores_profile" style="display: none; margin-left: 20px;">
                         <div>${isZH ? "房子分：" : "House score: "}${battleHouseScore.toFixed(1)}</div>
                         <div>${isZH ? "技能分：" : "Ability score: "}${abilityScore.toFixed(1)}</div>
@@ -932,7 +933,11 @@
         toggleScores.addEventListener("click", () => {
             const isCollapsed = ScoreDetails.style.display === "none";
             ScoreDetails.style.display = isCollapsed ? "block" : "none";
-            toggleScores.textContent = (isCollapsed ? "↓ " : "+ ") + (isZH ? "战力打造分: " : "Character Build Score: ") + totalBuildScore.toFixed(1);
+            toggleScores.textContent =
+                (isCollapsed ? "↓ " : "+ ") +
+                (isZH ? "战力打造分: " : "Character Build Score: ") +
+                totalBuildScore.toFixed(1) +
+                isEquipmentHiddenText;
         });
     }
 
