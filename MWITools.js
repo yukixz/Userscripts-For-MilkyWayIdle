@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      15.4
+// @version      15.5
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -1439,6 +1439,8 @@
                 produceItemPerHour *= 1 + (levelEffBuff + houseEffBuff + teaBuffs.efficiency + itemEffiBuff) / 100;
                 // 茶额外数量
                 let extraQuantityPerHour = (produceItemPerHour * teaBuffs.quantity) / 100;
+                // 出售市场税
+                const bidAfterTax = bid * 0.98;
 
                 appendHTMLStr += `<div style="color: ${SCRIPT_COLOR_TOOLTIP}; font-size: 10px;">${
                     isZH
@@ -1456,13 +1458,14 @@
                     isZH ? "每小时生产" : "Production per hour"
                 } ${Number((produceItemPerHour + extraQuantityPerHour) * droprate).toFixed(1)}${isZH ? " 个" : " items"}</div>`;
                 appendHTMLStr += `<div style="color: ${SCRIPT_COLOR_TOOLTIP};">${isZH ? "利润: " : "Profit: "}${numberFormatter(
-                    bid - (totalAskPrice * (1 - teaBuffs.lessResource / 100)) / droprate
+                    bidAfterTax - (totalAskPrice * (1 - teaBuffs.lessResource / 100)) / droprate
                 )}${isZH ? "/个" : "/item"}, ${numberFormatter(
-                    produceItemPerHour * (bid * droprate - totalAskPrice * (1 - teaBuffs.lessResource / 100)) + extraQuantityPerHour * bid * droprate
+                    produceItemPerHour * (bidAfterTax * droprate - totalAskPrice * (1 - teaBuffs.lessResource / 100)) +
+                        extraQuantityPerHour * bidAfterTax * droprate
                 )}${isZH ? "/小时" : "/hour"}, ${numberFormatter(
                     24 *
-                        (produceItemPerHour * (bid * droprate - totalAskPrice * (1 - teaBuffs.lessResource / 100)) +
-                            extraQuantityPerHour * bid * droprate)
+                        (produceItemPerHour * (bidAfterTax * droprate - totalAskPrice * (1 - teaBuffs.lessResource / 100)) +
+                            extraQuantityPerHour * bidAfterTax * droprate)
                 )}${isZH ? "/天" : "/day"}</div>`;
             } else if (
                 getActionHridFromItemName(itemName) &&
@@ -1501,6 +1504,8 @@
                 produceItemPerHour *= 1 + (levelEffBuff + houseEffBuff + teaBuffs.efficiency + itemEffiBuff) / 100;
                 // 茶额外数量
                 let extraQuantityPerHour = (produceItemPerHour * teaBuffs.quantity) / 100;
+                // 出售市场税
+                const bidAfterTax = bid * 0.98;
 
                 appendHTMLStr += `<div style="color: ${SCRIPT_COLOR_TOOLTIP}; font-size: 10px;">${
                     isZH
@@ -1517,11 +1522,11 @@
                 appendHTMLStr += `<div style="color: ${SCRIPT_COLOR_TOOLTIP}; font-size: 10px;">${
                     isZH ? "每小时生产" : "Production per hour"
                 }${Number(produceItemPerHour + extraQuantityPerHour).toFixed(1)}${isZH ? " 个" : " items"}</div>`;
-                appendHTMLStr += `<div style="color: ${SCRIPT_COLOR_TOOLTIP};">${isZH ? "利润: " : "Profit: "}${numberFormatter(bid)}${
+                appendHTMLStr += `<div style="color: ${SCRIPT_COLOR_TOOLTIP};">${isZH ? "利润: " : "Profit: "}${numberFormatter(bidAfterTax)}${
                     isZH ? "/个" : "/item"
-                }, ${numberFormatter(produceItemPerHour * bid + extraQuantityPerHour * bid)}${isZH ? "/小时" : "/hour"}, ${numberFormatter(
-                    24 * (produceItemPerHour * bid + extraQuantityPerHour * bid)
-                )}${isZH ? "/天" : "/day"}</div>`;
+                }, ${numberFormatter(produceItemPerHour * bidAfterTax + extraQuantityPerHour * bidAfterTax)}${
+                    isZH ? "/小时" : "/hour"
+                }, ${numberFormatter(24 * (produceItemPerHour * bidAfterTax + extraQuantityPerHour * bidAfterTax))}${isZH ? "/天" : "/day"}</div>`;
             }
         }
 
@@ -4051,21 +4056,21 @@
             magic: 0,
         };
 
-        expNodes.forEach((expNodes) => {
-            if (getOriTextFromElement(expNodes).includes("Stamina")) {
-                perHourGainExp.stamina = Number(expNodes.children[1].textContent);
-            } else if (getOriTextFromElement(expNodes).includes("Intelligence")) {
-                perHourGainExp.intelligence = Number(expNodes.children[1].textContent);
-            } else if (getOriTextFromElement(expNodes).includes("Attack")) {
-                perHourGainExp.attack = Number(expNodes.children[1].textContent);
-            } else if (getOriTextFromElement(expNodes).includes("Power")) {
-                perHourGainExp.power = Number(expNodes.children[1].textContent);
-            } else if (getOriTextFromElement(expNodes).includes("Defense")) {
-                perHourGainExp.defense = Number(expNodes.children[1].textContent);
-            } else if (getOriTextFromElement(expNodes).includes("Ranged")) {
-                perHourGainExp.ranged = Number(expNodes.children[1].textContent);
-            } else if (getOriTextFromElement(expNodes).includes("Magic")) {
-                perHourGainExp.magic = Number(expNodes.children[1].textContent);
+        expNodes.forEach((expNode) => {
+            if (getOriTextFromElement(expNode.children[0]).includes("Stamina")) {
+                perHourGainExp.stamina = Number(expNode.children[1].textContent);
+            } else if (getOriTextFromElement(expNode.children[0]).includes("Intelligence")) {
+                perHourGainExp.intelligence = Number(expNode.children[1].textContent);
+            } else if (getOriTextFromElement(expNode.children[0]).includes("Attack")) {
+                perHourGainExp.attack = Number(expNode.children[1].textContent);
+            } else if (getOriTextFromElement(expNode.children[0]).includes("Power")) {
+                perHourGainExp.power = Number(expNode.children[1].textContent);
+            } else if (getOriTextFromElement(expNode.children[0]).includes("Defense")) {
+                perHourGainExp.defense = Number(expNode.children[1].textContent);
+            } else if (getOriTextFromElement(expNode.children[0]).includes("Ranged")) {
+                perHourGainExp.ranged = Number(expNode.children[1].textContent);
+            } else if (getOriTextFromElement(expNode.children[0]).includes("Magic")) {
+                perHourGainExp.magic = Number(expNode.children[1].textContent);
             }
         });
 
