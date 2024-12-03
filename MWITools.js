@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      15.5
+// @version      15.6
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -251,7 +251,6 @@
     let currentEquipmentMap = {};
 
     if (localStorage.getItem("initClientData")) {
-        console.log("update init_client_data from LocalStorage");
         const obj = JSON.parse(localStorage.getItem("initClientData"));
         console.log(obj);
         GM_setValue("init_client_data", localStorage.getItem("initClientData"));
@@ -332,7 +331,6 @@
                 waitForMarketOrders();
             }
         } else if (obj && obj.type === "init_client_data") {
-            console.log("update init_client_data from WS");
             console.log(obj);
             GM_setValue("init_client_data", message);
 
@@ -400,7 +398,6 @@
         } else if (obj && obj.type === "new_battle") {
             GM_setValue("new_battle", message); // This is the only place to get other party members' equipted consumables.
 
-            // console.log("--- new battle ---");
             if (settingsMap.showDamage.isTrue) {
                 if (startTime && endTime) {
                     totalDuration += (endTime - startTime) / 1000;
@@ -449,11 +446,10 @@
             if (profileExportListString) {
                 profileExportList = JSON.parse(profileExportListString);
                 if (!profileExportList || !profileExportList.filter) {
-                    console.log("profileExportList cleared");
+                    console.error("Found invalid profileExportList in store. profileExportList cleared.");
                     GM_setValue("profile_export_list", JSON.stringify(new Array()));
                 }
             } else {
-                console.log("profileExportList cleared");
                 GM_setValue("profile_export_list", JSON.stringify(new Array()));
             }
 
@@ -642,7 +638,7 @@
                     inventoryNetworthBid += item.count * (marketPrices.bid > 0 ? marketPrices.bid : 0);
                 }
             } else {
-                // console.error("calculateNetworth cannot find price of " + itemName);
+                console.log("calculateNetworth cannot find price of " + itemName);
             }
         }
 
@@ -652,7 +648,7 @@
             const enhancementLevel = item.enhancementLevel;
             const marketPrices = marketAPIJson.market[itemName];
             if (!marketPrices) {
-                console.error("calculateNetworth cannot get marketPrices of " + itemName);
+                console.log("calculateNetworth cannot get marketPrices of " + itemName);
                 return;
             }
             if (item.isSell) {
@@ -838,8 +834,8 @@
                 nonBattleHouseScore += house_cost_map[initData_characterHouseRoomMap[key].level];
             }
         }
-        console.log("battleHouseScore " + battleHouseScore);
-        console.log("nonBattleHouseScore " + nonBattleHouseScore);
+        // console.log("battleHouseScore " + battleHouseScore);
+        // console.log("nonBattleHouseScore " + nonBattleHouseScore);
 
         // 技能分：当前使用的战斗技能所需技能书总价，单位M
         let abilityScore = 0;
@@ -848,11 +844,11 @@
         } catch (error) {
             console.error("Error in calculateAbilityScore()", error);
         }
-        console.log("abilityScore " + abilityScore);
+        // console.log("abilityScore " + abilityScore);
 
         // 装备分：当前身上装备总价，单位M
         let equipmentScore = equippedNetworthBid / 1000000;
-        console.log("equipmentScore " + equipmentScore);
+        // console.log("equipmentScore " + equipmentScore);
 
         return [battleHouseScore, nonBattleHouseScore, abilityScore, equipmentScore];
     }
@@ -886,9 +882,9 @@
                 networthAsk += numBooks * (marketPrices.ask > 0 ? marketPrices.ask : 0);
                 networthBid += numBooks * (marketPrices.bid > 0 ? marketPrices.bid : 0);
             } else {
-                // console.error("calculateNetworth cannot find price of " + itemName);
+                console.log("calculateAbilityScore cannot find price of " + itemName);
             }
-            //console.log(`技能:${itemName},价值${numBooks * (marketPrices.bid > 0 ? marketPrices.bid : 0)}`)
+            // console.log(`技能:${itemName},价值${numBooks * (marketPrices.bid > 0 ? marketPrices.bid : 0)}`)
         });
 
         networthBid /= 1000000;
@@ -962,7 +958,7 @@
                 battleHouseScore += house_cost_map[profile_shared_obj.profile.characterHouseRoomMap[key].level];
             }
         }
-        console.log("房屋分：" + battleHouseScore);
+        // console.log("房屋分：" + battleHouseScore);
         if (profile_shared_obj.profile.hideWearableItems) {
             // 对方未展示装备
             return [battleHouseScore, 0, 0];
@@ -972,7 +968,7 @@
         let abilityScore = 0;
         try {
             abilityScore = await calculateSkill(profile_shared_obj);
-            console.log("技能分：" + abilityScore);
+            // console.log("技能分：" + abilityScore);
         } catch (error) {
             console.error("Error in calculate skill:", error);
         }
@@ -981,7 +977,7 @@
         let equipmentScore = 0;
         try {
             equipmentScore = await calculateEquipment(profile_shared_obj);
-            console.log("装备分：" + equipmentScore);
+            // console.log("装备分：" + equipmentScore);
         } catch (error) {
             console.error("Error in calculateEquipmen:", error);
         }
@@ -1019,9 +1015,9 @@
                 networthAsk += numBooks * (marketPrices.ask > 0 ? marketPrices.ask : 0);
                 networthBid += numBooks * (marketPrices.bid > 0 ? marketPrices.bid : 0);
             } else {
-                // console.error("calculateNetworth cannot find price of " + itemName);
+                console.log("calculateSkill cannot find price of " + itemName);
             }
-            //console.log(`技能:${itemName},价值${numBooks * (marketPrices.bid > 0 ? marketPrices.bid : 0)}`)
+            // console.log(`技能:${itemName},价值${numBooks * (marketPrices.bid > 0 ? marketPrices.bid : 0)}`)
         });
         // 填单保守估计
         networthBid /= 1000000;
@@ -1056,7 +1052,7 @@
                 networthAsk += item.count * (marketPrices.ask > 0 ? marketPrices.ask : 0);
                 networthBid += item.count * (marketPrices.bid > 0 ? marketPrices.bid : 0);
             } else {
-                // console.error("calculateNetworth cannot find price of " + itemName);
+                console.log("calculateEquipment cannot find price of " + itemName);
             }
         }
         // 填单保守估计
@@ -2030,7 +2026,7 @@
                     totalPriceAsk += marketJson.market[itemName].ask * itemCount;
                     totalPriceAskBid += marketJson.market[itemName].bid * itemCount;
                 } else {
-                    console.error("handleBattleSummary failed to read price of " + loot.itemHrid);
+                    console.log("handleBattleSummary failed to read price of " + loot.itemHrid);
                 }
             }
         }
@@ -2921,10 +2917,26 @@
     function getItemMarketPrice(hrid, price_data) {
         const fullName = initData_itemDetailMap[hrid].name;
         const item_price_data = price_data.market[fullName];
-        if (!item_price_data) {
+
+        // Return 0 if the item does not have neither ask nor bid prices.
+        if (!item_price_data || (item_price_data.ask < 0 && item_price_data.bid < 0)) {
+            // console.log("getItemMarketPrice() return 0 due to neither ask nor bid prices: " + fullName);
             return 0;
         }
-        let final_cost = item_price_data.ask * input_data.priceAskBidRatio + item_price_data.bid * (1 - input_data.priceAskBidRatio);
+
+        // Return the other price if the item does not have ask or bid price.
+        let ask = item_price_data.ask;
+        let bid = item_price_data.bid;
+        if (ask > 0 && bid < 0) {
+            // console.log("getItemMarketPrice() return ask due to no bid: " + fullName);
+            bid = ask;
+        }
+        if (bid > 0 && ask < 0) {
+            // console.log("getItemMarketPrice() return bid due to no ask: " + fullName);
+            ask = bid;
+        }
+
+        let final_cost = ask * input_data.priceAskBidRatio + bid * (1 - input_data.priceAskBidRatio);
         return final_cost;
     }
 
@@ -3065,7 +3077,6 @@
 
         document.body.querySelector("#script_item_warning")?.remove();
         if (warningStr) {
-            console.log(warningStr);
             document.body.insertAdjacentHTML(
                 "beforeend",
                 `<div id="script_item_warning" style="position: fixed; top: 1%; left: 30%; color: ${SCRIPT_COLOR_ALERT}; font-size: 20px;">${warningStr}</div>`
