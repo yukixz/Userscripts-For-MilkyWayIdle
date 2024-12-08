@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      15.6
+// @version      15.7
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -1549,7 +1549,7 @@
         if (
             !forceFetch &&
             localStorage.getItem("MWITools_marketAPI_timestamp") &&
-            Date.now() - localStorage.getItem("MWITools_marketAPI_timestamp") < 900000
+            Date.now() - localStorage.getItem("MWITools_marketAPI_timestamp") < 1800000 // 30 min
         ) {
             return JSON.parse(localStorage.getItem("MWITools_marketAPI_json"));
         }
@@ -1737,7 +1737,8 @@
             duration,
             effBuff
         )}</div>`;
-        inputElem.parentNode.insertAdjacentHTML("afterend", hTMLStr);
+        const gatherDiv = inputElem.parentNode.parentNode.parentNode;
+        gatherDiv.insertAdjacentHTML("afterend", hTMLStr);
         const showTotalTimeDiv = panel.querySelector("div#showTotalTime");
 
         panel.addEventListener("click", function (evt) {
