@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      15.9
+// @version      16.1
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -63,6 +63,11 @@
             desc: isZH
                 ? "动作面板显示：动作预计总耗时、到多少级还需做多少次、每小时经验"
                 : "Action panel: Estimated total time of the action, times needed to reach a target skill level, exp/hour.",
+            isTrue: true,
+        },
+        actionPanel_totalTime_quickInputs: {
+            id: "actionPanel_totalTime_quickInputs",
+            desc: isZH ? "动作面板显示：快速输入次数 [依赖上一项]" : "Action panel: Quick input numbers. [Depends on the previous selection]",
             isTrue: true,
         },
         actionPanel_foragingTotal: {
@@ -456,7 +461,7 @@
             if (profileExportList.length > 20) {
                 profileExportList.pop();
             }
-            console.log(profileExportList);
+            // console.log(profileExportList);
             GM_setValue("profile_export_list", JSON.stringify(profileExportList));
 
             addExportButton(obj);
@@ -679,10 +684,12 @@
         /* 仓库搜索栏下方显示人物总结 */
         // Some code of networth summery is by Stella.
         const addInventorySummery = async (invElem) => {
-            const [battleHouseScore, nonBattleHouseScore, abilityScore, equipmentScore] = await getSelfBuildScores(equippedNetworthBid);
+            const [battleHouseScore, nonBattleHouseScore, abilityScore, equipmentScore] = await getSelfBuildScores(
+                equippedNetworthAsk * 0.5 + equippedNetworthBid * 0.5
+            );
             const totalScore = battleHouseScore + abilityScore + equipmentScore;
             const totalHouseScore = battleHouseScore + nonBattleHouseScore;
-            const totalNetworthAsk = networthAsk + (totalHouseScore + abilityScore) * 1000000;
+            const totalNetworth = networthAsk * 0.5 + networthBid * 0.5 + (totalHouseScore + abilityScore) * 1000000;
 
             invElem.insertAdjacentHTML(
                 "beforebegin",
@@ -699,7 +706,7 @@
 
                     <!-- 总NetWorth -->
                     <div style="cursor: pointer; font-weight: bold;" id="toggleNetWorth">
-                        ${isZH ? "+ 总NetWorth：" : "+ Total NetWorth: "}${numberFormatter(totalNetworthAsk)}
+                        ${isZH ? "+ 总NetWorth：" : "+ Total NetWorth: "}${numberFormatter(totalNetworth)}
                     </div>
 
                     <div id="netWorthDetails" style="display: none; margin-left: 20px;">
@@ -745,7 +752,7 @@
                 const isCollapsed = netWorthDetails.style.display === "none";
                 netWorthDetails.style.display = isCollapsed ? "block" : "none";
                 toggleButton.textContent =
-                    (isCollapsed ? "↓ " : "+ ") + (isZH ? "总NetWorth：" : "Total NetWorth: ") + numberFormatter(totalNetworthAsk);
+                    (isCollapsed ? "↓ " : "+ ") + (isZH ? "总NetWorth：" : "Total NetWorth: ") + numberFormatter(totalNetworth);
                 currentAssets.style.display = isCollapsed ? "block" : "none";
                 toggleCurrentAssets.textContent = (isCollapsed ? "↓ " : "+ ") + (isZH ? "流动资产价值" : "Current assets value");
                 nonCurrentAssets.style.display = isCollapsed ? "block" : "none";
@@ -801,8 +808,8 @@
 
     /* 计算打造分 */
     // BuildScore algorithm by Ratatatata (https://greasyfork.org/zh-CN/scripts/511240)
-    async function getSelfBuildScores(equippedNetworthBid) {
-        // 房子分：战斗相关房子升级所需总金币，不包括升级所需物品
+    async function getSelfBuildScores(equippedNetworth) {
+        // 房子分：战斗相关房子升级所需总金币
         const battleHouses = ["dining_room", "library", "dojo", "gym", "armory", "archery_range", "mystical_study"];
         let battleHouseScore = 0;
         let nonBattleHouseScore = 0;
@@ -824,7 +831,7 @@
         // console.log("abilityScore " + abilityScore);
 
         // 装备分：当前身上装备总价，单位M
-        let equipmentScore = equippedNetworthBid / 1000000;
+        let equipmentScore = equippedNetworth / 1000000;
         // console.log("equipmentScore " + equipmentScore);
 
         return [battleHouseScore, nonBattleHouseScore, abilityScore, equipmentScore];
@@ -883,8 +890,7 @@
             return needBooks.toFixed(1);
         };
         // 技能净值
-        let networthAsk = 0;
-        let networthBid = 0;
+        let price = 0;
         initData_combatAbilities.forEach((item) => {
             let numBooks = 0;
             if (exp_50_skill.some((skill) => item.abilityHrid.includes(skill))) {
@@ -895,16 +901,14 @@
             const itemName = initData_itemDetailMap[item.abilityHrid.replace("/abilities/", "/items/")].name;
             const marketPrices = marketAPIJson.market[itemName];
             if (marketPrices) {
-                networthAsk += numBooks * (marketPrices.ask > 0 ? marketPrices.ask : 0);
-                networthBid += numBooks * (marketPrices.bid > 0 ? marketPrices.bid : 0);
+                price += numBooks * getWeightedMarketPrice(marketPrices);
             } else {
                 console.log("calculateAbilityScore cannot find price of " + itemName);
             }
             // console.log(`技能:${itemName},价值${numBooks * (marketPrices.bid > 0 ? marketPrices.bid : 0)}`)
         });
 
-        networthBid /= 1000000;
-        return networthBid;
+        return (price /= 1000000);
     }
 
     /* 查看人物面板显示打造分 */
@@ -955,7 +959,7 @@
 
     // 计算打造分
     async function getBuildScoreByProfile(profile_shared_obj) {
-        // 房子分：战斗相关房子升级所需总金币，不包括升级所需物品
+        // 房子分：战斗相关房子升级所需总金币
         const battleHouses = ["dining_room", "library", "dojo", "gym", "armory", "archery_range", "mystical_study"];
         let battleHouseScore = 0;
         for (const key in profile_shared_obj.profile.characterHouseRoomMap) {
@@ -1005,8 +1009,7 @@
             return needBooks.toFixed(1);
         };
         // 技能净值
-        let networthAsk = 0;
-        let networthBid = 0;
+        let price = 0;
         obj.equippedAbilities.forEach((item) => {
             let numBooks = 0;
             if (exp_50_skill.some((skill) => item.abilityHrid.includes(skill))) {
@@ -1017,16 +1020,14 @@
             const itemName = initData_itemDetailMap[item.abilityHrid.replace("/abilities/", "/items/")].name;
             const marketPrices = marketAPIJson.market[itemName];
             if (marketPrices) {
-                networthAsk += numBooks * (marketPrices.ask > 0 ? marketPrices.ask : 0);
-                networthBid += numBooks * (marketPrices.bid > 0 ? marketPrices.bid : 0);
+                price += numBooks * getWeightedMarketPrice(marketPrices);
             } else {
                 console.log("calculateSkill cannot find price of " + itemName);
             }
             // console.log(`技能:${itemName},价值${numBooks * (marketPrices.bid > 0 ? marketPrices.bid : 0)}`)
         });
-        // 填单保守估计
-        networthBid /= 1000000;
-        return networthBid;
+
+        return (price /= 1000000);
     }
 
     // 装备价格计算
@@ -1060,9 +1061,8 @@
                 console.log("calculateEquipment cannot find price of " + itemName);
             }
         }
-        // 填单保守估计
-        networthBid /= 1000000;
-        return networthBid;
+
+        return (networthAsk * 0.5 + networthBid * 0.5) / 1000000;
     }
 
     /* 显示当前动作总时间 */
@@ -1738,40 +1738,46 @@
             showTotalTimeDiv.textContent = getTotalTimeStr(inputElem.value, duration, effBuff);
         });
 
+        let appendAfterElem = showTotalTimeDiv;
+
         // 显示快捷按钮
-        hTMLStr = `<div id="quickInputButtons" style="color: ${SCRIPT_COLOR_MAIN}; text-align: left;">${isZH ? "做 " : "Do "}</div>`;
-        showTotalTimeDiv.insertAdjacentHTML("afterend", hTMLStr);
-        const quickInputButtonsDiv = panel.querySelector("div#quickInputButtons");
+        if (settingsMap.actionPanel_totalTime_quickInputs.isTrue) {
+            hTMLStr = `<div id="quickInputButtons" style="color: ${SCRIPT_COLOR_MAIN}; text-align: left;">${isZH ? "做 " : "Do "}</div>`;
+            showTotalTimeDiv.insertAdjacentHTML("afterend", hTMLStr);
+            const quickInputButtonsDiv = panel.querySelector("div#quickInputButtons");
 
-        const presetHours = [0.5, 1, 2, 3, 4, 5, 6, 10, 12, 24];
-        for (const value of presetHours) {
-            const btn = document.createElement("button");
-            btn.style.backgroundColor = "white";
-            btn.style.padding = "1px 6px 1px 6px";
-            btn.style.margin = "1px";
-            btn.innerText = value === 0.5 ? 0.5 : numberFormatter(value);
-            btn.onclick = () => {
-                reactInputTriggerHack(inputElem, Math.round((value * 60 * 60 * effBuff) / duration));
-            };
-            quickInputButtonsDiv.append(btn);
-        }
-        quickInputButtonsDiv.append(document.createTextNode(isZH ? " 小时" : " hours"));
+            const presetHours = [0.5, 1, 2, 3, 4, 5, 6, 10, 12, 24];
+            for (const value of presetHours) {
+                const btn = document.createElement("button");
+                btn.style.backgroundColor = "white";
+                btn.style.padding = "1px 6px 1px 6px";
+                btn.style.margin = "1px";
+                btn.innerText = value === 0.5 ? 0.5 : numberFormatter(value);
+                btn.onclick = () => {
+                    reactInputTriggerHack(inputElem, Math.round((value * 60 * 60 * effBuff) / duration));
+                };
+                quickInputButtonsDiv.append(btn);
+            }
+            quickInputButtonsDiv.append(document.createTextNode(isZH ? " 小时" : " hours"));
 
-        quickInputButtonsDiv.append(document.createElement("div"));
-        quickInputButtonsDiv.append(document.createTextNode(isZH ? "做 " : "Do "));
-        const presetTimes = [10, 100, 300, 500, 1000, 2000];
-        for (const value of presetTimes) {
-            const btn = document.createElement("button");
-            btn.style.backgroundColor = "white";
-            btn.style.padding = "1px 6px 1px 6px";
-            btn.style.margin = "1px";
-            btn.innerText = numberFormatter(value);
-            btn.onclick = () => {
-                reactInputTriggerHack(inputElem, value);
-            };
-            quickInputButtonsDiv.append(btn);
+            quickInputButtonsDiv.append(document.createElement("div"));
+            quickInputButtonsDiv.append(document.createTextNode(isZH ? "做 " : "Do "));
+            const presetTimes = [10, 100, 300, 500, 1000, 2000];
+            for (const value of presetTimes) {
+                const btn = document.createElement("button");
+                btn.style.backgroundColor = "white";
+                btn.style.padding = "1px 6px 1px 6px";
+                btn.style.margin = "1px";
+                btn.innerText = numberFormatter(value);
+                btn.onclick = () => {
+                    reactInputTriggerHack(inputElem, value);
+                };
+                quickInputButtonsDiv.append(btn);
+            }
+            quickInputButtonsDiv.append(document.createTextNode(isZH ? " 次" : " times"));
+
+            appendAfterElem = quickInputButtonsDiv;
         }
-        quickInputButtonsDiv.append(document.createTextNode(isZH ? " 次" : " times"));
 
         // 还有多久到多少技能等级
         const skillHrid = initData_actionDetailMap[getActionHridFromItemName(actionName)].experienceGain.skillHrid;
@@ -1812,7 +1818,7 @@
                 isZH ? " (刷新网页更新当前等级)" : " (Refresh page to update current level)"
             }</span></div>`;
 
-            quickInputButtonsDiv.insertAdjacentHTML("afterend", hTMLStr);
+            appendAfterElem.insertAdjacentHTML("afterend", hTMLStr);
             const tillLevelInput = panel.querySelector("input#tillLevelInput");
             const tillLevelNumber = panel.querySelector("span#tillLevelNumber");
             tillLevelInput.onchange = () => {
