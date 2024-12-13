@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      15.7
+// @version      15.8
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -44,7 +44,6 @@
     }
 
     const MARKET_API_URL = "https://raw.githubusercontent.com/holychikenz/MWIApi/main/medianmarket.json";
-    const MARKET_API_URL_BACKUP = MARKET_API_URL;
 
     let settingsMap = {
         useOrangeAsMainColor: {
@@ -195,13 +194,6 @@
                 : "Browser notification: Action queue is empty. (Works only when the game page is open.)",
             isTrue: false,
         },
-        tryBackupApiUrl: {
-            id: "tryBackupApiUrl",
-            desc: isZH
-                ? "无法从Github更新市场数据时，尝试使用备份地址（此功能目前无效）"
-                : "Try backup mirror server when failing to fetch market price API on Github. (Currently not working.)",
-            isTrue: false,
-        },
         fillMarketOrderPrice: {
             id: "fillMarketOrderPrice",
             desc: isZH
@@ -232,7 +224,7 @@
     }
 
     const MARKET_JSON_LOCAL_BACKUP = `{ "time": 1732250702, "market": { "Amber": { "ask": 14500, "bid": 13500 }, "Amethyst": { "ask": 79000, "bid": 75000 }, "Apple": { "ask": 11, "bid": 8 }, "Apple Gummy": { "ask": 20, "bid": 10 }, "Apple Yogurt": { "ask": 450, "bid": 78 }, "Aqua Arrow": { "ask": 25000, "bid": 21000 }, "Aqua Essence": { "ask": 37, "bid": 32 }, "Arabica Coffee Bean": { "ask": 195, "bid": 170 }, "Arcane Bow": { "ask": 800000, "bid": 500000 }, "Arcane Crossbow": { "ask": 580000, "bid": 300000 }, "Arcane Fire Staff": { "ask": 430000, "bid": 88000 }, "Arcane Log": { "ask": 600, "bid": 560 }, "Arcane Lumber": { "ask": 2100, "bid": 2000 }, "Arcane Nature Staff": { "ask": 440000, "bid": 90000 }, "Arcane Water Staff": { "ask": 400000, "bid": 88000 }, "Artisan Tea": { "ask": 1550, "bid": 1200 }, "Attack Coffee": { "ask": 720, "bid": 450 }, "Azure Boots": { "ask": 30000, "bid": 15000 }, "Azure Brush": { "ask": 200000, "bid": 7000 }, "Azure Buckler": { "ask": 18000, "bid": -1 }, "Azure Bulwark": { "ask": 48000, "bid": -1 }, "Azure Cheese": { "ask": 660, "bid": 520 }, "Azure Chisel": { "ask": 700000, "bid": 10000 }, "Azure Enhancer": { "ask": 68000, "bid": 2300 }, "Azure Gauntlets": { "ask": -1, "bid": 2050 }, "Azure Hammer": { "ask": 54000, "bid": 15000 }, "Azure Hatchet": { "ask": 175000, "bid": 17000 }, "Azure Helmet": { "ask": -1, "bid": 11000 }, "Azure Mace": { "ask": 155000, "bid": 26000 }, "Azure Milk": { "ask": 180, "bid": 127.5 }, "Azure Needle": { "ask": 295000, "bid": 8800 }, "Azure Plate Body": { "ask": 59000, "bid": 8800 }, "Azure Plate Legs": { "ask": 325000, "bid": 22000 }, "Azure Pot": { "ask": 160000, "bid": 2100 }, "Azure Shears": { "ask": 54000, "bid": 5200 }, "Azure Spatula": { "ask": 64000, "bid": 23575 }, "Azure Spear": { "ask": 150000, "bid": 21500 }, "Azure Sword": { "ask": 47000, "bid": 25000 }, "Bamboo Boots": { "ask": 115000, "bid": 8000 }, "Bamboo Branch": { "ask": 100, "bid": 33 }, "Bamboo Fabric": { "ask": 265, "bid": 225 }, "Bamboo Gloves": { "ask": 36000, "bid": 20000 }, "Bamboo Hat": { "ask": 28000, "bid": 15500 }, "Bamboo Robe Bottoms": { "ask": 41000, "bid": 26000 }, "Bamboo Robe Top": { "ask": 240000, "bid": 30000 }, "Bear Essence": { "ask": 58, "bid": 54 }, "Beast Boots": { "ask": 205000, "bid": 3999.5 }, "Beast Bracers": { "ask": 195000, "bid": 10500 }, "Beast Chaps": { "ask": 150000, "bid": 60000 }, "Beast Hide": { "ask": 27, "bid": 23 }, "Beast Hood": { "ask": 137500, "bid": 11250 }, "Beast Leather": { "ask": 560, "bid": 540 }, "Beast Tunic": { "ask": 142500, "bid": 7999.5 }, "Berserk": { "ask": 315000, "bid": 212500 }, "Birch Bow": { "ask": 60000, "bid": -1 }, "Birch Crossbow": { "ask": 35000, "bid": 1100 }, "Birch Fire Staff": { "ask": 145000, "bid": 20000 }, "Birch Log": { "ask": 62, "bid": 58 }, "Birch Lumber": { "ask": 350, "bid": 100 }, "Birch Nature Staff": { "ask": 40000, "bid": 800 }, "Birch Water Staff": { "ask": 96000, "bid": 20500 }, "Black Bear Fluff": { "ask": 28000, "bid": 25000 }, "Black Bear Shoes": { "ask": 235000, "bid": 100000 }, "Black Tea Leaf": { "ask": 30, "bid": 24 }, "Blackberry": { "ask": 49, "bid": 34 }, "Blackberry Cake": { "ask": 940, "bid": 430 }, "Blackberry Donut": { "ask": 465, "bid": 165 }, "Blessed Tea": { "ask": 1450, "bid": 670 }, "Blueberry": { "ask": 54, "bid": 39 }, "Blueberry Cake": { "ask": 820, "bid": 250 }, "Blueberry Donut": { "ask": 470, "bid": 205 }, "Brewing Tea": { "ask": 960, "bid": 99.5 }, "Burble Brush": { "ask": 52000, "bid": 5200 }, "Burble Buckler": { "ask": 40000, "bid": -1 }, "Burble Bulwark": { "ask": 43000, "bid": 9000 }, "Burble Chisel": { "ask": -1, "bid": 25000 }, "Burble Enhancer": { "ask": -1, "bid": 8200 }, "Burble Gauntlets": { "ask": 50000, "bid": 3000 }, "Burble Hatchet": { "ask": 200000, "bid": 6600 }, "Burble Helmet": { "ask": -1, "bid": -1 }, "Burble Mace": { "ask": 109999.5, "bid": 13500 }, "Burble Needle": { "ask": 96000, "bid": 17000 }, "Burble Plate Body": { "ask": 200000, "bid": 6000 }, "Burble Pot": { "ask": 94000, "bid": 52000 }, "Burble Shears": { "ask": 285000, "bid": 15500 }, "Burble Spatula": { "ask": 290000, "bid": 23500 }, "Burble Sword": { "ask": 140000, "bid": 56000 }, "Burble Tea Leaf": { "ask": 42.5, "bid": 34 }, "Cedar Bow": { "ask": 440000, "bid": -1 }, "Cedar Fire Staff": { "ask": 140000, "bid": -1 }, "Cedar Log": { "ask": 110, "bid": 83 }, "Cedar Lumber": { "ask": 670, "bid": 580 }, "Cedar Water Staff": { "ask": -1, "bid": 2800 }, "Centaur Boots": { "ask": 1500000, "bid": -1 }, "Centaur Hoof": { "ask": 272500, "bid": 265000 }, "Cheese Boots": { "ask": 4200, "bid": 70 }, "Cheese Brush": { "ask": 9400, "bid": 150 }, "Cheese Buckler": { "ask": 2400000, "bid": 1500 }, "Cheese Chisel": { "ask": 195000, "bid": 200 }, "Cheese Enhancer": { "ask": 15000, "bid": 3200 }, "Cheese Gauntlets": { "ask": 17000, "bid": -1 }, "Cheese Hammer": { "ask": 4900, "bid": 2550 }, "Cheese Helmet": { "ask": -1, "bid": -1 }, "Cheese Mace": { "ask": 10250, "bid": 2700 }, "Cheese Plate Body": { "ask": 23000, "bid": 67 }, "Cheese Plate Legs": { "ask": 41000, "bid": -1 }, "Cheese Pot": { "ask": 18000, "bid": -1 }, "Cheese Spatula": { "ask": 6400, "bid": 320 }, "Cheese Spear": { "ask": 6200, "bid": -1 }, "Cheese Sword": { "ask": 6800, "bid": 2500 }, "Cleave": { "ask": 94000, "bid": 86000 }, "Cocoon": { "ask": 185, "bid": 175 }, "Coin": { "ask": -1, "bid": -1 }, "Cotton": { "ask": 66, "bid": 40 }, "Cotton Boots": { "ask": 4600, "bid": -1 }, "Cotton Fabric": { "ask": 265, "bid": 132.5 }, "Cotton Hat": { "ask": 4000, "bid": -1 }, "Cotton Robe Bottoms": { "ask": 8800, "bid": 120 }, "Cotton Robe Top": { "ask": 3800, "bid": -1 }, "Crab Pincer": { "ask": 10000, "bid": 4500 }, "Crafting Tea": { "ask": 490, "bid": 187.5 }, "Crimson Boots": { "ask": -1, "bid": 24500 }, "Crimson Buckler": { "ask": -1, "bid": 54000 }, "Crimson Bulwark": { "ask": 100000, "bid": -1 }, "Crimson Cheese": { "ask": 1015, "bid": 860 }, "Crimson Enhancer": { "ask": 110000, "bid": 52000 }, "Crimson Gauntlets": { "ask": 100000, "bid": 52000 }, "Crimson Hammer": { "ask": 130000, "bid": 27000 }, "Crimson Helmet": { "ask": 227500, "bid": 64000 }, "Crimson Mace": { "ask": 295000, "bid": 60000 }, "Crimson Milk": { "ask": 255, "bid": 242.5 }, "Crimson Plate Body": { "ask": -1, "bid": 100000 }, "Crimson Plate Legs": { "ask": 300000, "bid": 120000 }, "Crimson Pot": { "ask": 140000, "bid": -1 }, "Crimson Spatula": { "ask": 98000, "bid": -1 }, "Crimson Spear": { "ask": -1, "bid": 100000 }, "Crimson Sword": { "ask": 215000, "bid": 150000 }, "Crushed Amber": { "ask": 1100, "bid": 800 }, "Crushed Amethyst": { "ask": 5400, "bid": 4800 }, "Crushed Garnet": { "ask": 1625, "bid": 1300 }, "Crushed Moonstone": { "ask": 3800, "bid": 2950 }, "Crushed Pearl": { "ask": 900, "bid": 660 }, "Cupcake": { "ask": 160, "bid": 100 }, "Donut": { "ask": 640, "bid": 100 }, "Dragon Fruit": { "ask": 245, "bid": 240 }, "Dragon Fruit Gummy": { "ask": 640, "bid": 520 }, "Earrings Of Armor": { "ask": 8000000, "bid": 1850000 }, "Earrings Of Gathering": { "ask": 10000000, "bid": 1500000 }, "Earrings Of Regeneration": { "ask": 6000000, "bid": 3900000 }, "Earrings Of Resistance": { "ask": -1, "bid": 3200000 }, "Efficiency Tea": { "ask": 970, "bid": 940 }, "Elemental Affinity": { "ask": 355000, "bid": 300000 }, "Emp Tea Leaf": { "ask": 220, "bid": 180 }, "Enhancing Tea": { "ask": 360, "bid": 205 }, "Excelsa Coffee Bean": { "ask": 540, "bid": 500 }, "Eyessence": { "ask": 78, "bid": 64 }, "Fieriosa Coffee Bean": { "ask": 720, "bid": 700 }, "Fireball": { "ask": 13500, "bid": 13000 }, "Flame Arrow": { "ask": 23500, "bid": 21500 }, "Flame Blast": { "ask": 125000, "bid": 120000 }, "Flaming Cloth": { "ask": 33000, "bid": 32000 }, "Flaming Robe Top": { "ask": 285000, "bid": 150000 }, "Flax": { "ask": 110, "bid": 62 }, "Foraging Tea": { "ask": 240, "bid": 202.5 }, "Garnet": { "ask": 26500, "bid": 26000 }, "Gathering Tea": { "ask": 490, "bid": 455 }, "Giant Pouch": { "ask": 6500000, "bid": 5400000 }, "Ginkgo Bow": { "ask": -1, "bid": -1 }, "Ginkgo Crossbow": { "ask": 300000, "bid": 62000 }, "Ginkgo Log": { "ask": 105, "bid": 80 }, "Ginkgo Lumber": { "ask": 720, "bid": 620 }, "Ginkgo Nature Staff": { "ask": 117500, "bid": 30000 }, "Gobo Boomstick": { "ask": 62000, "bid": 46000 }, "Gobo Boots": { "ask": 86000, "bid": -1 }, "Gobo Bracers": { "ask": 48000, "bid": 15000 }, "Gobo Essence": { "ask": 87, "bid": 82 }, "Gobo Hide": { "ask": 16, "bid": 15 }, "Gobo Hood": { "ask": 44000, "bid": 13000 }, "Gobo Shooter": { "ask": 66000, "bid": 46000 }, "Gobo Slasher": { "ask": 60000, "bid": 54000 }, "Gobo Smasher": { "ask": 64000, "bid": 54000 }, "Gobo Tunic": { "ask": 56000, "bid": 17000 }, "Goggles": { "ask": 96000, "bid": 63000 }, "Golem Essence": { "ask": 125, "bid": 120 }, "Granite Bludgeon": { "ask": -1, "bid": 2950000 }, "Green Tea Leaf": { "ask": 29, "bid": 22 }, "Grizzly Bear Fluff": { "ask": 31500, "bid": 29000 }, "Gummy": { "ask": 115, "bid": 37 }, "Heal": { "ask": 105000, "bid": 100000 }, "Holy Boots": { "ask": 275000, "bid": 200000 }, "Holy Buckler": { "ask": 295000, "bid": 170000 }, "Holy Bulwark": { "ask": 660000, "bid": 230000 }, "Holy Cheese": { "ask": 1800, "bid": 1700 }, "Holy Enhancer": { "ask": 460000, "bid": 400000 }, "Holy Gauntlets": { "ask": 400000, "bid": 155000 }, "Holy Hammer": { "ask": 470000, "bid": 210000 }, "Holy Helmet": { "ask": 330000, "bid": -1 }, "Holy Mace": { "ask": 500000, "bid": 420000 }, "Holy Milk": { "ask": 700, "bid": 640 }, "Holy Plate Body": { "ask": 780000, "bid": 450000 }, "Holy Plate Legs": { "ask": 580000, "bid": 430000 }, "Holy Pot": { "ask": 460000, "bid": 405000 }, "Holy Spatula": { "ask": 480000, "bid": 400000 }, "Holy Spear": { "ask": 380000, "bid": 300000 }, "Holy Sword": { "ask": 540000, "bid": 500000 }, "Icy Cloth": { "ask": 32000, "bid": 27000 }, "Icy Robe Bottoms": { "ask": 150000, "bid": 100000 }, "Icy Robe Top": { "ask": 195000, "bid": 130000 }, "Jade": { "ask": 30500, "bid": 28000 }, "Jungle Essence": { "ask": 85, "bid": 69 }, "Large Artisan's Crate": { "ask": -1, "bid": -1 }, "Large Pouch": { "ask": 560000, "bid": -1 }, "Large Treasure Chest": { "ask": -1, "bid": -1 }, "Liberica Coffee Bean": { "ask": 395, "bid": 380 }, "Linen Boots": { "ask": 54000, "bid": -1 }, "Linen Gloves": { "ask": 36000, "bid": 2800 }, "Linen Hat": { "ask": 38000, "bid": -1 }, "Linen Robe Bottoms": { "ask": 23500, "bid": -1 }, "Living Granite": { "ask": 255000, "bid": 195000 }, "Log": { "ask": 50, "bid": 39 }, "Lucky Coffee": { "ask": 1600, "bid": 1500 }, "Magic Coffee": { "ask": 680, "bid": 600 }, "Magnet": { "ask": 140000, "bid": 110000 }, "Magnifying Glass": { "ask": 400000, "bid": 297500 }, "Maim": { "ask": 135000, "bid": 125000 }, "Marsberry": { "ask": 170, "bid": 147.5 }, "Marsberry Donut": { "ask": 780, "bid": 740 }, "Medium Artisan's Crate": { "ask": -1, "bid": -1 }, "Medium Meteorite Cache": { "ask": -1, "bid": -1 }, "Medium Treasure Chest": { "ask": -1, "bid": -1 }, "Milk": { "ask": 34, "bid": 25 }, "Milking Tea": { "ask": 310, "bid": 202.5 }, "Minor Heal": { "ask": 21000, "bid": 14500 }, "Mooberry": { "ask": 140, "bid": 112.5 }, "Mooberry Cake": { "ask": 880, "bid": 840 }, "Mooberry Donut": { "ask": 700, "bid": 580 }, "Moonstone": { "ask": 63000, "bid": 56000 }, "Necklace Of Efficiency": { "ask": 9400000, "bid": 4000000 }, "Necklace Of Wisdom": { "ask": 9600000, "bid": 7600000 }, "Orange Gummy": { "ask": 42, "bid": 33 }, "Orange Yogurt": { "ask": 620, "bid": 255 }, "Panda Gloves": { "ask": 190000, "bid": 120000 }, "Peach": { "ask": 95, "bid": 83 }, "Peach Gummy": { "ask": 330, "bid": 265 }, "Pearl": { "ask": 10750, "bid": 9600 }, "Pierce": { "ask": -1, "bid": -1 }, "Pincer Gloves": { "ask": 68000, "bid": 25000 }, "Plum": { "ask": 155, "bid": 125 }, "Plum Yogurt": { "ask": 840, "bid": 470 }, "Poke": { "ask": 3100, "bid": 2800 }, "Power Coffee": { "ask": 800, "bid": 600 }, "Precision": { "ask": 41000, "bid": 30000 }, "Purpleheart Bow": { "ask": 135000, "bid": 27500 }, "Purpleheart Crossbow": { "ask": 640000, "bid": 40000 }, "Purpleheart Fire Staff": { "ask": 370000, "bid": 62000 }, "Purpleheart Lumber": { "ask": 760, "bid": 740 }, "Purpleheart Nature Staff": { "ask": 80000, "bid": 15000 }, "Purpleheart Water Staff": { "ask": 200000, "bid": 52000 }, "Quick Shot": { "ask": 7800, "bid": 2750 }, "Radiant Fabric": { "ask": 2300, "bid": 2200 }, "Radiant Fiber": { "ask": 590, "bid": 520 }, "Radiant Gloves": { "ask": 110000, "bid": -1 }, "Radiant Robe Bottoms": { "ask": 430000, "bid": 200000 }, "Radiant Robe Top": { "ask": 480000, "bid": 50000 }, "Rain Of Arrows": { "ask": 215000, "bid": 200000 }, "Rainbow Brush": { "ask": 290000, "bid": -1 }, "Rainbow Buckler": { "ask": 100000, "bid": 50000 }, "Rainbow Bulwark": { "ask": -1, "bid": 46000 }, "Rainbow Chisel": { "ask": 230000, "bid": -1 }, "Rainbow Enhancer": { "ask": 200000, "bid": -1 }, "Rainbow Gauntlets": { "ask": 150000, "bid": 92000 }, "Rainbow Hatchet": { "ask": -1, "bid": 150000 }, "Rainbow Helmet": { "ask": 96000, "bid": 62000 }, "Rainbow Mace": { "ask": 800000, "bid": 200000 }, "Rainbow Needle": { "ask": 130000, "bid": 50000 }, "Rainbow Plate Body": { "ask": 330000, "bid": 105000 }, "Rainbow Plate Legs": { "ask": 174999.5, "bid": 155000 }, "Rainbow Shears": { "ask": 310000, "bid": 160000 }, "Rainbow Spatula": { "ask": 230000, "bid": 86000 }, "Rainbow Spear": { "ask": -1, "bid": 210000 }, "Ranged Coffee": { "ask": 760, "bid": 740 }, "Ranger Necklace": { "ask": 9800000, "bid": 8000000 }, "Red Tea Leaf": { "ask": 53, "bid": 50 }, "Redwood Crossbow": { "ask": 170000, "bid": 100000 }, "Redwood Fire Staff": { "ask": 180000, "bid": 52000 }, "Redwood Log": { "ask": 43, "bid": 32 }, "Redwood Nature Staff": { "ask": 185000, "bid": 33000 }, "Redwood Water Staff": { "ask": 100000, "bid": 72000 }, "Reptile Boots": { "ask": 58000, "bid": -1 }, "Reptile Chaps": { "ask": 30000, "bid": -1 }, "Reptile Hide": { "ask": 46, "bid": 26 }, "Reptile Hood": { "ask": 175000, "bid": 1450 }, "Reptile Tunic": { "ask": 20000, "bid": 1250 }, "Ring Of Armor": { "ask": 4600000, "bid": 1500000 }, "Ring Of Gathering": { "ask": 8600000, "bid": 1500000 }, "Ring Of Regeneration": { "ask": 5400000, "bid": 4500000 }, "Ring Of Resistance": { "ask": 4800000, "bid": 1500000 }, "Robusta Coffee Bean": { "ask": 292.5, "bid": 265 }, "Rough Bracers": { "ask": 7000, "bid": -1 }, "Rough Chaps": { "ask": -1, "bid": 8000 }, "Rough Hide": { "ask": 195, "bid": 64 }, "Rough Leather": { "ask": 470, "bid": 310 }, "Rough Tunic": { "ask": 6800, "bid": -1 }, "Scratch": { "ask": 4200, "bid": 3600 }, "Silk Boots": { "ask": 160000, "bid": 20000 }, "Silk Fabric": { "ask": 1000, "bid": 980 }, "Silk Gloves": { "ask": 110000, "bid": 64000 }, "Silk Robe Bottoms": { "ask": 285000, "bid": 105000 }, "Silk Robe Top": { "ask": 135000, "bid": 100000 }, "Smack": { "ask": 3550, "bid": 2000 }, "Small Meteorite Cache": { "ask": -1, "bid": -1 }, "Small Pouch": { "ask": 38000, "bid": -1 }, "Snail Shell": { "ask": 6800, "bid": 6600 }, "Snail Shell Helmet": { "ask": 45000, "bid": 13000 }, "Snake Fang": { "ask": 3800, "bid": 3300 }, "Sorcerer Boots": { "ask": 300000, "bid": 150000 }, "Sorcerer Essence": { "ask": 140, "bid": 125 }, "Sorcerer's Sole": { "ask": 68000, "bid": 66000 }, "Spaceberry Cake": { "ask": 1325, "bid": 1250 }, "Spaceberry Donut": { "ask": 990, "bid": 900 }, "Spacia Coffee Bean": { "ask": 990, "bid": 960 }, "Stalactite Shard": { "ask": 295000, "bid": 225000 }, "Stalactite Spear": { "ask": 7400000, "bid": 2050000 }, "Stamina Coffee": { "ask": 470, "bid": 430 }, "Star Fruit": { "ask": 420, "bid": 385 }, "Star Fruit Gummy": { "ask": 940, "bid": 880 }, "Star Fruit Yogurt": { "ask": 1400, "bid": 1325 }, "Strawberry Cake": { "ask": 890, "bid": 600 }, "Strawberry Donut": { "ask": 390, "bid": 200 }, "Stunning Blow": { "ask": 400000, "bid": 360000 }, "Super Attack Coffee": { "ask": 2950, "bid": 2000 }, "Super Brewing Tea": { "ask": 4550, "bid": 1225 }, "Super Cheesesmithing Tea": { "ask": 3200, "bid": 2500 }, "Super Crafting Tea": { "ask": 9200, "bid": 3300 }, "Super Defense Coffee": { "ask": 2875, "bid": 2450 }, "Super Enhancing Tea": { "ask": 2750, "bid": 2375 }, "Super Foraging Tea": { "ask": 2350, "bid": 1275 }, "Super Magic Coffee": { "ask": 6400, "bid": 6100 }, "Super Milking Tea": { "ask": 3800, "bid": -1 }, "Super Power Coffee": { "ask": 3600, "bid": 3300 }, "Super Stamina Coffee": { "ask": 2050, "bid": 1850 }, "Super Tailoring Tea": { "ask": 7200, "bid": 4500 }, "Super Woodcutting Tea": { "ask": 2900, "bid": 1150 }, "Sweep": { "ask": 85000, "bid": 80000 }, "Swiftness Coffee": { "ask": 2100, "bid": 2000 }, "Tailoring Tea": { "ask": 700, "bid": 300 }, "Tome Of The Elements": { "ask": 290000, "bid": 240000 }, "Toughness": { "ask": 39000, "bid": 38000 }, "Toxic Pollen": { "ask": 142500, "bid": 70000 }, "Turtle Shell Body": { "ask": 78000, "bid": -1 }, "Turtle Shell Legs": { "ask": 135000, "bid": -1 }, "Twilight Essence": { "ask": 130, "bid": 110 }, "Umbral Bracers": { "ask": 80000, "bid": 52000 }, "Umbral Chaps": { "ask": 370000, "bid": 135000 }, "Umbral Hide": { "ask": 155, "bid": 145 }, "Umbral Leather": { "ask": 1250, "bid": 1150 }, "Umbral Tunic": { "ask": 400000, "bid": 150000 }, "Vampire Fang": { "ask": 280000, "bid": 240000 }, "Vampirism": { "ask": 41000, "bid": 23500 }, "Verdant Boots": { "ask": -1, "bid": 1750 }, "Verdant Brush": { "ask": 17500, "bid": 600 }, "Verdant Bulwark": { "ask": 7800, "bid": -1 }, "Verdant Cheese": { "ask": 580, "bid": 450 }, "Verdant Chisel": { "ask": -1, "bid": 600 }, "Verdant Gauntlets": { "ask": 50000, "bid": 2000 }, "Verdant Hammer": { "ask": 15500, "bid": 8800 }, "Verdant Hatchet": { "ask": -1, "bid": 13500 }, "Verdant Mace": { "ask": 140000, "bid": 17000 }, "Verdant Milk": { "ask": 115, "bid": 110 }, "Verdant Needle": { "ask": 115000, "bid": 5000 }, "Verdant Plate Legs": { "ask": 32000, "bid": 2400 }, "Verdant Pot": { "ask": -1, "bid": 600 }, "Verdant Shears": { "ask": 19500, "bid": 5000 }, "Verdant Spear": { "ask": -1, "bid": -1 }, "Verdant Sword": { "ask": -1, "bid": 9200 }, "Vision Helmet": { "ask": 98000, "bid": 50000 }, "Water Strike": { "ask": 14000, "bid": 13500 }, "Werewolf Claw": { "ask": 230000, "bid": 225000 }, "Werewolf Slasher": { "ask": 8000000, "bid": 2300000 }, "Wisdom Coffee": { "ask": 1300, "bid": 1200 }, "Wisdom Tea": { "ask": 640, "bid": 560 }, "Wizard Necklace": { "ask": -1, "bid": 2500000 }, "Wooden Bow": { "ask": -1, "bid": 5999.5 }, "Wooden Crossbow": { "ask": 5000, "bid": -1 }, "Wooden Fire Staff": { "ask": 13000, "bid": 145 }, "Wooden Water Staff": { "ask": 13000, "bid": 150 }, "Yogurt": { "ask": 245, "bid": 150 }, "Burble Boots": { "ask": 640000, "bid": 10500 }, "Burble Cheese": { "ask": 700, "bid": 520 }, "Burble Hammer": { "ask": 480000, "bid": 50000 }, "Burble Milk": { "ask": 220, "bid": 215 }, "Cedar Nature Staff": { "ask": -1, "bid": 31000 }, "Cheese": { "ask": 290, "bid": 195 }, "Cheese Bulwark": { "ask": -1, "bid": 200 }, "Cheese Hatchet": { "ask": 25000, "bid": 120 }, "Cheese Needle": { "ask": 40000, "bid": 460 }, "Cheese Shears": { "ask": 30000, "bid": 3200 }, "Cheesesmithing Tea": { "ask": 540, "bid": 205 }, "Cooking Tea": { "ask": 700, "bid": 99.5 }, "Cotton Gloves": { "ask": 4900, "bid": 66 }, "Cowbell": { "ask": -1, "bid": -1 }, "Crimson Brush": { "ask": 140000, "bid": -1 }, "Crimson Chisel": { "ask": 245000, "bid": -1 }, "Crimson Hatchet": { "ask": 130000, "bid": 48750 }, "Crimson Shears": { "ask": 300000, "bid": 84000 }, "Critical Coffee": { "ask": 2650, "bid": 2250 }, "Crushed Jade": { "ask": 2150, "bid": 1550 }, "Defense Coffee": { "ask": 790, "bid": 600 }, "Dragon Fruit Yogurt": { "ask": 850, "bid": 770 }, "Flaming Robe Bottoms": { "ask": 300000, "bid": 100000 }, "Frenzy": { "ask": 130000, "bid": 120000 }, "Gobo Leather": { "ask": 520, "bid": 380 }, "Holy Chisel": { "ask": 410000, "bid": 260000 }, "Holy Hatchet": { "ask": 480000, "bid": 430000 }, "Holy Needle": { "ask": 310000, "bid": 300000 }, "Holy Shears": { "ask": 480000, "bid": 400000 }, "Ice Spear": { "ask": 23000, "bid": 21500 }, "Intelligence Coffee": { "ask": 490, "bid": 440 }, "Linen Fabric": { "ask": 450, "bid": 380 }, "Linen Robe Top": { "ask": 15000, "bid": -1 }, "Lumber": { "ask": 415, "bid": 255 }, "Mirror Of Protection": { "ask": 7800000, "bid": 7400000 }, "Moolong Tea Leaf": { "ask": 50, "bid": 38 }, "Orange": { "ask": 12, "bid": 11 }, "Panda Fluff": { "ask": 50000, "bid": 28500 }, "Peach Yogurt": { "ask": 700, "bid": 620 }, "Plum Gummy": { "ask": 80, "bid": 68 }, "Processing Tea": { "ask": 1800, "bid": 1550 }, "Purpleheart Log": { "ask": 195, "bid": 155 }, "Radiant Boots": { "ask": 220000, "bid": 62000 }, "Radiant Hat": { "ask": 295000, "bid": 225000 }, "Rainbow Boots": { "ask": 220000, "bid": 15000 }, "Rainbow Cheese": { "ask": 1250, "bid": 1050 }, "Rainbow Hammer": { "ask": -1, "bid": 50000 }, "Rainbow Milk": { "ask": 285, "bid": 280 }, "Rainbow Pot": { "ask": 290000, "bid": 190000 }, "Rainbow Sword": { "ask": -1, "bid": 210000 }, "Redwood Bow": { "ask": 800000, "bid": 44000 }, "Redwood Lumber": { "ask": 340, "bid": 265 }, "Reptile Bracers": { "ask": 29500, "bid": -1 }, "Reptile Leather": { "ask": 430, "bid": 360 }, "Ring Of Rare Find": { "ask": 5600000, "bid": 3000000 }, "Rough Boots": { "ask": -1, "bid": 4000 }, "Rough Hood": { "ask": 2350, "bid": -1 }, "Shard Of Protection": { "ask": 44500, "bid": 43000 }, "Silk Hat": { "ask": 180000, "bid": 80000 }, "Small Artisan's Crate": { "ask": -1, "bid": -1 }, "Small Treasure Chest": { "ask": -1, "bid": -1 }, "Snake Fang Dirk": { "ask": 24000, "bid": 2650 }, "Spaceberry": { "ask": 220, "bid": 187.5 }, "Spike Shell": { "ask": 190000, "bid": 130000 }, "Star Fragment": { "ask": 8800, "bid": 8400 }, "Strawberry": { "ask": 120, "bid": 100 }, "Super Cooking Tea": { "ask": 2350, "bid": 1350 }, "Super Intelligence Coffee": { "ask": 2000, "bid": 1300 }, "Super Ranged Coffee": { "ask": 4000, "bid": 3800 }, "Swamp Essence": { "ask": 76, "bid": 33 }, "Tome Of Healing": { "ask": 29500, "bid": 24000 }, "Turtle Shell": { "ask": 35000, "bid": 5100 }, "Umbral Boots": { "ask": 70000, "bid": 50000 }, "Umbral Hood": { "ask": 360000, "bid": -1 }, "Vampire Fang Dirk": { "ask": 8000000, "bid": 1650000 }, "Verdant Buckler": { "ask": 9000, "bid": -1 }, "Verdant Enhancer": { "ask": -1, "bid": 14000 }, "Verdant Helmet": { "ask": 24500, "bid": -1 }, "Verdant Spatula": { "ask": -1, "bid": 22500 }, "Vision Shield": { "ask": 560000, "bid": 400000 }, "Wheat": { "ask": 27.5, "bid": 26 }, "Woodcutting Tea": { "ask": 860, "bid": 330 }, "Wooden Nature Staff": { "ask": 13500, "bid": 150 }, "Cedar Crossbow": { "ask": 60000, "bid": -1 }, "Earrings Of Rare Find": { "ask": 6000000, "bid": 4000000 }, "Egg": { "ask": 31, "bid": 27 }, "Entangle": { "ask": 18000, "bid": 15000 }, "Fighter Necklace": { "ask": 12000000, "bid": 3400000 }, "Gator Vest": { "ask": 20000, "bid": 13000 }, "Ginkgo Fire Staff": { "ask": 180000, "bid": 30000 }, "Gobo Chaps": { "ask": 66000, "bid": 18000 }, "Gobo Stabber": { "ask": 66000, "bid": 54000 }, "Gourmet Tea": { "ask": 600, "bid": 500 }, "Grizzly Bear Shoes": { "ask": 225000, "bid": 160000 }, "Holy Brush": { "ask": 430000, "bid": 400000 }, "Large Meteorite Cache": { "ask": -1, "bid": -1 }, "Magnetic Gloves": { "ask": 1300000, "bid": 900000 }, "Marsberry Cake": { "ask": 980, "bid": 940 }, "Medium Pouch": { "ask": 99000, "bid": -1 }, "Polar Bear Fluff": { "ask": 74000, "bid": 72000 }, "Verdant Plate Body": { "ask": 48000, "bid": 2500 }, "Ginkgo Water Staff": { "ask": 167500, "bid": 15500 }, "Polar Bear Shoes": { "ask": 500000, "bid": 120000 }, "Sugar": { "ask": 9, "bid": 8 }, "Crimson Needle": { "ask": 200000, "bid": -1 }, "Burble Plate Legs": { "ask": 240000, "bid": -1 }, "Burble Spear": { "ask": 205000, "bid": 62000 }, "Arcane Shield": { "ask": 255000, "bid": 125000 }, "Birch Shield": { "ask": 15000, "bid": 580 }, "Cedar Shield": { "ask": 200000, "bid": 3900 }, "Ginkgo Shield": { "ask": 235000, "bid": -1 }, "Purpleheart Shield": { "ask": 98000, "bid": 16500 }, "Redwood Shield": { "ask": 140000, "bid": 80000 }, "Sighted Bracers": { "ask": 760000, "bid": 440000 }, "Spiked Bulwark": { "ask": 7800000, "bid": 1000000 }, "Wooden Shield": { "ask": 2450, "bid": -1 }, "Advanced Task Ring": { "ask": -1, "bid": -1 }, "Basic Task Ring": { "ask": -1, "bid": -1 }, "Expert Task Ring": { "ask": -1, "bid": -1 }, "Purple's Gift": { "ask": -1, "bid": -1 }, "Task Crystal": { "ask": -1, "bid": -1 }, "Task Token": { "ask": -1, "bid": -1 }, "Abyssal Essence": { "ask": 115, "bid": 110 }, "Channeling Coffee": { "ask": 2500, "bid": 2200 }, "Chrono Gloves": { "ask": 7600000, "bid": 4400000 }, "Chrono Sphere": { "ask": 540000, "bid": 490000 }, "Collector's Boots": { "ask": 4900000, "bid": 2350000 }, "Colossus Core": { "ask": 440000, "bid": 290000 }, "Colossus Plate Body": { "ask": 4500000, "bid": 3400000 }, "Colossus Plate Legs": { "ask": 4600000, "bid": 2600000 }, "Demonic Core": { "ask": 350000, "bid": 340000 }, "Demonic Plate Body": { "ask": 4900000, "bid": 3400000 }, "Demonic Plate Legs": { "ask": 20000000, "bid": 2550000 }, "Elusiveness": { "ask": 25500, "bid": 21000 }, "Enchanted Gloves": { "ask": 8000000, "bid": 4300000 }, "Eye Of The Watcher": { "ask": 305000, "bid": 170000 }, "Eye Watch": { "ask": 4500000, "bid": 3150000 }, "Firestorm": { "ask": 360000, "bid": 350000 }, "Fluffy Red Hat": { "ask": 13500000, "bid": 2400000 }, "Frost Sphere": { "ask": 510000, "bid": 495000 }, "Frost Staff": { "ask": 8800000, "bid": 6000000 }, "Frost Surge": { "ask": 360000, "bid": 350000 }, "Gobo Defender": { "ask": 285000, "bid": 275000 }, "Gobo Rag": { "ask": 330000, "bid": 300000 }, "Infernal Battlestaff": { "ask": 20000000, "bid": -1 }, "Infernal Ember": { "ask": 800000, "bid": 780000 }, "Luna Robe Bottoms": { "ask": 1000000, "bid": -1 }, "Luna Robe Top": { "ask": 1450000, "bid": -1 }, "Luna Wing": { "ask": 91000, "bid": 62000 }, "Marine Chaps": { "ask": -1, "bid": 100000 }, "Marine Scale": { "ask": 31000, "bid": 28000 }, "Marine Tunic": { "ask": 450000, "bid": 120000 }, "Nature's Veil": { "ask": 790000, "bid": 740000 }, "Puncture": { "ask": 135000, "bid": 130000 }, "Red Chef's Hat": { "ask": 9200000, "bid": 2675000 }, "Red Panda Fluff": { "ask": 235000, "bid": 230000 }, "Revenant Anima": { "ask": 780000, "bid": 700000 }, "Revenant Chaps": { "ask": 8600000, "bid": 4000000 }, "Revenant Tunic": { "ask": 8800000, "bid": 4500000 }, "Shoebill Feather": { "ask": 38000, "bid": 28500 }, "Shoebill Shoes": { "ask": 500000, "bid": -1 }, "Silencing Shot": { "ask": 130000, "bid": 120000 }, "Soul Fragment": { "ask": 315000, "bid": 205000 }, "Soul Hunter Crossbow": { "ask": -1, "bid": 3900000 }, "Steady Shot": { "ask": 180000, "bid": 150000 }, "Treant Bark": { "ask": 25000, "bid": 23000 }, "Treant Shield": { "ask": 250000, "bid": 82000 }, "Vampiric Bow": { "ask": 6800000, "bid": 2050000 }, "Watchful Relic": { "ask": 3500000, "bid": -1 }, "Bag Of 10 Cowbells": { "ask": 490000, "bid": 470000 }, "Aqua Aura": { "ask": 1750000, "bid": 1200000 }, "Critical Aura": { "ask": 7400000, "bid": 7000000 }, "Fierce Aura": { "ask": 6400000, "bid": 6000000 }, "Flame Aura": { "ask": 3400000, "bid": 2800000 }, "Insanity": { "ask": 4500000, "bid": 3500000 }, "Invincible": { "ask": 2450000, "bid": 1500000 }, "Provoke": { "ask": 125000, "bid": 52000 }, "Quick Aid": { "ask": 320000, "bid": 295000 }, "Rejuvenate": { "ask": 820000, "bid": 660000 }, "Revive": { "ask": 1600000, "bid": 1250000 }, "Speed Aura": { "ask": 4400000, "bid": 3800000 }, "Sylvan Aura": { "ask": 3700000, "bid": 2950000 }, "Taunt": { "ask": 48500, "bid": 42000 }, "Acrobatic Hood": { "ask": 56000000, "bid": 38000000 }, "Acrobat's Ribbon": { "ask": 4100000, "bid": 3500000 }, "Bishop's Codex": { "ask": 60000000, "bid": 46000000 }, "Bishop's Scroll": { "ask": 4850000, "bid": 4500000 }, "Blue Key Fragment": { "ask": 355000, "bid": 320000 }, "Brown Key Fragment": { "ask": 410000, "bid": 360000 }, "Burning Key Fragment": { "ask": 1350000, "bid": 990000 }, "Chaotic Chain": { "ask": 6200000, "bid": 4800000 }, "Chaotic Flail": { "ask": -1, "bid": 2000000 }, "Chimerical Chest": { "ask": -1, "bid": -1 }, "Chimerical Essence": { "ask": 560, "bid": 500 }, "Chimerical Key": { "ask": -1, "bid": -1 }, "Chimerical Quiver": { "ask": -1, "bid": -1 }, "Crippling Slash": { "ask": 54000, "bid": 39000 }, "Cursed Ball": { "ask": 4800000, "bid": 2750000 }, "Cursed Bow": { "ask": -1, "bid": -1 }, "Dark Key Fragment": { "ask": 1350000, "bid": 1225000 }, "Dodocamel Gauntlets": { "ask": 49000000, "bid": 30000000 }, "Dodocamel Plume": { "ask": 4600000, "bid": 3800000 }, "Earrings Of Threat": { "ask": 4600000, "bid": 3100000 }, "Enchanted Chest": { "ask": -1, "bid": -1 }, "Enchanted Cloak": { "ask": -1, "bid": -1 }, "Enchanted Essence": { "ask": 1525, "bid": 1400 }, "Enchanted Key": { "ask": -1, "bid": -1 }, "Green Key Fragment": { "ask": 270000, "bid": 245000 }, "Griffin Chaps": { "ask": -1, "bid": 900000 }, "Griffin Leather": { "ask": 640000, "bid": 560000 }, "Griffin Tunic": { "ask": 16000000, "bid": 2050000 }, "Impale": { "ask": 25250, "bid": 20500 }, "Jackalope Antler": { "ask": 1550000, "bid": 1350000 }, "Jackalope Staff": { "ask": 32000000, "bid": 2500000 }, "Knight's Aegis": { "ask": 125000000, "bid": 28000000 }, "Knight's Ingot": { "ask": 3175000, "bid": 2775000 }, "Magician's Cloth": { "ask": 4100000, "bid": 3600000 }, "Magician's Hat": { "ask": -1, "bid": 46000000 }, "Mana Spring": { "ask": 410000, "bid": 370000 }, "Manticore Shield": { "ask": 14000000, "bid": 10000000 }, "Manticore Sting": { "ask": 1350000, "bid": 1250000 }, "Orange Key Fragment": { "ask": 230000, "bid": 222500 }, "Penetrating Shot": { "ask": 500000, "bid": 480000 }, "Penetrating Strike": { "ask": 64000, "bid": 26500 }, "Pestilent Shot": { "ask": 44000, "bid": 24500 }, "Purple Key Fragment": { "ask": 365000, "bid": 330000 }, "Regal Jewel": { "ask": 7000000, "bid": 6400000 }, "Regal Sword": { "ask": -1, "bid": 170000000 }, "Ring Of Threat": { "ask": 4600000, "bid": 3100000 }, "Royal Cloth": { "ask": 4900000, "bid": 4700000 }, "Royal Fire Robe Bottoms": { "ask": -1, "bid": -1 }, "Royal Fire Robe Top": { "ask": 82000000, "bid": 50000000 }, "Royal Nature Robe Bottoms": { "ask": 58000000, "bid": 40000000 }, "Royal Nature Robe Top": { "ask": 82000000, "bid": 1600000 }, "Royal Water Robe Bottoms": { "ask": 72000000, "bid": -1 }, "Royal Water Robe Top": { "ask": -1, "bid": -1 }, "Sinister Cape": { "ask": -1, "bid": -1 }, "Sinister Chest": { "ask": -1, "bid": -1 }, "Sinister Essence": { "ask": 490, "bid": 460 }, "Sinister Key": { "ask": -1, "bid": -1 }, "Smoke Burst": { "ask": 130000, "bid": 93000 }, "Stone Key Fragment": { "ask": 1450000, "bid": 1375000 }, "Sundering Crossbow": { "ask": 200000000, "bid": 170000000 }, "Sundering Jewel": { "ask": 7200000, "bid": 7000000 }, "White Key Fragment": { "ask": 690000, "bid": 600000 }, "Arcane Reflection": { "ask": 115000, "bid": 60000 }, "Chimerical Chest Key": { "ask": 1325000, "bid": 1200000 }, "Chimerical Entry Key": { "ask": 287500, "bid": 245000 }, "Enchanted Chest Key": { "ask": 5200000, "bid": 3200000 }, "Enchanted Entry Key": { "ask": 620000, "bid": 560000 }, "Griffin Bulwark": { "ask": 140000000, "bid": 100000000 }, "Griffin Talon": { "ask": 3800000, "bid": 3100000 }, "Sinister Chest Key": { "ask": 2375000, "bid": 1975000 }, "Sinister Entry Key": { "ask": 470000, "bid": 400000 } } }`;
-    let isUsingLocalMarketJson = false;
+    let isUsingExpiredMarketJson = false;
 
     let initData_characterSkills = null;
     let initData_characterItems = null;
@@ -778,13 +770,11 @@
             if (targetNode) {
                 targetNode.insertAdjacentHTML(
                     "afterend",
-                    `<div style="font-size: 13px; font-weight: 500; color: ${SCRIPT_COLOR_MAIN}">Current Assets: ${numberFormatter(
+                    `<div style="font-size: 13px; font-weight: 500; color: ${SCRIPT_COLOR_MAIN}; text-wrap: nowrap;">Current Assets: ${numberFormatter(
                         networthAsk
                     )} / ${numberFormatter(networthBid)}${
-                        isUsingLocalMarketJson && settingsMap.networkAlert.isTrue
-                            ? `<div style="color: ${SCRIPT_COLOR_ALERT}">${
-                                  isZH ? "无法从API更新市场数据" : "Can't update market prices from API."
-                              }</div>`
+                        isUsingExpiredMarketJson && settingsMap.networkAlert.isTrue
+                            ? `<div style="color: ${SCRIPT_COLOR_ALERT};">${isZH ? "无法从API更新市场数据" : "Can't update market prices"}</div>`
                             : ""
                     }</div>`
                 );
@@ -814,28 +804,15 @@
     async function getSelfBuildScores(equippedNetworthBid) {
         // 房子分：战斗相关房子升级所需总金币，不包括升级所需物品
         const battleHouses = ["dining_room", "library", "dojo", "gym", "armory", "archery_range", "mystical_study"];
-        const house_cost_map = {
-            0: 0,
-            1: 0.5,
-            2: 2.5,
-            3: 7.5,
-            4: 19.5,
-            5: 44.5,
-            6: 94.5,
-            7: 184.5,
-            8: 344.5,
-        };
         let battleHouseScore = 0;
         let nonBattleHouseScore = 0;
         for (const key in initData_characterHouseRoomMap) {
             if (battleHouses.some((house) => initData_characterHouseRoomMap[key].houseRoomHrid.includes(house))) {
-                battleHouseScore += house_cost_map[initData_characterHouseRoomMap[key].level];
+                battleHouseScore += (await getHouseFullBuildPrice(initData_characterHouseRoomMap[key])) / 1000000;
             } else {
-                nonBattleHouseScore += house_cost_map[initData_characterHouseRoomMap[key].level];
+                nonBattleHouseScore += (await getHouseFullBuildPrice(initData_characterHouseRoomMap[key])) / 1000000;
             }
         }
-        // console.log("battleHouseScore " + battleHouseScore);
-        // console.log("nonBattleHouseScore " + nonBattleHouseScore);
 
         // 技能分：当前使用的战斗技能所需技能书总价，单位M
         let abilityScore = 0;
@@ -851,6 +828,45 @@
         // console.log("equipmentScore " + equipmentScore);
 
         return [battleHouseScore, nonBattleHouseScore, abilityScore, equipmentScore];
+    }
+
+    // 计算单个房子完整造价
+    async function getHouseFullBuildPrice(house) {
+        const marketAPIJson = await fetchMarketJSON();
+        if (!marketAPIJson) {
+            return 0;
+        }
+        const clientObj = JSON.parse(GM_getValue("init_client_data", ""));
+
+        const upgradeCostsMap = clientObj.houseRoomDetailMap[house.houseRoomHrid].upgradeCostsMap;
+        const level = house.level;
+
+        let cost = 0;
+        for (let i = 1; i <= level; i++) {
+            for (const item of upgradeCostsMap[i]) {
+                const itemName = clientObj.itemDetailMap[item.itemHrid].name;
+                const marketPrices = marketAPIJson.market[itemName];
+                if (marketPrices) {
+                    cost += item.count * getWeightedMarketPrice(marketPrices);
+                } else {
+                    console.log("getHouseFullBuildPrice cannot find price of " + itemName);
+                }
+            }
+        }
+        return cost;
+    }
+
+    function getWeightedMarketPrice(marketPrices, ratio = 0.5) {
+        let ask = marketPrices.ask;
+        let bid = marketPrices.bid;
+        if (ask > 0 && bid < 0) {
+            bid = ask;
+        }
+        if (bid > 0 && ask < 0) {
+            ask = bid;
+        }
+        const weightedPrice = ask * ratio + bid * (1 - ratio);
+        return weightedPrice;
     }
 
     // 技能价格计算
@@ -941,21 +957,10 @@
     async function getBuildScoreByProfile(profile_shared_obj) {
         // 房子分：战斗相关房子升级所需总金币，不包括升级所需物品
         const battleHouses = ["dining_room", "library", "dojo", "gym", "armory", "archery_range", "mystical_study"];
-        const house_cost_map = {
-            0: 0,
-            1: 0.5,
-            2: 2.5,
-            3: 7.5,
-            4: 19.5,
-            5: 44.5,
-            6: 94.5,
-            7: 184.5,
-            8: 344.5,
-        };
         let battleHouseScore = 0;
         for (const key in profile_shared_obj.profile.characterHouseRoomMap) {
             if (battleHouses.some((house) => profile_shared_obj.profile.characterHouseRoomMap[key].houseRoomHrid.includes(house))) {
-                battleHouseScore += house_cost_map[profile_shared_obj.profile.characterHouseRoomMap[key].level];
+                battleHouseScore += (await getHouseFullBuildPrice(profile_shared_obj.profile.characterHouseRoomMap[key])) / 1000000;
             }
         }
         // console.log("房屋分：" + battleHouseScore);
@@ -1530,10 +1535,11 @@
     }
 
     async function fetchMarketJSON(forceFetch = false) {
-        let sendRequest = GM.xmlHttpRequest || GM_xmlhttpRequest;
+        // Broswer does not support fetch
+        const sendRequest = GM.xmlHttpRequest || GM_xmlhttpRequest;
         if (typeof sendRequest != "function") {
             console.error("fetchMarketJSON null function");
-            isUsingLocalMarketJson = true;
+            isUsingExpiredMarketJson = true;
             const jsonStr = MARKET_JSON_LOCAL_BACKUP;
             const jsonObj = JSON.parse(jsonStr);
             if (jsonObj && jsonObj.time && jsonObj.market) {
@@ -1546,6 +1552,7 @@
             }
         }
 
+        // Has recently fetched
         if (
             !forceFetch &&
             localStorage.getItem("MWITools_marketAPI_timestamp") &&
@@ -1554,6 +1561,7 @@
             return JSON.parse(localStorage.getItem("MWITools_marketAPI_json"));
         }
 
+        // Start fetch
         console.log("fetchMarketJSON fetch github start");
         let jsonStr = null;
         jsonStr = await new Promise((resolve, reject) => {
@@ -1586,45 +1594,22 @@
             });
         });
 
-        if (jsonStr === null && settingsMap.tryBackupApiUrl.isTrue) {
-            console.log("fetchMarketJSON fetch backup start");
-            jsonStr = await new Promise((resolve, reject) => {
-                sendRequest({
-                    url: MARKET_API_URL_BACKUP,
-                    method: "GET",
-                    synchronous: true,
-                    timeout: 5000,
-                    onload: async (response) => {
-                        if (response.status == 200) {
-                            console.log("fetchMarketJSON fetch backup success 200");
-                            resolve(response.responseText);
-                        } else {
-                            console.error("fetchMarketJSON fetch backup onload with HTTP status failure " + response.status);
-                            resolve(null);
-                        }
-                    },
-                    onabort: () => {
-                        console.error("fetchMarketJSON fetch backup onabort");
-                        resolve(null);
-                    },
-                    onerror: () => {
-                        console.error("fetchMarketJSON fetch backup onerror");
-                        resolve(null);
-                    },
-                    ontimeout: () => {
-                        console.error("fetchMarketJSON fetch backup ontimeout");
-                        resolve(null);
-                    },
-                });
-            });
-        }
-
+        // Fetch failed
         if (!jsonStr) {
-            console.error("fetchMarketJSON network error, using local version");
-            isUsingLocalMarketJson = true;
-            jsonStr = MARKET_JSON_LOCAL_BACKUP;
+            isUsingExpiredMarketJson = true;
+            if (
+                JSON.parse(localStorage.getItem("MWITools_marketAPI_json")) &&
+                localStorage.getItem("MWITools_marketAPI_timestamp") &&
+                JSON.parse(MARKET_JSON_LOCAL_BACKUP).time * 1000 < localStorage.getItem("MWITools_marketAPI_timestamp")
+            ) {
+                console.error("fetchMarketJSON network error, using previously fetched version");
+                jsonStr = localStorage.getItem("MWITools_marketAPI_json");
+            } else {
+                console.error("fetchMarketJSON network error, using hard-coded backup version");
+                jsonStr = MARKET_JSON_LOCAL_BACKUP;
+            }
         } else {
-            isUsingLocalMarketJson = false;
+            isUsingExpiredMarketJson = false;
         }
 
         const jsonObj = JSON.parse(jsonStr);
@@ -3632,9 +3617,9 @@
         if (GM_getValue("new_battle", "")) {
             battleObj = JSON.parse(GM_getValue("new_battle", ""));
         }
-        console.log(battleObj);
+        // console.log(battleObj);
         const storedProfileList = JSON.parse(GM_getValue("profile_export_list", "[]"));
-        console.log(storedProfileList);
+        // console.log(storedProfileList);
 
         const BLANK_PLAYER_JSON = `{\"player\":{\"attackLevel\":1,\"magicLevel\":1,\"powerLevel\":1,\"rangedLevel\":1,\"defenseLevel\":1,\"staminaLevel\":1,\"intelligenceLevel\":1,\"equipment\":[]},\"food\":{\"/action_types/combat\":[{\"itemHrid\":\"\"},{\"itemHrid\":\"\"},{\"itemHrid\":\"\"}]},\"drinks\":{\"/action_types/combat\":[{\"itemHrid\":\"\"},{\"itemHrid\":\"\"},{\"itemHrid\":\"\"}]},\"abilities\":[{\"abilityHrid\":\"\",\"level\":\"1\"},{\"abilityHrid\":\"\",\"level\":\"1\"},{\"abilityHrid\":\"\",\"level\":\"1\"},{\"abilityHrid\":\"\",\"level\":\"1\"},{\"abilityHrid\":\"\",\"level\":\"1\"}],\"triggerMap\":{},\"zone\":\"/actions/combat/fly\",\"simulationTime\":\"100\",\"houseRooms\":{\"/house_rooms/dairy_barn\":0,\"/house_rooms/garden\":0,\"/house_rooms/log_shed\":0,\"/house_rooms/forge\":0,\"/house_rooms/workshop\":0,\"/house_rooms/sewing_parlor\":0,\"/house_rooms/kitchen\":0,\"/house_rooms/brewery\":0,\"/house_rooms/laboratory\":0,\"/house_rooms/observatory\":0,\"/house_rooms/dining_room\":0,\"/house_rooms/library\":0,\"/house_rooms/dojo\":0,\"/house_rooms/gym\":0,\"/house_rooms/armory\":0,\"/house_rooms/archery_range\":0,\"/house_rooms/mystical_study\":0}}`;
 
