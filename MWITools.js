@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      16.1
+// @version      16.2
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -1161,6 +1161,7 @@
         "/action_types/milking": "milkingSpeed",
         "/action_types/tailoring": "tailoringSpeed",
         "/action_types/woodcutting": "woodcuttingSpeed",
+        "/action_types/alchemy": "alchemySpeed",
     };
 
     const actionHridToHouseNamesMap = {
@@ -1172,6 +1173,7 @@
         "/action_types/milking": "/house_rooms/dairy_barn",
         "/action_types/tailoring": "/house_rooms/sewing_parlor",
         "/action_types/woodcutting": "/house_rooms/log_shed",
+        "/action_types/alchemy": "/house_rooms/laboratory",
     };
 
     const itemEnhanceLevelToBuffBonusMap = {
