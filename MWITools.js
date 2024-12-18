@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      16.2
+// @version      16.3
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -2274,6 +2274,7 @@
                     <option value="defense">Defense</option>
                     <option value="ranged">Ranged</option>
                     <option value="magic">Magic</option>
+                    <option value="others">Others</option>
                 </select>&emsp;</span>`
             );
             filters.insertAdjacentHTML(
@@ -2347,6 +2348,9 @@
             if (requirement.skillHrid.includes(onlyShowItemsSkillReq)) {
                 isRequired = true;
             }
+        }
+        if (onlyShowItemsSkillReq === "others") {
+            //todo
         }
         if (onlyShowItemsSkillReq === "all") {
             isRequired = true;
@@ -2792,7 +2796,11 @@
 
         // 总强化buff
         let total_bonus = null;
-        const effective_level = input_data.enhancing_level + (input_data.tea_enhancing ? 3 : 0) + (input_data.tea_super_enhancing ? 6 : 0);
+        const effective_level =
+            input_data.enhancing_level +
+            (input_data.tea_enhancing ? 3 : 0) +
+            (input_data.tea_super_enhancing ? 6 : 0) +
+            (input_data.tea_ultra_enhancing ? 8 : 0);
         if (effective_level >= itemLevel) {
             total_bonus = 1 + (0.05 * (effective_level + input_data.laboratory_level - itemLevel) + input_data.enhancer_bonus) / 100;
         } else {
@@ -2851,7 +2859,8 @@
         glove_bonus: 11.2, // 手套提高强化速度，0级=10，5级=11.2，10级=12.9
 
         tea_enhancing: false, // 强化茶
-        tea_super_enhancing: true, // 超级强化茶
+        tea_super_enhancing: false, // 超级强化茶
+        tea_ultra_enhancing: true,
         tea_blessed: true, // 祝福茶
 
         priceAskBidRatio: 1, // 取市场卖单价买单价比例，1=只用卖单价，0=只用买单价
