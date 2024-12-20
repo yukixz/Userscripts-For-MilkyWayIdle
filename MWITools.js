@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      16.4
+// @version      16.5
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -2870,12 +2870,7 @@
         const itemDetailObj = initData_itemDetailMap[hrid];
 
         // +0本体成本
-        const baseItemProductionCost = getItemProductionCost(itemDetailObj.name, price_data);
-        const baseItemMarketPrice = getItemMarketPrice(hrid, price_data);
-        let baseCost = baseItemProductionCost;
-        if (!baseCost || baseCost < 0 || (baseItemMarketPrice > 0 && baseItemMarketPrice < baseCost)) {
-            baseCost = baseItemMarketPrice;
-        }
+        const baseCost = getRealisticBaseItemPrice(hrid, price_data);
 
         // 保护成本
         let minProtectionPrice = null;
@@ -2885,7 +2880,7 @@
                 ? [hrid, "/items/mirror_of_protection"]
                 : [hrid, "/items/mirror_of_protection"].concat(itemDetailObj.protectionItemHrids);
         protect_item_hrids.forEach((protection_hrid, i) => {
-            const this_cost = getItemMarketPrice(protection_hrid, price_data);
+            const this_cost = getRealisticBaseItemPrice(protection_hrid, price_data);
             if (i === 0) {
                 minProtectionPrice = this_cost;
                 minProtectionHrid = protection_hrid;
@@ -2917,6 +2912,46 @@
         };
     }
 
+    function getRealisticBaseItemPrice(hrid, price_data) {
+        const itemDetailObj = initData_itemDetailMap[hrid];
+        const productionCost = getItemProductionCost(itemDetailObj.name, price_data);
+
+        const fullName = initData_itemDetailMap[hrid].name;
+        const item_price_data = price_data.market[fullName];
+        const ask = item_price_data?.ask;
+        const bid = item_price_data?.bid;
+
+        let result = 0;
+
+        if (ask && ask > 0) {
+            if (bid && bid > 0) {
+                // Both ask and bid.
+                if (ask / bid > 1.3) {
+                    result = Math.max(bid, productionCost);
+                } else {
+                    result = ask;
+                }
+            } else {
+                // Only ask.
+                if (ask / productionCost > 1.3) {
+                    result = productionCost;
+                } else {
+                    result = Math.max(ask, productionCost);
+                }
+            }
+        } else {
+            if (bid && bid > 0) {
+                // Only bid.
+                result = Math.max(bid, productionCost);
+            } else {
+                // Neither ask nor bid.
+                result = productionCost;
+            }
+        }
+
+        return result;
+    }
+
     function getItemMarketPrice(hrid, price_data) {
         const fullName = initData_itemDetailMap[hrid].name;
         const item_price_data = price_data.market[fullName];
@@ -2931,12 +2966,10 @@
         let ask = item_price_data.ask;
         let bid = item_price_data.bid;
         if (ask > 0 && bid < 0) {
-            // console.log("getItemMarketPrice() return ask due to no bid: " + fullName);
-            bid = ask;
+            return ask;
         }
         if (bid > 0 && ask < 0) {
-            // console.log("getItemMarketPrice() return bid due to no ask: " + fullName);
-            ask = bid;
+            return bid;
         }
 
         let final_cost = ask * input_data.priceAskBidRatio + bid * (1 - input_data.priceAskBidRatio);
