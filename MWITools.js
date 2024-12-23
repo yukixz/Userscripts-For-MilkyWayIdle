@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      16.7
+// @version      16.8
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -829,19 +829,21 @@
         const askButton = `<button
             id="script_sortByAsk_btn"
             style="border-radius: 3px; background-color: ${SCRIPT_COLOR_MAIN}; color: black;">
-            Ask
+            ${isZH ? "出售价" : "Ask"}
             </button>`;
         const bidButton = `<button
             id="script_sortByBid_btn"
             style="border-radius: 3px; background-color: ${SCRIPT_COLOR_MAIN}; color: black;">
-            Bid
+            ${isZH ? "收购价" : "Bid"}
             </button>`;
         const noneButton = `<button
             id="script_sortByNone_btn"
             style="border-radius: 3px; background-color: ${SCRIPT_COLOR_MAIN}; color: black;">
-            None
+            ${isZH ? "无" : "None"}
             </button>`;
-        const buttonsDiv = `<div style="color: ${SCRIPT_COLOR_MAIN}; font-size: 14px; text-align: left; ">Sort items by: ${askButton} ${bidButton} ${noneButton}</div>`;
+        const buttonsDiv = `<div style="color: ${SCRIPT_COLOR_MAIN}; font-size: 14px; text-align: left; ">${
+            isZH ? "物品排序：" : "Sort items by: "
+        }${askButton} ${bidButton} ${noneButton}</div>`;
         invElem.insertAdjacentHTML("beforebegin", buttonsDiv);
 
         invElem.parentElement.querySelector("button#script_sortByAsk_btn").addEventListener("click", function (e) {
