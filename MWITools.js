@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      16.8
+// @version      16.9
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -3017,7 +3017,7 @@
 
     function getRealisticBaseItemPrice(hrid, price_data) {
         const itemDetailObj = initData_itemDetailMap[hrid];
-        const productionCost = getItemProductionCost(itemDetailObj.name, price_data);
+        const productionCost = getBaseItemProductionCost(itemDetailObj.name, price_data);
 
         const fullName = initData_itemDetailMap[hrid].name;
         const item_price_data = price_data.market[fullName];
@@ -3079,40 +3079,27 @@
         return final_cost;
     }
 
-    function getItemProductionCost(itemName, jsonObj) {
+    // +0底子制作成本，仅单层制作，考虑茶减少消耗
+    function getBaseItemProductionCost(itemName, price_data) {
         const actionHrid = getActionHridFromItemName(itemName);
         if (!actionHrid || !initData_actionDetailMap[actionHrid]) {
             return -1;
         }
 
+        let totalPrice = 0;
+
         const inputItems = JSON.parse(JSON.stringify(initData_actionDetailMap[actionHrid].inputItems));
+        for (let item of inputItems) {
+            totalPrice += getItemMarketPrice(item.itemHrid, price_data) * item.count;
+        }
+        totalPrice *= 0.9; // 茶减少消耗
+
         const upgradedFromItemHrid = initData_actionDetailMap[actionHrid]?.upgradeItemHrid;
         if (upgradedFromItemHrid) {
-            inputItems.push({ itemHrid: upgradedFromItemHrid, count: 1 });
+            totalPrice += getItemMarketPrice(upgradedFromItemHrid, price_data) * 1;
         }
 
-        let totalAskPrice = 0;
-        let totalBidPrice = 0;
-        for (let item of inputItems) {
-            const itemDetail = initData_itemDetailMap[item.itemHrid];
-            if (!itemDetail) {
-                return -1;
-            }
-            let itemAskPrice = jsonObj?.market[itemDetail.name]?.ask;
-            let itemBidPrice = jsonObj?.market[itemDetail.name]?.bid;
-            if (itemAskPrice === undefined || itemAskPrice === -1) {
-                if (itemBidPrice === undefined || itemBidPrice === -1) {
-                    return -1; // Ask和Bid价都没有，返回-1
-                }
-                itemAskPrice = itemBidPrice;
-            }
-            if (itemBidPrice === undefined || itemBidPrice === -1) {
-                itemBidPrice = itemAskPrice;
-            }
-            totalAskPrice += itemAskPrice * item.count;
-            totalBidPrice += itemBidPrice * item.count;
-        }
-        return totalAskPrice * input_data.priceAskBidRatio + totalBidPrice * (1 - input_data.priceAskBidRatio);
+        return totalPrice;
     }
 
     /* 脚本设置面板 */
