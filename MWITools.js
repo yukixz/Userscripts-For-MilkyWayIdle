@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      16.6
+// @version      16.7
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -1355,7 +1355,7 @@
 
     function getTeaBuffsByActionHrid(actionHrid) {
         // YES Gathering (+15% quantity) — milking, foraging, woodcutting
-        // TODO Processing (+15% chance to convert product into processed material) — milking, foraging, woodcutting
+        // NOT_IMPLEMENTED Processing (+15% chance to convert product into processed material) — milking, foraging, woodcutting
         // YES Gourmet (+12% to produce free product) — cooking, brewing
         // YES Artisan (-10% less resources used, but treat as -5 levels) — cheesesmithing, crafting, tailoring, cooking, brewing
         // NO  Wisdom (+12% XP) — all
@@ -2444,7 +2444,14 @@
             }
         }
         if (onlyShowItemsSkillReq === "others") {
-            //todo
+            const combatTypes = ["attack", "power", "defense", "ranged", "magic"];
+            isRequired = !combatTypes.some((type) => {
+                for (const requirement of levelRequirements) {
+                    if (requirement.skillHrid.includes(type)) {
+                        return true;
+                    }
+                }
+            });
         }
         if (onlyShowItemsSkillReq === "all") {
             isRequired = true;
