@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      16.5
+// @version      16.6
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -89,6 +89,11 @@
             desc: isZH
                 ? "仓库搜索栏下方显示：仓库和战力总结 [依赖上一项]"
                 : "Below inventory search bar: Inventory and character summery. [Depends on the previous selection]",
+            isTrue: true,
+        },
+        invSort: {
+            id: "invSort",
+            desc: isZH ? "仓库显示：仓库物品排序 [依赖上一项]" : "Inventory: Sort inventory items. [Depends on the previous selection]",
             isTrue: true,
         },
         profileBuildScore: {
@@ -791,19 +796,108 @@
         };
         waitForHeader();
 
-        if (settingsMap.invWorth.isTrue) {
-            const waitForInv = () => {
-                const targetNodes = document.querySelectorAll("div.Inventory_items__6SXv0");
-                for (const node of targetNodes) {
+        const waitForInv = () => {
+            const targetNodes = document.querySelectorAll("div.Inventory_items__6SXv0");
+            for (const node of targetNodes) {
+                if (settingsMap.invWorth.isTrue) {
                     if (!node.classList.contains("script_buildScore_added")) {
                         node.classList.add("script_buildScore_added");
                         addInventorySummery(node);
                     }
                 }
-                setTimeout(waitForInv, 1000);
-            };
-            waitForInv();
+                if (settingsMap.invSort.isTrue) {
+                    if (!node.classList.contains("script_invSort_added")) {
+                        node.classList.add("script_invSort_added");
+                        addInvSortButton(node);
+                    }
+                }
+            }
+            setTimeout(waitForInv, 1000);
+        };
+        waitForInv();
+    }
+
+    /* 仓库物品排序 */
+    // by daluo, bot7420
+    async function addInvSortButton(invElem) {
+        const price_data = await fetchMarketJSON();
+        if (!price_data || !price_data.market) {
+            console.error("addInvSortButton fetchMarketJSON null");
+            return;
         }
+
+        const askButton = `<button
+            id="script_sortByAsk_btn"
+            style="border-radius: 3px; background-color: ${SCRIPT_COLOR_MAIN}; color: black;">
+            Ask
+            </button>`;
+        const bidButton = `<button
+            id="script_sortByBid_btn"
+            style="border-radius: 3px; background-color: ${SCRIPT_COLOR_MAIN}; color: black;">
+            Bid
+            </button>`;
+        const noneButton = `<button
+            id="script_sortByNone_btn"
+            style="border-radius: 3px; background-color: ${SCRIPT_COLOR_MAIN}; color: black;">
+            None
+            </button>`;
+        const buttonsDiv = `<div style="color: ${SCRIPT_COLOR_MAIN}; font-size: 14px; text-align: left; ">Sort items by: ${askButton} ${bidButton} ${noneButton}</div>`;
+        invElem.insertAdjacentHTML("beforebegin", buttonsDiv);
+
+        invElem.parentElement.querySelector("button#script_sortByAsk_btn").addEventListener("click", function (e) {
+            sortItemsBy("ask");
+        });
+        invElem.parentElement.querySelector("button#script_sortByBid_btn").addEventListener("click", function (e) {
+            sortItemsBy("bid");
+        });
+        invElem.parentElement.querySelector("button#script_sortByNone_btn").addEventListener("click", function (e) {
+            sortItemsBy("none");
+        });
+
+        const sortItemsBy = (order) => {
+            for (const typeDiv of invElem.children) {
+                const typeName = getOriTextFromElement(typeDiv.getElementsByClassName("Inventory_categoryButton__35s1x")[0]);
+                const notNeedSortTypes = ["Loots", "Currencies", "Equipment"];
+                if (notNeedSortTypes.includes(typeName)) {
+                    continue;
+                }
+
+                typeDiv.querySelector(".Inventory_label__XEOAx").style.order = Number.MIN_SAFE_INTEGER;
+
+                const itemElems = typeDiv.querySelectorAll(".Item_itemContainer__x7kH1");
+                for (const itemElem of itemElems) {
+                    const itemName = itemElem.querySelector("svg").attributes["aria-label"].value;
+                    let itemCount = itemElem.querySelector(".Item_count__1HVvv").innerText;
+                    itemCount = Number(itemCount.toLowerCase().replaceAll("k", "000").replaceAll("m", "000000"));
+                    const askPrice = price_data.market[itemName] && price_data.market[itemName].ask > 0 ? price_data.market[itemName].ask : 0;
+                    const bidPrice = price_data.market[itemName] && price_data.market[itemName].bid > 0 ? price_data.market[itemName].bid : 0;
+                    const itemAskmWorth = askPrice * itemCount;
+                    const itemBidWorth = bidPrice * itemCount;
+
+                    // 价格角标
+                    if (!itemElem.querySelector("#script_stack_price")) {
+                        const priceElemHTML = `<div
+                            id="script_stack_price"
+                            style="z-index: 1; position: absolute; top: 2px; left: 2px; text-align: left;">
+                        </div>`;
+                        itemElem.querySelector(".Item_item__2De2O.Item_clickable__3viV6").insertAdjacentHTML("beforeend", priceElemHTML);
+                    }
+                    const priceElem = itemElem.querySelector("#script_stack_price");
+
+                    // 排序
+                    if (order === "ask") {
+                        itemElem.style.order = -itemAskmWorth;
+                        priceElem.textContent = numberFormatter(itemAskmWorth);
+                    } else if (order === "bid") {
+                        itemElem.style.order = -itemBidWorth;
+                        priceElem.textContent = numberFormatter(itemBidWorth);
+                    } else if (order === "none") {
+                        itemElem.style.order = 0;
+                        priceElem.textContent = "";
+                    }
+                }
+            }
+        };
     }
 
     /* 计算打造分 */
