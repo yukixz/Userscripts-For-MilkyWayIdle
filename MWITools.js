@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      17.0
+// @version      17.1
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -1356,52 +1356,44 @@
     }
 
     function getTeaBuffsByActionHrid(actionHrid) {
-        // YES Gathering (+15% quantity) — milking, foraging, woodcutting
-        // NOT_IMPLEMENTED Processing (+15% chance to convert product into processed material) — milking, foraging, woodcutting
-        // YES Gourmet (+12% to produce free product) — cooking, brewing
-        // YES Artisan (-10% less resources used, but treat as -5 levels) — cheesesmithing, crafting, tailoring, cooking, brewing
-        // NO  Wisdom (+12% XP) — all
-        // YES Efficiency (+10% chance to repeat action) — all (except enhancing)
-        // YES S.Skill (treat as +3 or +6 levels, different names) — all
-        let teaBuffs = {
-            efficiency: 0,
-            quantity: 0,
-            upgradedProduct: 0,
-            lessResource: 0,
+        const teaBuffs = {
+            efficiency: 0, // Efficiency tea, specific teas.
+            quantity: 0, // Gathering tea, Gourmet tea.
+            lessResource: 0, // Artisan tea.
+            increasedActionLevelRequirement: 0, // Artisan tea. Not used.
+            extraExp: 0, // Wisdom tea. Not used.
+            upgradedProduct: 0, // Processing tea. Not used.
         };
 
-        const teaList = initData_actionTypeDrinkSlotsMap[initData_actionDetailMap[actionHrid].type];
+        const actionTypeId = initData_actionDetailMap[actionHrid].type;
+        const teaList = initData_actionTypeDrinkSlotsMap[actionTypeId];
         for (const tea of teaList) {
             if (!tea || !tea.itemHrid) {
                 continue;
             }
-            if (tea.itemHrid === "/items/efficiency_tea") {
-                teaBuffs.efficiency += 10;
-                continue;
+
+            for (const buff of initData_itemDetailMap[tea.itemHrid].consumableDetail.buffs) {
+                if (buff.typeHrid === "/buff_types/artisan") {
+                    teaBuffs.lessResource += buff.flatBoost * 100;
+                } else if (buff.typeHrid === "/buff_types/action_level") {
+                    teaBuffs.increasedActionLevelRequirement += buff.flatBoost;
+                } else if (buff.typeHrid === "/buff_types/gathering") {
+                    teaBuffs.quantity += buff.flatBoost * 100;
+                } else if (buff.typeHrid === "/buff_types/gourmet") {
+                    teaBuffs.quantity += buff.flatBoost * 100;
+                } else if (buff.typeHrid === "/buff_types/wisdom") {
+                    teaBuffs.extraExp += buff.flatBoost * 100;
+                } else if (buff.typeHrid === "/buff_types/processing") {
+                    teaBuffs.upgradedProduct += buff.flatBoost * 100;
+                } else if (buff.typeHrid === "/buff_types/efficiency") {
+                    teaBuffs.efficiency += buff.flatBoost * 100;
+                } else if (buff.typeHrid === `/buff_types/${actionTypeId.replace("/action_types/", "")}_level`) {
+                    teaBuffs.efficiency += buff.flatBoost;
+                }
             }
-            const teaBuffDetail = initData_itemDetailMap[tea.itemHrid]?.consumableDetail?.buffs[0];
-            if (teaBuffDetail && teaBuffDetail.typeHrid.includes("_level")) {
-                teaBuffs.efficiency += teaBuffDetail.flatBoost;
-                continue;
-            }
-            if (tea.itemHrid === "/items/artisan_tea") {
-                teaBuffs.lessResource += 10;
-                continue;
-            }
-            if (tea.itemHrid === "/items/gathering_tea") {
-                teaBuffs.quantity += 15;
-                continue;
-            }
-            if (tea.itemHrid === "/items/gourmet_tea") {
-                teaBuffs.quantity += 12;
-                continue;
-            }
-            if (tea.itemHrid === "/items/processing_tea") {
-                teaBuffs.upgradedProduct += 15;
-                continue;
-            }
+
+            return teaBuffs;
         }
-        return teaBuffs;
     }
 
     async function handleTooltipItem(tooltip) {
