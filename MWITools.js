@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      17.2
+// @version      17.3
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @match        https://www.milkywayidle.com/*
@@ -1357,10 +1357,9 @@
 
     function getTeaBuffsByActionHrid(actionHrid) {
         const teaBuffs = {
-            efficiency: 0, // Efficiency tea, specific teas.
+            efficiency: 0, // Efficiency tea, specific teas, -Artisan tea.
             quantity: 0, // Gathering tea, Gourmet tea.
             lessResource: 0, // Artisan tea.
-            increasedActionLevelRequirement: 0, // Artisan tea. Not used.
             extraExp: 0, // Wisdom tea. Not used.
             upgradedProduct: 0, // Processing tea. Not used.
         };
@@ -1376,7 +1375,7 @@
                 if (buff.typeHrid === "/buff_types/artisan") {
                     teaBuffs.lessResource += buff.flatBoost * 100;
                 } else if (buff.typeHrid === "/buff_types/action_level") {
-                    teaBuffs.increasedActionLevelRequirement += buff.flatBoost;
+                    teaBuffs.efficiency -= buff.flatBoost;
                 } else if (buff.typeHrid === "/buff_types/gathering") {
                     teaBuffs.quantity += buff.flatBoost * 100;
                 } else if (buff.typeHrid === "/buff_types/gourmet") {
