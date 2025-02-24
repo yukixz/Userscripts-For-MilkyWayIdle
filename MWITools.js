@@ -1,12 +1,14 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      17.4
+// @version      17.5
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
+// @license      CC-BY-NC-SA-4.0
 // @match        https://www.milkywayidle.com/*
 // @match        https://test.milkywayidle.com/*
 // @match        https://amvoidguy.github.io/MWICombatSimulatorTest/*
+// @match        https://shykai.github.io/mwisim.github.io/*
 // @grant        GM_addStyle
 // @grant        GM_xmlhttpRequest
 // @grant        GM_notification
@@ -40,6 +42,8 @@
         // Features for https://amvoidguy.github.io/MWICombatSimulatorTest/. Remove the following two lines of code to disable.
         addImportButtonForAmvoidguy();
         observeResultsForAmvoidguy();
+        return;
+    } else if (document.URL.includes("shykai.github.io/mwisim")) {
         return;
     }
 
@@ -2625,6 +2629,35 @@
                 });
                 targetNode.insertAdjacentElement("afterbegin", div);
 
+                if (isZH) {
+                    div = document.createElement("div");
+                    div.setAttribute("class", "NavigationBar_minorNavigationLink__31K7Y");
+                    div.style.color = SCRIPT_COLOR_MAIN;
+                    div.innerHTML = isZH ? "9战模拟" : "9战模拟";
+                    div.addEventListener("click", () => {
+                        window.open("https://shykai.github.io/mwisim.github.io/", "_blank");
+                    });
+                    targetNode.insertAdjacentElement("afterbegin", div);
+
+                    div = document.createElement("div");
+                    div.setAttribute("class", "NavigationBar_minorNavigationLink__31K7Y");
+                    div.style.color = SCRIPT_COLOR_MAIN;
+                    div.innerHTML = isZH ? "中文利润网站" : "中文利润网站";
+                    div.addEventListener("click", () => {
+                        window.open("https://luyh7.github.io/milkonomy/#/dashboard", "_blank");
+                    });
+                    targetNode.insertAdjacentElement("afterbegin", div);
+
+                    div = document.createElement("div");
+                    div.setAttribute("class", "NavigationBar_minorNavigationLink__31K7Y");
+                    div.style.color = SCRIPT_COLOR_MAIN;
+                    div.innerHTML = isZH ? "牛牛手册" : "牛牛手册";
+                    div.addEventListener("click", () => {
+                        window.open("https://test-ctmd6jnzo6t9.feishu.cn/docx/KG9ddER6Eo2uPoxJFkicsvbEnCe", "_blank");
+                    });
+                    targetNode.insertAdjacentElement("afterbegin", div);
+                }
+
                 div = document.createElement("div");
                 div.setAttribute("class", "NavigationBar_minorNavigationLink__31K7Y");
                 div.style.color = SCRIPT_COLOR_MAIN;
@@ -2639,16 +2672,7 @@
                 div.style.color = SCRIPT_COLOR_MAIN;
                 div.innerHTML = isZH ? "利润计算 Cowculator" : "Profit calc Cowculator";
                 div.addEventListener("click", () => {
-                    window.open("https://mwisim.github.io/cowculator/", "_blank");
-                });
-                targetNode.insertAdjacentElement("afterbegin", div);
-
-                div = document.createElement("div");
-                div.setAttribute("class", "NavigationBar_minorNavigationLink__31K7Y");
-                div.style.color = SCRIPT_COLOR_MAIN;
-                div.innerHTML = isZH ? "利润计算 Mooneycalc" : "Profit calc Mooneycalc";
-                div.addEventListener("click", () => {
-                    window.open("https://mooneycalc.vercel.app/", "_blank");
+                    window.open("https://danthegoodman.github.io/cowculator/", "_blank");
                 });
                 targetNode.insertAdjacentElement("afterbegin", div);
 
@@ -3661,7 +3685,7 @@
                 button.style.backgroundColor = "green";
                 button.style.padding = "5px";
                 button.onclick = function () {
-                    console.log("Mooneycalc-Importer: Import button onclick");
+                    console.log("Importer: Import button onclick");
                     const getPriceButton = document.querySelector(`button#buttonGetPrices`);
                     if (getPriceButton) {
                         console.log("Click getPriceButton");
