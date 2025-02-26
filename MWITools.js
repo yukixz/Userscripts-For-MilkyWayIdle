@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      17.5
+// @version      17.6
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @license      CC-BY-NC-SA-4.0
@@ -1552,8 +1552,6 @@
                     isZH ? "每小时生产" : "Production per hour"
                 } ${Number((produceItemPerHour + extraQuantityPerHour) * droprate).toFixed(1)}${isZH ? " 个" : " items"}</div>`;
                 appendHTMLStr += `<div style="color: ${SCRIPT_COLOR_TOOLTIP};">${isZH ? "利润: " : "Profit: "}${numberFormatter(
-                    bidAfterTax - (totalAskPrice * (1 - teaBuffs.lessResource / 100)) / droprate
-                )}${isZH ? "/个" : "/item"}, ${numberFormatter(
                     produceItemPerHour * (bidAfterTax * droprate - totalAskPrice * (1 - teaBuffs.lessResource / 100)) +
                         extraQuantityPerHour * bidAfterTax * droprate
                 )}${isZH ? "/小时" : "/hour"}, ${numberFormatter(
@@ -1616,11 +1614,11 @@
                 appendHTMLStr += `<div style="color: ${SCRIPT_COLOR_TOOLTIP}; font-size: 10px;">${
                     isZH ? "每小时生产" : "Production per hour"
                 }${Number(produceItemPerHour + extraQuantityPerHour).toFixed(1)}${isZH ? " 个" : " items"}</div>`;
-                appendHTMLStr += `<div style="color: ${SCRIPT_COLOR_TOOLTIP};">${isZH ? "利润: " : "Profit: "}${numberFormatter(bidAfterTax)}${
-                    isZH ? "/个" : "/item"
-                }, ${numberFormatter(produceItemPerHour * bidAfterTax + extraQuantityPerHour * bidAfterTax)}${
-                    isZH ? "/小时" : "/hour"
-                }, ${numberFormatter(24 * (produceItemPerHour * bidAfterTax + extraQuantityPerHour * bidAfterTax))}${isZH ? "/天" : "/day"}</div>`;
+                appendHTMLStr += `<div style="color: ${SCRIPT_COLOR_TOOLTIP};">${isZH ? "利润: " : "Profit: "}${numberFormatter(
+                    produceItemPerHour * bidAfterTax + extraQuantityPerHour * bidAfterTax
+                )}${isZH ? "/小时" : "/hour"}, ${numberFormatter(24 * (produceItemPerHour * bidAfterTax + extraQuantityPerHour * bidAfterTax))}${
+                    isZH ? "/天" : "/day"
+                }</div>`;
             }
         }
 
