@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      18.1
+// @version      18.2
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @license      CC-BY-NC-SA-4.0
@@ -1628,7 +1628,7 @@
         }
         const enName = initData_actionDetailMap[actionHrid]?.name;
         if (!enName) {
-            console.log("Can not find EN name for actionHrid " + itemHrid);
+            console.log("Can not find EN name for actionHrid " + actionHrid);
             return "";
         }
         return enName;
@@ -4693,7 +4693,7 @@
 
     function handleMarketNewOrder(node) {
         const title = getOriTextFromElement(node.querySelector(".MarketplacePanel_header__yahJo"));
-        if (!title || title.includes(" Now")) {
+        if (!title || (!title.includes(" Now") && !title.includes("立即"))) {
             return;
         }
         const label = node.querySelector("span.MarketplacePanel_bestPrice__3bgKp");
@@ -4703,9 +4703,12 @@
             return;
         }
         label.click();
-        if (getOriTextFromElement(label.parentElement).toLowerCase().includes("best buy")) {
+        if (getOriTextFromElement(label.parentElement).toLowerCase().includes("best buy") || label.parentElement.textContent.includes("购买")) {
             inputDiv.querySelectorAll(".MarketplacePanel_buttonContainer__vJQud")[2]?.querySelector("div button")?.click();
-        } else if (getOriTextFromElement(label.parentElement).toLowerCase().includes("best sell")) {
+        } else if (
+            getOriTextFromElement(label.parentElement).toLowerCase().includes("best sell") ||
+            label.parentElement.textContent.includes("出售")
+        ) {
             inputDiv.querySelectorAll(".MarketplacePanel_buttonContainer__vJQud")[1]?.querySelector("div button")?.click();
         }
     }
