@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      18.2
+// @version      18.3
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @license      CC-BY-NC-SA-4.0
@@ -965,6 +965,7 @@
         "/items/shard_of_protection": "\u4fdd\u62a4\u788e\u7247",
         "/items/mirror_of_protection": "\u4fdd\u62a4\u4e4b\u955c",
     };
+
     const ZHActionNames = {
         "/actions/milking/cow": "\u5976\u725b",
         "/actions/milking/verdant_cow": "\u7fe0\u7eff\u5976\u725b",
@@ -1595,6 +1596,81 @@
         "/actions/combat/enchanted_fortress": "\u79d8\u6cd5\u8981\u585e",
     };
 
+    const ZHOthersDic = {
+        // monsterNames
+        "/monsters/abyssal_imp": "\u6df1\u6e0a\u5c0f\u9b3c",
+        "/monsters/acrobat": "\u6742\u6280\u5e08",
+        "/monsters/aquahorse": "\u6c34\u9a6c",
+        "/monsters/black_bear": "\u9ed1\u718a",
+        "/monsters/gobo_boomy": "\u8f70\u8f70",
+        "/monsters/butterjerry": "\u8776\u9f20",
+        "/monsters/centaur_archer": "\u534a\u4eba\u9a6c\u5f13\u7bad\u624b",
+        "/monsters/chronofrost_sorcerer": "\u971c\u65f6\u5deb\u5e08",
+        "/monsters/crystal_colossus": "\u6c34\u6676\u5de8\u50cf",
+        "/monsters/demonic_overlord": "\u6076\u9b54\u9738\u4e3b",
+        "/monsters/deranged_jester": "\u5c0f\u4e11\u7687",
+        "/monsters/dodocamel": "\u6e21\u6e21\u9a7c",
+        "/monsters/dusk_revenant": "\u9ec4\u660f\u4ea1\u7075",
+        "/monsters/elementalist": "\u5143\u7d20\u6cd5\u5e08",
+        "/monsters/enchanted_bishop": "\u79d8\u6cd5\u4e4b\u76f8",
+        "/monsters/enchanted_king": "\u79d8\u6cd5\u4e4b\u738b",
+        "/monsters/enchanted_knight": "\u79d8\u6cd5\u9a91\u58eb",
+        "/monsters/enchanted_pawn": "\u79d8\u6cd5\u4e4b\u5175",
+        "/monsters/enchanted_queen": "\u79d8\u6cd5\u4e4b\u540e",
+        "/monsters/enchanted_rook": "\u79d8\u6cd5\u5821\u5792",
+        "/monsters/eye": "\u72ec\u773c",
+        "/monsters/eyes": "\u53e0\u773c",
+        "/monsters/flame_sorcerer": "\u706b\u7130\u5deb\u5e08",
+        "/monsters/fly": "\u82cd\u8747",
+        "/monsters/frog": "\u9752\u86d9",
+        "/monsters/sea_snail": "\u8717\u725b",
+        "/monsters/giant_shoebill": "\u9cb8\u5934\u9e73",
+        "/monsters/gobo_chieftain": "\u54e5\u5e03\u6797\u914b\u957f",
+        "/monsters/granite_golem": "\u82b1\u5c97\u9b54\u50cf",
+        "/monsters/griffin": "\u72ee\u9e6b",
+        "/monsters/grizzly_bear": "\u68d5\u718a",
+        "/monsters/gummy_bear": "\u8f6f\u7cd6\u718a",
+        "/monsters/crab": "\u8783\u87f9",
+        "/monsters/ice_sorcerer": "\u51b0\u971c\u5deb\u5e08",
+        "/monsters/infernal_warlock": "\u5730\u72f1\u672f\u58eb",
+        "/monsters/jackalope": "\u9e7f\u89d2\u5154",
+        "/monsters/rat": "\u6770\u745e",
+        "/monsters/juggler": "\u6742\u800d\u8005",
+        "/monsters/jungle_sprite": "\u4e1b\u6797\u7cbe\u7075",
+        "/monsters/luna_empress": "\u6708\u795e\u4e4b\u8776",
+        "/monsters/magician": "\u9b54\u672f\u5e08",
+        "/monsters/magnetic_golem": "\u78c1\u529b\u9b54\u50cf",
+        "/monsters/manticore": "\u72ee\u874e\u517d",
+        "/monsters/marine_huntress": "\u6d77\u6d0b\u730e\u624b",
+        "/monsters/myconid": "\u8611\u83c7\u4eba",
+        "/monsters/nom_nom": "\u54ac\u54ac\u9c7c",
+        "/monsters/novice_sorcerer": "\u65b0\u624b\u5deb\u5e08",
+        "/monsters/panda": "\u718a\u732b",
+        "/monsters/polar_bear": "\u5317\u6781\u718a",
+        "/monsters/porcupine": "\u8c6a\u732a",
+        "/monsters/rabid_rabbit": "\u75af\u9b54\u5154",
+        "/monsters/red_panda": "\u5c0f\u718a\u732b",
+        "/monsters/alligator": "\u590f\u6d1b\u514b",
+        "/monsters/gobo_shooty": "\u5c04\u5c04",
+        "/monsters/skunk": "\u81ed\u9f2c",
+        "/monsters/gobo_slashy": "\u5272\u5272",
+        "/monsters/slimy": "\u53f2\u83b1\u59c6",
+        "/monsters/gobo_smashy": "\u9524\u9524",
+        "/monsters/soul_hunter": "\u7075\u9b42\u730e\u624b",
+        "/monsters/gobo_stabby": "\u523a\u523a",
+        "/monsters/stalactite_golem": "\u949f\u4e73\u77f3\u9b54\u50cf",
+        "/monsters/swampy": "\u6cbc\u6cfd\u866b",
+        "/monsters/the_watcher": "\u89c2\u5bdf\u8005",
+        "/monsters/snake": "\u86c7",
+        "/monsters/treant": "\u6811\u4eba",
+        "/monsters/turtle": "\u5fcd\u8005\u9f9f",
+        "/monsters/vampire": "\u5438\u8840\u9b3c",
+        "/monsters/veyes": "\u590d\u773c",
+        "/monsters/werewolf": "\u72fc\u4eba",
+        "/monsters/zombie": "\u50f5\u5c38",
+        "/monsters/zombie_bear": "\u50f5\u5c38\u718a",
+    };
+
     function inverseKV(obj) {
         const retobj = {};
         for (const key in obj) {
@@ -1605,6 +1681,7 @@
 
     const ZHToItemHridMap = inverseKV(ZHitemNames);
     const ZHToActionHridMap = inverseKV(ZHActionNames);
+    const ZHToOthersMap = inverseKV(ZHOthersDic);
 
     function getItemEnNameFromZhName(zhName) {
         const itemHrid = ZHToItemHridMap[zhName];
@@ -1632,6 +1709,15 @@
             return "";
         }
         return enName;
+    }
+
+    function getOthersFromZhName(zhName) {
+        const key = ZHToOthersMap[zhName];
+        if (!key) {
+            console.log("Can not find EN key for " + zhName);
+            return "";
+        }
+        return key;
     }
 
     if (settingsMap.useOrangeAsMainColor.isTrue && SCRIPT_COLOR_MAIN === "green") {
@@ -3880,11 +3966,16 @@
         const taskNameDivs = document.querySelectorAll("div.RandomTask_randomTask__3B9fA div.RandomTask_name__1hl1b");
         for (const div of taskNameDivs) {
             const taskStr = getOriTextFromElement(div);
-            if (!taskStr.startsWith("Defeat ")) {
+            if (!taskStr.startsWith("Defeat - ") && !taskStr.startsWith("击败 - ")) {
                 continue;
             }
 
-            const monsterName = taskStr.replace("Defeat ", "");
+            let monsterName = taskStr.replace("Defeat - ", "").replace("击败 - ", "");
+            if (isZHInGameSetting) {
+                monsterName = getOthersFromZhName(monsterName);
+            }
+            console.log(monsterName); // todo
+
             let actionObj = null;
             for (const action of Object.values(initData_actionDetailMap)) {
                 if (action.hrid.includes("/combat/")) {
