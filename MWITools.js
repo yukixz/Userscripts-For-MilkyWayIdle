@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      18.0
+// @version      18.1
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @license      CC-BY-NC-SA-4.0
@@ -3448,7 +3448,7 @@
     }
 
     function getTotalTimeStr(input, duration, effBuff) {
-        if (input === "unlimited") {
+        if (input === "∞") {
             return "[∞]";
         } else if (isNaN(input)) {
             return "Error";
@@ -3539,7 +3539,7 @@
         findElem();
         function findElem() {
             tryTimes++;
-            let elem = document.querySelector(".BattlePanel_gainedExp__3SaCa");
+            let elem = document.querySelector(".BattlePanel_gainedExp__3SaCa").parentElement;
             if (elem) {
                 // 战斗时长和次数
                 let battleDurationSec = null;
@@ -3557,7 +3557,7 @@
                         battleDurationSec = days * 86400 + hours * 3600 + minutes * 60 + seconds;
                         let efficiencyPerHour = ((battles / battleDurationSec) * 3600).toFixed(1);
                         elem.insertAdjacentHTML(
-                            "afterend",
+                            "beforeend",
                             `<div id="script_battleNumbers" style="color: ${SCRIPT_COLOR_MAIN};">${
                                 isZH ? "每小时战斗: " : "Encounters/hour: "
                             }${efficiencyPerHour}${isZH ? " 次" : ""}</div>`
@@ -3629,8 +3629,8 @@
                         let str = skillName.charAt(0).toUpperCase() + skillName.slice(1);
                         document
                             .querySelector("div#script_totalSkillsExp")
-                            .parentElement.insertAdjacentHTML(
-                                "beforeend",
+                            .insertAdjacentHTML(
+                                "afterend",
                                 `<div style="color: ${SCRIPT_COLOR_MAIN};">${isZH ? "每小时" : ""}${str}${
                                     isZH ? "经验: " : " exp/hour: "
                                 }${numberFormatter(value / (battleDurationSec / 60 / 60))}</div>`
@@ -4388,7 +4388,7 @@
         item_hrid: null,
         stop_at: null,
 
-        enhancing_level: 95, // 人物 Enhancing 技能等级
+        enhancing_level: 100, // 人物 Enhancing 技能等级
         laboratory_level: 4, // 房子等级
         enhancer_bonus: 4.64, // 工具提高成功率，0级=3.6，5级=4.03，10级=4.64
         glove_bonus: 11.2, // 手套提高强化速度，0级=10，5级=11.2，10级=12.9
