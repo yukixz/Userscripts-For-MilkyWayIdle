@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      17.9
+// @version      18.0
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @license      CC-BY-NC-SA-4.0
@@ -22,15 +22,15 @@
 
 (() => {
     "use strict";
-    const userLanguage = navigator.language || navigator.userLanguage;
-    let isZH = userLanguage.startsWith("zh");
     const sampleNumber = 1111.1;
     const sampleLocaleNumber = new Intl.NumberFormat().format(sampleNumber);
     const THOUSAND_SEPERATOR = sampleLocaleNumber.replaceAll("1", "").at(0);
     const DECIMAL_SEPERATOR = sampleLocaleNumber.replaceAll("1", "").at(1);
 
-    const isZHInGameSetting = localStorage.getItem("i18nextLng") === "zh"; // 游戏设置语言
-    isZH = isZHInGameSetting;
+    // const userLanguage = navigator.language || navigator.userLanguage;
+    // let isZH = userLanguage.startsWith("zh");
+    const isZHInGameSetting = localStorage.getItem("i18nextLng").startsWith("zh"); // 游戏设置语言 zh, zh-CN
+    const isZH = isZHInGameSetting; // MWITools 显示的语言完全由游戏内设置语言决定，游戏内设置为中文则为中文，否则为英语
 
     /* 自定义插件字体颜色 */
     /* 找颜色自行网上搜索"CSS颜色" */
