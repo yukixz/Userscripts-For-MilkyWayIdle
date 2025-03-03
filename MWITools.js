@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      18.6
+// @version      18.7
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @license      CC-BY-NC-SA-4.0
@@ -1714,7 +1714,7 @@
     function getOthersFromZhName(zhName) {
         const key = ZHToOthersMap[zhName];
         if (!key) {
-            console.log("Can not find EN key for " + zhName);
+            // console.log("Can not find EN key for " + zhName);
             return "";
         }
         return key;
@@ -3965,21 +3965,27 @@
     function handleTaskCard() {
         const taskNameDivs = document.querySelectorAll("div.RandomTask_randomTask__3B9fA div.RandomTask_name__1hl1b");
         for (const div of taskNameDivs) {
+            if (div.querySelector("span.script_taskMapIndex")) {
+                continue;
+            }
+
             const taskStr = getOriTextFromElement(div);
             if (!taskStr.startsWith("Defeat - ") && !taskStr.startsWith("击败 - ")) {
                 continue;
             }
 
             let monsterName = taskStr.replace("Defeat - ", "").replace("击败 - ", "");
+            let monsterHrid = null;
             if (isZHInGameSetting) {
-                monsterName = getOthersFromZhName(monsterName);
+                monsterHrid = (
+                    getOthersFromZhName(monsterName) ? getOthersFromZhName(monsterName) : getActionEnNameFromZhName(monsterName)
+                )?.replaceAll("/monsters/", "/actions/combat/");
             }
-            console.log(monsterName); // todo
 
             let actionObj = null;
             for (const action of Object.values(initData_actionDetailMap)) {
                 if (action.hrid.includes("/combat/")) {
-                    if (action.name === monsterName) {
+                    if (action.hrid === monsterHrid || action.name.toLowerCase() === monsterName.toLowerCase()) {
                         actionObj = action;
                         break;
                     } else if (action.combatZoneInfo.fightInfo.battlesPerBoss === 10) {
@@ -3994,14 +4000,10 @@
             const actionCategoryHrid = actionObj?.category;
             const index = initData_actionCategoryDetailMap?.[actionCategoryHrid]?.sortIndex;
             if (index) {
-                if (!div.querySelector("span.script_taskMapIndex")) {
-                    div.insertAdjacentHTML(
-                        "beforeend",
-                        `<span class="script_taskMapIndex" style="text-align: right; color: ${SCRIPT_COLOR_MAIN};"> ${
-                            isZH ? "图" : "Z"
-                        }${index}</span>`
-                    );
-                }
+                div.insertAdjacentHTML(
+                    "beforeend",
+                    `<span class="script_taskMapIndex" style="text-align: right; color: ${SCRIPT_COLOR_MAIN};"> ${isZH ? "图" : "Z"}${index}</span>`
+                );
             }
         }
     }
