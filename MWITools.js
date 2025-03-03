@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      18.9
+// @version      19.0
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @license      CC-BY-NC-SA-4.0
@@ -1669,6 +1669,63 @@
         "/monsters/werewolf": "\u72fc\u4eba",
         "/monsters/zombie": "\u50f5\u5c38",
         "/monsters/zombie_bear": "\u50f5\u5c38\u718a",
+
+        // abilityNames
+        "/abilities/poke": "\u7834\u80c6\u4e4b\u523a",
+        "/abilities/impale": "\u900f\u9aa8\u4e4b\u523a",
+        "/abilities/puncture": "\u7834\u7532\u4e4b\u523a",
+        "/abilities/penetrating_strike": "\u8d2f\u5fc3\u4e4b\u523a",
+        "/abilities/scratch": "\u722a\u5f71\u65a9",
+        "/abilities/cleave": "\u5206\u88c2\u65a9",
+        "/abilities/maim": "\u8840\u5203\u65a9",
+        "/abilities/crippling_slash": "\u81f4\u6b8b\u65a9",
+        "/abilities/smack": "\u91cd\u78be",
+        "/abilities/sweep": "\u91cd\u626b",
+        "/abilities/stunning_blow": "\u91cd\u9524",
+        "/abilities/quick_shot": "\u5feb\u901f\u5c04\u51fb",
+        "/abilities/aqua_arrow": "\u6d41\u6c34\u7bad",
+        "/abilities/flame_arrow": "\u70c8\u7130\u7bad",
+        "/abilities/rain_of_arrows": "\u7bad\u96e8",
+        "/abilities/silencing_shot": "\u6c89\u9ed8\u4e4b\u7bad",
+        "/abilities/steady_shot": "\u7a33\u5b9a\u5c04\u51fb",
+        "/abilities/pestilent_shot": "\u75ab\u75c5\u5c04\u51fb",
+        "/abilities/penetrating_shot": "\u8d2f\u7a7f\u5c04\u51fb",
+        "/abilities/water_strike": "\u6d41\u6c34\u51b2\u51fb",
+        "/abilities/ice_spear": "\u51b0\u67aa\u672f",
+        "/abilities/frost_surge": "\u51b0\u971c\u7206\u88c2",
+        "/abilities/mana_spring": "\u6cd5\u529b\u55b7\u6cc9",
+        "/abilities/entangle": "\u7f20\u7ed5",
+        "/abilities/toxic_pollen": "\u5267\u6bd2\u7c89\u5c18",
+        "/abilities/natures_veil": "\u81ea\u7136\u83cc\u5e55",
+        "/abilities/fireball": "\u706b\u7403",
+        "/abilities/flame_blast": "\u7194\u5ca9\u7206\u88c2",
+        "/abilities/firestorm": "\u706b\u7130\u98ce\u66b4",
+        "/abilities/smoke_burst": "\u70df\u7206\u706d\u5f71",
+        "/abilities/minor_heal": "\u521d\u7ea7\u81ea\u6108\u672f",
+        "/abilities/heal": "\u81ea\u6108\u672f",
+        "/abilities/quick_aid": "\u5feb\u901f\u6cbb\u7597\u672f",
+        "/abilities/rejuvenate": "\u7fa4\u4f53\u6cbb\u7597\u672f",
+        "/abilities/taunt": "\u5632\u8bbd",
+        "/abilities/provoke": "\u6311\u8845",
+        "/abilities/toughness": "\u575a\u97e7",
+        "/abilities/elusiveness": "\u95ea\u907f",
+        "/abilities/precision": "\u7cbe\u786e",
+        "/abilities/berserk": "\u72c2\u66b4",
+        "/abilities/frenzy": "\u72c2\u901f",
+        "/abilities/elemental_affinity": "\u5143\u7d20\u589e\u5e45",
+        "/abilities/spike_shell": "\u5c16\u523a\u9632\u62a4",
+        "/abilities/arcane_reflection": "\u5965\u672f\u53cd\u5c04",
+        "/abilities/vampirism": "\u5438\u8840",
+        "/abilities/revive": "\u590d\u6d3b",
+        "/abilities/insanity": "\u75af\u72c2",
+        "/abilities/invincible": "\u65e0\u654c",
+        "/abilities/fierce_aura": "\u7269\u7406\u5149\u73af",
+        "/abilities/aqua_aura": "\u6d41\u6c34\u5149\u73af",
+        "/abilities/sylvan_aura": "\u81ea\u7136\u5149\u73af",
+        "/abilities/flame_aura": "\u706b\u7130\u5149\u73af",
+        "/abilities/speed_aura": "\u901f\u5ea6\u5149\u73af",
+        "/abilities/critical_aura": "\u66b4\u51fb\u5149\u73af",
+        "/abilities/promote": "\u664b\u5347",
     };
 
     function inverseKV(obj) {
@@ -4051,20 +4108,25 @@
     };
 
     function handleItemDict(panel) {
-        const itemName = getOriTextFromElement(panel.querySelector("h1.ItemDictionary_title__27cTd"))
-            .toLowerCase()
-            .replaceAll(" ", "_")
-            .replaceAll("'", "");
         let abilityHrid = null;
-        for (const skillHrid of Object.keys(initData_abilityDetailMap)) {
-            if (skillHrid.includes("/" + itemName)) {
-                abilityHrid = skillHrid;
+        if (isZHInGameSetting) {
+            abilityHrid = getOthersFromZhName(panel.querySelector("h1.ItemDictionary_title__27cTd").textContent);
+        } else {
+            const itemName = getOriTextFromElement(panel.querySelector("h1.ItemDictionary_title__27cTd"))
+                .toLowerCase()
+                .replaceAll(" ", "_")
+                .replaceAll("'", "");
+            for (const skillHrid of Object.keys(initData_abilityDetailMap)) {
+                if (skillHrid.includes("/" + itemName)) {
+                    abilityHrid = skillHrid;
+                }
             }
         }
         if (!abilityHrid) {
             return;
         }
-        const itemHrid = "/items/" + itemName;
+
+        const itemHrid = abilityHrid.replace("/abilities/", "/items/");
         const abilityPerBookExp = initData_itemDetailMap[itemHrid]?.abilityBookDetail?.experienceGain;
 
         let currentLevel = 0;
