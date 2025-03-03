@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      19.1
+// @version      19.2
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @license      CC-BY-NC-SA-4.0
@@ -4035,9 +4035,9 @@
             }
 
             let monsterName = taskStr.replace("Defeat - ", "").replace("击败 - ", "");
-            let monsterHrid = null;
+            let actionHrid = null;
             if (isZHInGameSetting) {
-                monsterHrid = (
+                actionHrid = (
                     getOthersFromZhName(monsterName) ? getOthersFromZhName(monsterName) : getActionEnNameFromZhName(monsterName)
                 )?.replaceAll("/monsters/", "/actions/combat/");
             }
@@ -4045,12 +4045,16 @@
             let actionObj = null;
             for (const action of Object.values(initData_actionDetailMap)) {
                 if (action.hrid.includes("/combat/")) {
-                    if (action.hrid === monsterHrid || action.name.toLowerCase() === monsterName.toLowerCase()) {
+                    if (action.hrid === actionHrid || action.name.toLowerCase() === monsterName.toLowerCase()) {
                         actionObj = action;
                         break;
                     } else if (action.combatZoneInfo.fightInfo.battlesPerBoss === 10) {
-                        const monsterHrid = "/monsters/" + monsterName.toLowerCase().replaceAll(" ", "_");
-                        if (monsterHrid === action.combatZoneInfo.fightInfo.bossSpawns[0].combatMonsterHrid) {
+                        if (
+                            actionHrid?.replaceAll("/actions/combat/", "/monsters/") ===
+                                action.combatZoneInfo.fightInfo.bossSpawns[0].combatMonsterHrid ||
+                            "/monsters/" + monsterName.toLowerCase().replaceAll(" ", "_") ===
+                                action.combatZoneInfo.fightInfo.bossSpawns[0].combatMonsterHrid
+                        ) {
                             actionObj = action;
                             break;
                         }
