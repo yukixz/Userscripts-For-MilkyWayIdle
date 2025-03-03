@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      19.0
+// @version      19.1
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @license      CC-BY-NC-SA-4.0
@@ -27,10 +27,8 @@
     const THOUSAND_SEPERATOR = sampleLocaleNumber.replaceAll("1", "").at(0);
     const DECIMAL_SEPERATOR = sampleLocaleNumber.replaceAll("1", "").at(1);
 
-    // const userLanguage = navigator.language || navigator.userLanguage;
-    // let isZH = userLanguage.startsWith("zh");
-    const isZHInGameSetting = !localStorage.getItem("i18nextLng")?.toLowerCase()?.startsWith("en");
-    const isZH = isZHInGameSetting; // MWITools 显示的语言完全由游戏内设置语言决定，游戏内设置为中文则为中文，否则为英语
+    const isZHInGameSetting = !localStorage.getItem("i18nextLng")?.toLowerCase()?.startsWith("en"); // 获取游戏内设置是否为英语
+    let isZH = isZHInGameSetting; // MWITools 本身显示的语言默认由游戏内设置语言决定
 
     /* 自定义插件字体颜色 */
     /* 找颜色自行网上搜索"CSS颜色" */
@@ -229,6 +227,11 @@
                 ? "战斗时，悬浮窗显示：伤害统计图表 [依赖上一项]"
                 : "Floating window during combat: DPS chart. [Depends on the previous selection]",
             isTrue: true,
+        },
+        forceMWIToolsDisplayZH: {
+            id: "forceMWIToolsDisplayZH",
+            desc: isZH ? "MWITools本身强制显示中文 MWITools always in Chinese" : "MWITools本身强制显示中文 MWITools always in Chinese",
+            isTrue: false,
         },
     };
     readSettings();
@@ -4743,6 +4746,10 @@
                     settingsMap[option.id].isTrue = option.isTrue;
                 }
             }
+        }
+
+        if (settingsMap.forceMWIToolsDisplayZH.isTrue) {
+            isZH = true; // For Traditional Chinese users.
         }
     }
 
