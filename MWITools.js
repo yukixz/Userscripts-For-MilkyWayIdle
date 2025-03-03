@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      19.2
+// @version      19.3
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @license      CC-BY-NC-SA-4.0
@@ -3770,18 +3770,27 @@
                             }${numberFormatter(totalSkillsExp / (battleDurationSec / 60 / 60))}</div>`
                         );
 
-                    for (const [key, value] of Object.entries(message.unit.totalSkillExperienceMap)) {
-                        let skillName = key.replace("/skills/", "");
-                        let str = skillName.charAt(0).toUpperCase() + skillName.slice(1);
-                        document
-                            .querySelector("div#script_totalSkillsExp")
-                            .insertAdjacentHTML(
-                                "afterend",
-                                `<div style="color: ${SCRIPT_COLOR_MAIN};">${isZH ? "每小时" : ""}${str}${
-                                    isZH ? "经验: " : " exp/hour: "
-                                }${numberFormatter(value / (battleDurationSec / 60 / 60))}</div>`
-                            );
-                    }
+                    [
+                        { skillHrid: "/skills/magic", zhName: "魔法", enName: "Magic" },
+                        { skillHrid: "/skills/ranged", zhName: "远程", enName: "Ranged" },
+                        { skillHrid: "/skills/defense", zhName: "防御", enName: "Defense" },
+                        { skillHrid: "/skills/power", zhName: "力量", enName: "Power" },
+                        { skillHrid: "/skills/attack", zhName: "攻击", enName: "Attack" },
+                        { skillHrid: "/skills/intelligence", zhName: "智力", enName: "Intelligence" },
+                        { skillHrid: "/skills/stamina", zhName: "耐力", enName: "Stamina" },
+                    ].forEach((skill) => {
+                        const expGained = message.unit.totalSkillExperienceMap[skill.skillHrid];
+                        if (expGained) {
+                            document
+                                .querySelector("div#script_totalSkillsExp")
+                                .insertAdjacentHTML(
+                                    "afterend",
+                                    `<div style="color: ${SCRIPT_COLOR_MAIN};">${isZH ? "每小时" : ""}${isZH ? skill.zhName : skill.enName}${
+                                        isZH ? "经验: " : " exp/hour: "
+                                    }${numberFormatter(expGained / (battleDurationSec / 60 / 60))}</div>`
+                                );
+                        }
+                    });
                 } else {
                     console.error("handleBattleSummary unable to display average exp due to null battleDurationSec");
                 }
