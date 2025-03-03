@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      19.3
+// @version      19.4
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @license      CC-BY-NC-SA-4.0
@@ -3183,6 +3183,12 @@
     }
 
     async function fetchMarketJSON(forceFetch = false) {
+        // console.log("-----")
+        // console.log(GM.xmlHttpRequest); // Tamper promise based
+        // console.log(GM_xmlhttpRequest); // Tamper
+        // console.log(GM.xmlHttpRequest); // Grease 4.0+
+        // console.log("-----")
+
         // Broswer does not support fetch
         const sendRequest = GM.xmlHttpRequest || GM_xmlhttpRequest;
         if (typeof sendRequest != "function") {
@@ -3211,36 +3217,30 @@
 
         // Start fetch
         console.log("fetchMarketJSON fetch github start");
-        let jsonStr = null;
-        jsonStr = await new Promise((resolve, reject) => {
-            sendRequest({
-                url: MARKET_API_URL,
-                method: "GET",
-                synchronous: true,
-                timeout: 5000,
-                onload: async (response) => {
-                    if (response.status == 200) {
-                        console.log("fetchMarketJSON fetch github success 200");
-                        resolve(response.responseText);
-                    } else {
-                        console.error("fetchMarketJSON fetch github onload with HTTP status failure " + response.status);
-                        resolve(null);
-                    }
-                },
-                onabort: () => {
-                    console.error("fetchMarketJSON fetch github onabort");
-                    resolve(null);
-                },
-                onerror: () => {
-                    console.error("fetchMarketJSON fetch github onerror");
-                    resolve(null);
-                },
-                ontimeout: () => {
-                    console.error("fetchMarketJSON fetch github ontimeout");
-                    resolve(null);
-                },
-            });
+        const response = await sendRequest({
+            url: MARKET_API_URL,
+            method: "GET",
+            synchronous: true,
+            timeout: 5000,
+            onload: (response) => {
+                if (response.status == 200) {
+                    console.log("fetchMarketJSON fetch github success 200");
+                } else {
+                    console.error("fetchMarketJSON fetch github onload with HTTP status failure " + response.status);
+                }
+            },
+            onabort: () => {
+                console.error("fetchMarketJSON fetch github onabort");
+            },
+            onerror: () => {
+                console.error("fetchMarketJSON fetch github onerror");
+            },
+            ontimeout: () => {
+                console.error("fetchMarketJSON fetch github ontimeout");
+            },
         });
+
+        let jsonStr = response?.status === 200 ? response.responseText : null;
 
         // Fetch failed
         if (!jsonStr) {
