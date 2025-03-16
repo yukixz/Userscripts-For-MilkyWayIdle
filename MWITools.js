@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      19.7
+// @version      19.8
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @license      CC-BY-NC-SA-4.0
@@ -60,6 +60,8 @@
         observeResultsForAmvoidguy();
         return;
     } else if (document.URL.includes("shykai.github.io/mwisim")) {
+        addImportButtonFor9Battles();
+        observeResultsForAmvoidguy();
         return;
     }
 
@@ -5295,7 +5297,7 @@
                 button.textContent = isZH
                     ? "单人/组队导入(刷新游戏网页更新人物数据)"
                     : "Import solo/group (Refresh game page to update character set)";
-                button.style.backgroundColor = "green";
+                button.style.backgroundColor = SCRIPT_COLOR_MAIN;
                 button.style.padding = "5px";
                 button.onclick = function () {
                     console.log("Importer: Import button onclick");
@@ -5377,6 +5379,51 @@
                 document.querySelector(`button#buttonStartSimulation`).click();
             }, 500);
         }
+    }
+
+    /* 为 9战模拟网站 添加导入按钮 */
+    function addImportButtonFor9Battles() {
+        const checkElem = () => {
+            const selectedElement = document.querySelector(`button#buttonImportExport`);
+            if (selectedElement) {
+                clearInterval(timer);
+                let button = document.createElement("button");
+                selectedElement.parentNode.parentElement.parentElement.insertBefore(button, selectedElement.parentElement.parentElement.nextSibling);
+                button.textContent = isZH ? "导入自己(刷新游戏网页更新人物数据)" : "Import Self(Refresh game page to update character set)";
+                button.style.backgroundColor = SCRIPT_COLOR_MAIN;
+                button.style.padding = "5px";
+                button.onclick = function () {
+                    console.log("Importer: Import button onclick");
+                    const getPriceButton = document.querySelector(`button#buttonGetPrices`);
+                    if (getPriceButton) {
+                        console.log("Click getPriceButton");
+                        getPriceButton.click();
+                    }
+                    importDataFor9Battles(button);
+                    return false;
+                };
+            }
+        };
+        let timer = setInterval(checkElem, 200);
+    }
+
+    async function importDataFor9Battles(button) {
+        const characterObj = JSON.parse(GM_getValue("init_character_data", ""));
+        const clientObj = JSON.parse(GM_getValue("init_client_data", ""));
+        console.log(characterObj);
+        console.log(clientObj);
+
+        const json = constructSelfPlayerExportObjFromInitCharacterData(characterObj, clientObj);
+        console.log(json);
+
+        const importInputElem = document.querySelector(`input#inputSet`);
+        importInputElem.value = JSON.stringify(json);
+        document.querySelector(`button#buttonImportSet`).click();
+
+        button.textContent = isZH ? "已导入" : "Imported";
+        // setTimeout(() => {
+        //     document.querySelector(`button#buttonStartSimulation`).click();
+        // }, 500);
     }
 
     function constructGroupExportObj() {
