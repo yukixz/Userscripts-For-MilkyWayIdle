@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      19.6
+// @version      19.7
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @license      CC-BY-NC-SA-4.0
@@ -4245,7 +4245,7 @@
                     div.style.color = SCRIPT_COLOR_MAIN;
                     div.innerHTML = isZH ? "中文利润网站" : "中文利润网站";
                     div.addEventListener("click", () => {
-                        window.open("https://luyh7.github.io/milkonomy/#/dashboard", "_blank");
+                        window.open("https://milkonomy.pages.dev/", "_blank");
                     });
                     targetNode.insertAdjacentElement("afterbegin", div);
 
