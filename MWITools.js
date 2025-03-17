@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      20.3
+// @version      20.4
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @license      CC-BY-NC-SA-4.0
@@ -9,6 +9,7 @@
 // @match        https://test.milkywayidle.com/*
 // @match        https://amvoidguy.github.io/MWICombatSimulatorTest/*
 // @match        https://shykai.github.io/mwisim.github.io/*
+// @match        https://shykai.github.io/MWICombatSimulatorTest/dist/
 // @grant        GM_addStyle
 // @grant        GM.xmlHttpRequest
 // @grant        GM_xmlhttpRequest
@@ -244,9 +245,7 @@
     readSettings();
 
     // 非游戏网站
-    if (document.URL.includes("amvoidguy.github.io")) {
-        // Customization
-        // Features for https://amvoidguy.github.io/MWICombatSimulatorTest/. Remove the following two lines of code to disable.
+    if (document.URL.includes("amvoidguy.github.io") || document.URL.includes("shykai.github.io/MWICombatSimulatorTest/")) {
         addImportButtonForAmvoidguy();
         observeResultsForAmvoidguy();
         return;
@@ -4348,9 +4347,14 @@
                 div = document.createElement("div");
                 div.setAttribute("class", "NavigationBar_minorNavigationLink__31K7Y");
                 div.style.color = SCRIPT_COLOR_MAIN;
-                div.innerHTML = isZH ? "战斗模拟 AmVoidGuy" : "Combat sim AmVoidGuy";
+                div.innerHTML = isZH ? "战斗模拟 AmVoidGuy-shykai" : "Combat sim AmVoidGuy";
                 div.addEventListener("click", () => {
-                    window.open("https://amvoidguy.github.io/MWICombatSimulatorTest/dist/index.html", "_blank");
+                    window.open(
+                        isZH
+                            ? "https://shykai.github.io/MWICombatSimulatorTest/dist/"
+                            : "https://amvoidguy.github.io/MWICombatSimulatorTest/dist/index.html",
+                        "_blank"
+                    );
                 });
                 targetNode.insertAdjacentElement("afterbegin", div);
             } else {
