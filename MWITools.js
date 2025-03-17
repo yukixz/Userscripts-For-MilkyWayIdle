@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      20.4
+// @version      20.5
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @license      CC-BY-NC-SA-4.0
@@ -3379,6 +3379,7 @@
         newName = newName.replace("Cowing", "Milking");
         newName = newName.replace("Rainbow Cow", "Unicow");
         newName = newName.replace("Collector's Boots", "Collectors Boots");
+        newName = newName.replace("Knight's Aegis", "Knights Aegis");
         if (!initData_actionDetailMap) {
             console.error("getActionHridFromItemName no initData_actionDetailMap: " + name);
             return null;
