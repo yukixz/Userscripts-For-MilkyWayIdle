@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      20.2
+// @version      20.3
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @license      CC-BY-NC-SA-4.0
@@ -6164,26 +6164,33 @@
                 button.style.boxShadow = "none";
                 button.style.border = "0px";
                 button.onclick = function () {
+                    let exportString = "";
                     const playerID = obj.profile.characterSkills[0].characterID;
                     const clientObj = JSON.parse(GM_getValue("init_client_data", ""));
+                    const characterObj = JSON.parse(GM_getValue("init_character_data", ""));
                     const battleObj = JSON.parse(GM_getValue("new_battle", ""));
-                    const storedProfileList = JSON.parse(GM_getValue("profile_export_list", "[]"));
 
-                    const profileList = storedProfileList.filter((item) => item.characterID === playerID);
-                    let profile = null;
-                    if (profileList.length !== 1) {
-                        console.log("Can not find stored profile for " + playerID);
-                        return;
+                    if (playerID === characterObj.character.id) {
+                        exportString = JSON.stringify(constructSelfPlayerExportObjFromInitCharacterData(characterObj, clientObj));
+                    } else {
+                        const storedProfileList = JSON.parse(GM_getValue("profile_export_list", "[]"));
+                        const profileList = storedProfileList.filter((item) => item.characterID === playerID);
+                        let profile = null;
+                        if (profileList.length !== 1) {
+                            console.log("Can not find stored profile for " + playerID);
+                            return;
+                        }
+                        profile = profileList[0];
+
+                        const battlePlayerList = battleObj.players.filter((item) => item.character.id === playerID);
+                        let battlePlayer = null;
+                        if (battlePlayerList.length === 1) {
+                            battlePlayer = battlePlayerList[0];
+                        }
+
+                        exportString = JSON.stringify(constructPlayerExportObjFromStoredProfile(profile, clientObj, battlePlayer));
                     }
-                    profile = profileList[0];
 
-                    const battlePlayerList = battleObj.players.filter((item) => item.character.id === playerID);
-                    let battlePlayer = null;
-                    if (battlePlayerList.length === 1) {
-                        battlePlayer = battlePlayerList[0];
-                    }
-
-                    const exportString = JSON.stringify(constructPlayerExportObjFromStoredProfile(profile, clientObj, battlePlayer));
                     console.log(exportString);
                     navigator.clipboard.writeText(exportString);
                     button.textContent = isZH ? "已复制" : "Copied";
