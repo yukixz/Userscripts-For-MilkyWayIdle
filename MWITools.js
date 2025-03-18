@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      20.5
+// @version      20.6
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @license      CC-BY-NC-SA-4.0
@@ -3002,19 +3002,22 @@
 
     async function handleTooltipItem(tooltip) {
         const itemNameElems = tooltip.querySelectorAll("div.ItemTooltipText_name__2JAHA span");
+
+        // 带强化等级的物品单独处理
         if (itemNameElems.length > 1) {
             handleItemTooltipWithEnhancementLevel(tooltip);
             return;
         }
+
         const itemNameElem = itemNameElems[0];
         let itemName = getOriTextFromElement(itemNameElem);
         if (isZHInGameSetting) {
             itemName = getItemEnNameFromZhName(itemName);
         }
 
-        const amountSpan = tooltip.querySelectorAll("span")[1];
         let amount = 0;
         let insertAfterElem = null;
+        const amountSpan = tooltip.querySelectorAll("span")[1];
         if (amountSpan) {
             amount = +getOriTextFromElement(amountSpan).split(": ")[1].replaceAll(THOUSAND_SEPERATOR, "");
             insertAfterElem = amountSpan.parentNode.nextSibling;
@@ -3023,18 +3026,18 @@
         }
 
         let appendHTMLStr = "";
-        let jsonObj = null;
+        let marketJson = null;
         let ask = null;
         let bid = null;
 
+        // 物品市场价格
         if (settingsMap.itemTooltip_prices.isTrue) {
-            jsonObj = await fetchMarketJSON();
-            if (!jsonObj || !jsonObj.market) {
+            marketJson = await fetchMarketJSON();
+            if (!marketJson || !marketJson.market) {
                 console.error("jsonObj null");
             }
-            // 市场价格
-            ask = jsonObj?.market[itemName]?.ask;
-            bid = jsonObj?.market[itemName]?.bid;
+            ask = marketJson?.market[itemName]?.ask;
+            bid = marketJson?.market[itemName]?.bid;
             appendHTMLStr += `
         <div style="color: ${SCRIPT_COLOR_TOOLTIP};">${isZH ? "日均价: " : "Daily average price: "}${numberFormatter(ask)} / ${numberFormatter(
                 bid
@@ -3042,8 +3045,8 @@
         `;
         }
 
+        // 消耗品回复计算
         if (settingsMap.showConsumTips.isTrue) {
-            // 消耗品回复计算
             let itemDetail = null;
             for (const item of Object.values(initData_itemDetailMap)) {
                 if (item.name === itemName) {
@@ -3074,157 +3077,145 @@
         }
 
         // 生产利润计算
-        if (settingsMap.itemTooltip_profit.isTrue && jsonObj) {
-            if (
-                getActionHridFromItemName(itemName) &&
+        if (
+            settingsMap.itemTooltip_profit.isTrue &&
+            marketJson &&
+            getActionHridFromItemName(itemName) &&
+            initData_actionDetailMap &&
+            initData_itemDetailMap
+        ) {
+            // 区分生产类动作和采集类动作
+            const isProduction =
                 initData_actionDetailMap[getActionHridFromItemName(itemName)].inputItems &&
-                initData_actionDetailMap[getActionHridFromItemName(itemName)].inputItems.length > 0 &&
-                initData_actionDetailMap &&
-                initData_itemDetailMap
-            ) {
-                // 制造类技能
-                const actionHrid = getActionHridFromItemName(itemName);
-                const inputItems = JSON.parse(JSON.stringify(initData_actionDetailMap[actionHrid].inputItems));
-                const upgradedFromItemHrid = initData_actionDetailMap[actionHrid]?.upgradeItemHrid;
-                if (upgradedFromItemHrid) {
-                    inputItems.push({ itemHrid: upgradedFromItemHrid, count: 1 });
+                initData_actionDetailMap[getActionHridFromItemName(itemName)].inputItems.length > 0;
+
+            const actionHrid = getActionHridFromItemName(itemName);
+            // 茶效率
+            const teaBuffs = getTeaBuffsByActionHrid(actionHrid);
+
+            // 原料信息
+            let inputItems = [];
+            let totalResourcesAskPrice = 0;
+            let totalResourcesBidPrice = 0;
+
+            if (isProduction) {
+                inputItems = JSON.parse(JSON.stringify(initData_actionDetailMap[actionHrid].inputItems));
+                for (const item of inputItems) {
+                    item.name = initData_itemDetailMap[item.itemHrid].name;
+                    item.perAskPrice = marketJson?.market[item.name]?.ask;
+                    item.perBidPrice = marketJson?.market[item.name]?.bid;
+                    totalResourcesAskPrice += item.perAskPrice * item.count;
+                    totalResourcesBidPrice += item.perBidPrice * item.count;
                 }
 
-                let totalAskPrice = 0;
-                let totalBidPrice = 0;
-                for (let item of inputItems) {
-                    item.name = initData_itemDetailMap[item.itemHrid].name;
-                    item.perAskPrice = jsonObj?.market[item.name]?.ask;
-                    item.perBidPrice = jsonObj?.market[item.name]?.bid;
-                    totalAskPrice += item.perAskPrice * item.count;
-                    totalBidPrice += item.perBidPrice * item.count;
+                // 茶减少原料消耗（对于升级物品，不影响上一级物品消耗）
+                const lessResourceBuff = teaBuffs.lessResource;
+                totalResourcesAskPrice *= 1 - lessResourceBuff / 100;
+                totalResourcesBidPrice *= 1 - lessResourceBuff / 100;
+
+                // 上级物品作为原料
+                const upgradedFromItemHrid = initData_actionDetailMap[actionHrid]?.upgradeItemHrid;
+                let upgradedFromItemName = null;
+                let upgradedFromItemAsk = null;
+                let upgradedFromItemBid = null;
+                if (upgradedFromItemHrid) {
+                    upgradedFromItemName = initData_itemDetailMap[upgradedFromItemHrid].name;
+                    upgradedFromItemAsk += marketJson?.market[upgradedFromItemName]?.ask;
+                    upgradedFromItemBid += marketJson?.market[upgradedFromItemName]?.bid;
+                    totalResourcesAskPrice += upgradedFromItemAsk;
+                    totalResourcesBidPrice += upgradedFromItemBid;
                 }
 
                 appendHTMLStr += `<div style="color: ${SCRIPT_COLOR_TOOLTIP}; font-size: 10px;">${
-                    isZH ? "原料: " : "Source materials: "
-                }${numberFormatter(totalAskPrice)}  / ${numberFormatter(totalBidPrice)}</div>`;
+                    isZH ? "原料（不包含buff效果）: " : "Source materials(Not including buff effects): "
+                }${numberFormatter(totalResourcesAskPrice)}  / ${numberFormatter(totalResourcesBidPrice)}</div>`;
+
                 for (const item of inputItems) {
                     appendHTMLStr += `
-                <div style="color: ${SCRIPT_COLOR_TOOLTIP}; font-size: 10px;"> ${item.name} x${item.count}: ${numberFormatter(
+                    <div style="color: ${SCRIPT_COLOR_TOOLTIP}; font-size: 10px;"> ${item.name} x${item.count}: ${numberFormatter(
                         item.perAskPrice
                     )} / ${numberFormatter(item.perBidPrice)}</div>
-                `;
+                    `;
                 }
 
-                // 基础每小时生产数量
-                const baseTimePerActionSec = initData_actionDetailMap[actionHrid].baseTimeCost / 1000000000;
-                const toolPercent = getToolsSpeedBuffByActionHrid(actionHrid);
-                const actualTimePerActionSec = baseTimePerActionSec / (1 + toolPercent / 100);
-                let produceItemPerHour = 3600 / actualTimePerActionSec;
-                // 基础掉率
-                let droprate = initData_actionDetailMap[actionHrid].outputItems[0].count;
-                // 等级碾压提高效率
-                const requiredLevel = initData_actionDetailMap[actionHrid].levelRequirement.level;
-                let currentLevel = requiredLevel;
-                for (const skill of initData_characterSkills) {
-                    if (skill.skillHrid === initData_actionDetailMap[actionHrid].levelRequirement.skillHrid) {
-                        currentLevel = skill.level;
-                        break;
-                    }
+                if (upgradedFromItemHrid) {
+                    appendHTMLStr += `
+                    <div style="color: ${SCRIPT_COLOR_TOOLTIP}; font-size: 10px;"> ${upgradedFromItemName}: ${numberFormatter(
+                        totalResourcesAskPrice
+                    )} / ${numberFormatter(upgradedFromItemBid)}</div>
+                    `;
                 }
-                const levelEffBuff = currentLevel - requiredLevel > 0 ? currentLevel - requiredLevel : 0;
-                // 房子效率
-                const houseEffBuff = getHousesEffBuffByActionHrid(actionHrid);
-                // 茶效率
-                const teaBuffs = getTeaBuffsByActionHrid(actionHrid);
-                // 特殊装备效率
-                const itemEffiBuff = Number(getItemEffiBuffByActionHrid(actionHrid));
-                // 总效率
-                produceItemPerHour *= 1 + (levelEffBuff + houseEffBuff + teaBuffs.efficiency + itemEffiBuff) / 100;
-                // 茶额外数量
-                let extraQuantityPerHour = (produceItemPerHour * teaBuffs.quantity) / 100;
-                // 出售市场税
-                const bidAfterTax = bid * 0.98;
-
-                appendHTMLStr += `<div style="color: ${SCRIPT_COLOR_TOOLTIP}; font-size: 10px;">${
-                    isZH
-                        ? "生产利润(卖单价进、买单价出；不包括Processing Tea、社区buff、稀有掉落；刷新网页更新人物数据)："
-                        : "Production profit(Sell price in, bid price out; Not including processing tea, comm buffs, rare drops; Refresh page to update player data): "
-                }</div>`;
-                appendHTMLStr += `<div style="color: ${SCRIPT_COLOR_TOOLTIP}; font-size: 10px;">x${droprate} ${
-                    isZH ? "基础掉率" : "base drop rate,"
-                } +${toolPercent}%${isZH ? "工具速度" : " tool speed,"} +${levelEffBuff}%${isZH ? "等级效率" : " level eff,"} +${houseEffBuff}%${
-                    isZH ? "房子效率" : " house eff,"
-                } +${teaBuffs.efficiency}%${isZH ? "茶效率" : " tea eff,"} +${itemEffiBuff}%${isZH ? "装备效率" : " equipment eff,"} +${
-                    teaBuffs.quantity
-                }%${isZH ? "茶额外数量" : " tea extra outcome,"} +${teaBuffs.lessResource}%${isZH ? "茶减少消耗" : " tea lower resource"}</div>`;
-                appendHTMLStr += `<div style="color: ${SCRIPT_COLOR_TOOLTIP}; font-size: 10px;">${
-                    isZH ? "每小时生产" : "Production per hour"
-                } ${Number((produceItemPerHour + extraQuantityPerHour) * droprate).toFixed(1)}${isZH ? " 个" : " items"}</div>`;
-                appendHTMLStr += `<div style="color: ${SCRIPT_COLOR_TOOLTIP};">${isZH ? "利润: " : "Profit: "}${numberFormatter(
-                    produceItemPerHour * (bidAfterTax * droprate - totalAskPrice * (1 - teaBuffs.lessResource / 100)) +
-                        extraQuantityPerHour * bidAfterTax * droprate
-                )}${isZH ? "/小时" : "/hour"}, ${numberFormatter(
-                    24 *
-                        (produceItemPerHour * (bidAfterTax * droprate - totalAskPrice * (1 - teaBuffs.lessResource / 100)) +
-                            extraQuantityPerHour * bidAfterTax * droprate)
-                )}${isZH ? "/天" : "/day"}</div>`;
-            } else if (
-                getActionHridFromItemName(itemName) &&
-                initData_actionDetailMap[getActionHridFromItemName(itemName)].inputItems === null &&
-                initData_actionDetailMap &&
-                initData_itemDetailMap
-            ) {
-                // 采集类技能
-                const actionHrid = getActionHridFromItemName(itemName);
-                // 基础每小时生产数量
-                const baseTimePerActionSec = initData_actionDetailMap[actionHrid].baseTimeCost / 1000000000;
-                const toolPercent = getToolsSpeedBuffByActionHrid(actionHrid);
-                const actualTimePerActionSec = baseTimePerActionSec / (1 + toolPercent / 100);
-                let produceItemPerHour = 3600 / actualTimePerActionSec;
-                // 基础掉率
-                let droprate =
-                    (initData_actionDetailMap[actionHrid].dropTable[0].minCount + initData_actionDetailMap[actionHrid].dropTable[0].maxCount) / 2;
-                produceItemPerHour *= droprate;
-                // 等级碾压效率
-                const requiredLevel = initData_actionDetailMap[actionHrid].levelRequirement.level;
-                let currentLevel = requiredLevel;
-                for (const skill of initData_characterSkills) {
-                    if (skill.skillHrid === initData_actionDetailMap[actionHrid].levelRequirement.skillHrid) {
-                        currentLevel = skill.level;
-                        break;
-                    }
-                }
-                const levelEffBuff = currentLevel - requiredLevel > 0 ? currentLevel - requiredLevel : 0;
-                // 房子效率
-                const houseEffBuff = getHousesEffBuffByActionHrid(actionHrid);
-                // 茶效率
-                const teaBuffs = getTeaBuffsByActionHrid(actionHrid);
-                // 特殊装备效率
-                const itemEffiBuff = Number(getItemEffiBuffByActionHrid(actionHrid));
-                // 总效率
-                produceItemPerHour *= 1 + (levelEffBuff + houseEffBuff + teaBuffs.efficiency + itemEffiBuff) / 100;
-                // 茶额外数量
-                let extraQuantityPerHour = (produceItemPerHour * teaBuffs.quantity) / 100;
-                // 出售市场税
-                const bidAfterTax = bid * 0.98;
-
-                appendHTMLStr += `<div style="color: ${SCRIPT_COLOR_TOOLTIP}; font-size: 10px;">${
-                    isZH
-                        ? "生产利润(卖单价进、买单价出；不包括Processing Tea、社区buff、稀有掉落；刷新网页更新人物数据)："
-                        : "Production profit(Sell price in, bid price out; Not including processing tea, comm buffs, rare drops; Refresh page to update player data): "
-                }</div>`;
-                appendHTMLStr += `<div style="color: ${SCRIPT_COLOR_TOOLTIP}; font-size: 10px;">x${droprate} ${
-                    isZH ? "基础掉率" : "base drop rate,"
-                } +${toolPercent}%${isZH ? "工具速度" : " tool speed,"} +${levelEffBuff}%${isZH ? "等级效率" : " level eff,"} +${houseEffBuff}%${
-                    isZH ? "房子效率" : " house eff,"
-                } +${teaBuffs.efficiency}%${isZH ? "茶效率" : " tea eff,"} +${itemEffiBuff}%${isZH ? "装备效率" : " equipment eff,"} +${
-                    teaBuffs.quantity
-                }%${isZH ? "茶额外数量" : " tea extra outcome,"} +${teaBuffs.lessResource}%${isZH ? "茶减少消耗" : " tea lower resource"}</div>`;
-                appendHTMLStr += `<div style="color: ${SCRIPT_COLOR_TOOLTIP}; font-size: 10px;">${
-                    isZH ? "每小时生产" : "Production per hour"
-                }${Number(produceItemPerHour + extraQuantityPerHour).toFixed(1)}${isZH ? " 个" : " items"}</div>`;
-                appendHTMLStr += `<div style="color: ${SCRIPT_COLOR_TOOLTIP};">${isZH ? "利润: " : "Profit: "}${numberFormatter(
-                    produceItemPerHour * bidAfterTax + extraQuantityPerHour * bidAfterTax
-                )}${isZH ? "/小时" : "/hour"}, ${numberFormatter(24 * (produceItemPerHour * bidAfterTax + extraQuantityPerHour * bidAfterTax))}${
-                    isZH ? "/天" : "/day"
-                }</div>`;
             }
+
+            // 每小时动作数（包含工具缩减动作时间）
+            const baseTimePerActionSec = initData_actionDetailMap[actionHrid].baseTimeCost / 1000000000;
+            const toolPercent = getToolsSpeedBuffByActionHrid(actionHrid);
+            const actualTimePerActionSec = baseTimePerActionSec / (1 + toolPercent / 100);
+            const actionPerHour = 3600 / actualTimePerActionSec;
+
+            // 每小时产品数
+            let droprate = null;
+            if (isProduction) {
+                droprate = initData_actionDetailMap[actionHrid].outputItems[0].count;
+            } else {
+                droprate =
+                    (initData_actionDetailMap[actionHrid].dropTable[0].minCount + initData_actionDetailMap[actionHrid].dropTable[0].maxCount) / 2;
+            }
+            let itemPerHour = actionPerHour * droprate;
+
+            // 等级碾压提高效率（人物等级不及最低要求等级时，按最低要求等级计算）
+            const requiredLevel = initData_actionDetailMap[actionHrid].levelRequirement.level;
+            let currentLevel = requiredLevel;
+            for (const skill of initData_characterSkills) {
+                if (skill.skillHrid === initData_actionDetailMap[actionHrid].levelRequirement.skillHrid) {
+                    currentLevel = skill.level;
+                    break;
+                }
+            }
+            const levelEffBuff = currentLevel - requiredLevel > 0 ? currentLevel - requiredLevel : 0;
+
+            // 房子效率
+            const houseEffBuff = getHousesEffBuffByActionHrid(actionHrid);
+
+            // 特殊装备效率
+            const itemEffiBuff = Number(getItemEffiBuffByActionHrid(actionHrid));
+
+            // 总效率影响生产物品数
+            itemPerHour *= 1 + (levelEffBuff + houseEffBuff + teaBuffs.efficiency + itemEffiBuff) / 100;
+
+            // 茶额外产品数量（不消耗原料）
+            const extraFreeItemPerHour = (itemPerHour * teaBuffs.quantity) / 100;
+
+            // 出售市场税
+            const bidAfterTax = bid * 0.98;
+
+            // 每小时利润
+            const profitPerHour = itemPerHour * (bidAfterTax - totalResourcesAskPrice) + extraFreeItemPerHour * bidAfterTax;
+            console.log(itemPerHour);
+            console.log(itemPerHour * (bidAfterTax - totalResourcesAskPrice));
+            console.log(extraFreeItemPerHour * bidAfterTax);
+
+            appendHTMLStr += `<div style="color: ${SCRIPT_COLOR_TOOLTIP}; font-size: 10px;">${
+                isZH
+                    ? "生产利润(卖单价进、买单价出；不包括Processing Tea、社区buff、稀有掉落；刷新网页更新人物数据)："
+                    : "Production profit(Sell price in, bid price out; Not including processing tea, comm buffs, rare drops; Refresh page to update player data): "
+            }</div>`;
+
+            appendHTMLStr += `<div style="color: ${SCRIPT_COLOR_TOOLTIP}; font-size: 10px;">x${droprate} ${
+                isZH ? "基础掉率" : "base drop rate,"
+            } +${toolPercent}%${isZH ? "工具速度" : " tool speed,"} +${levelEffBuff}%${isZH ? "等级效率" : " level eff,"} +${houseEffBuff}%${
+                isZH ? "房子效率" : " house eff,"
+            } +${teaBuffs.efficiency}%${isZH ? "茶效率" : " tea eff,"} +${itemEffiBuff}%${isZH ? "装备效率" : " equipment eff,"} +${
+                teaBuffs.quantity
+            }%${isZH ? "茶额外数量" : " tea extra outcome,"} +${teaBuffs.lessResource}%${isZH ? "茶减少消耗" : " tea lower resource"}</div>`;
+
+            appendHTMLStr += `<div style="color: ${SCRIPT_COLOR_TOOLTIP}; font-size: 10px;">${isZH ? "每小时生产" : "Production per hour"} ${Number(
+                itemPerHour + extraFreeItemPerHour
+            ).toFixed(1)}${isZH ? " 个" : " items"}</div>`;
+
+            appendHTMLStr += `<div style="color: ${SCRIPT_COLOR_TOOLTIP};">${isZH ? "利润: " : "Profit: "}${numberFormatter(profitPerHour)}${
+                isZH ? "/小时" : "/hour"
+            }, ${numberFormatter(24 * profitPerHour)}${isZH ? "/天" : "/day"}</div>`;
         }
 
         insertAfterElem.insertAdjacentHTML("afterend", appendHTMLStr);
