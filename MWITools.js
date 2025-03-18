@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      20.6
+// @version      20.7
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @license      CC-BY-NC-SA-4.0
@@ -3191,9 +3191,9 @@
 
             // 每小时利润
             const profitPerHour = itemPerHour * (bidAfterTax - totalResourcesAskPrice) + extraFreeItemPerHour * bidAfterTax;
-            console.log(itemPerHour);
-            console.log(itemPerHour * (bidAfterTax - totalResourcesAskPrice));
-            console.log(extraFreeItemPerHour * bidAfterTax);
+            // console.log(itemPerHour);
+            // console.log(itemPerHour * (bidAfterTax - totalResourcesAskPrice));
+            // console.log(extraFreeItemPerHour * bidAfterTax);
 
             appendHTMLStr += `<div style="color: ${SCRIPT_COLOR_TOOLTIP}; font-size: 10px;">${
                 isZH
