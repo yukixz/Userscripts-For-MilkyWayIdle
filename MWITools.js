@@ -3060,16 +3060,16 @@
                 const hpPerMiniute = (60 / (cd / 1000000000)) * hp;
                 const pricePer100Hp = ask ? ask / (hp / 100) : null;
                 const usePerday = (24 * 60 * 60) / (cd / 1000000000);
-                appendHTMLStr += `<div style="color: ${SCRIPT_COLOR_TOOLTIP}">${
-                    pricePer100Hp ? pricePer100Hp.toFixed(0) + (isZH ? "金/100hp, " : "coins/100hp, ") : ""
-                }${hpPerMiniute.toFixed(0)}hp/min, ${usePerday.toFixed(0)}${isZH ? "个/天" : "/day"}</div>`;
+                appendHTMLStr += `<div style="color: ${SCRIPT_COLOR_TOOLTIP}; font-size: 10px;">${
+                    pricePer100Hp ? pricePer100Hp.toFixed(0) + (isZH ? "金/100血, " : "coins/100hp, ") : ""
+                }${hpPerMiniute.toFixed(0) + (isZH ? "血/分" : "hp/min")}, ${usePerday.toFixed(0)}${isZH ? "个/天" : "/day"}</div>`;
             } else if (mp && cd) {
                 const mpPerMiniute = (60 / (cd / 1000000000)) * mp;
                 const pricePer100Mp = ask ? ask / (mp / 100) : null;
                 const usePerday = (24 * 60 * 60) / (cd / 1000000000);
                 appendHTMLStr += `<div style="color: ${SCRIPT_COLOR_TOOLTIP}">${
-                    pricePer100Mp ? pricePer100Mp.toFixed(0) + (isZH ? "金/100mp, " : "coins/100hp, ") : ""
-                }${mpPerMiniute.toFixed(0)}mp/min, ${usePerday.toFixed(0)}${isZH ? "个/天" : "/day"}</div>`;
+                    pricePer100Mp ? pricePer100Mp.toFixed(0) + (isZH ? "金/100蓝, " : "coins/100hp, ") : ""
+                }${mpPerMiniute.toFixed(0) + (isZH ? "蓝/分" : "hp/min")}, ${usePerday.toFixed(0)}${isZH ? "个/天" : "/day"}</div>`;
             } else if (cd) {
                 const usePerday = (24 * 60 * 60) / (cd / 1000000000);
                 appendHTMLStr += `<div style="color: ${SCRIPT_COLOR_TOOLTIP}">${usePerday.toFixed(0)}${isZH ? "个/天" : "/day"}</div>`;
@@ -3102,6 +3102,7 @@
                 inputItems = JSON.parse(JSON.stringify(initData_actionDetailMap[actionHrid].inputItems));
                 for (const item of inputItems) {
                     item.name = initData_itemDetailMap[item.itemHrid].name;
+                    item.zhName = ZHitemNames[item.itemHrid];
                     item.perAskPrice = marketJson?.market[item.name]?.ask;
                     item.perBidPrice = marketJson?.market[item.name]?.bid;
                     totalResourcesAskPrice += item.perAskPrice * item.count;
@@ -3116,10 +3117,12 @@
                 // 上级物品作为原料
                 const upgradedFromItemHrid = initData_actionDetailMap[actionHrid]?.upgradeItemHrid;
                 let upgradedFromItemName = null;
+                let upgradedFromItemZhName = null;
                 let upgradedFromItemAsk = null;
                 let upgradedFromItemBid = null;
                 if (upgradedFromItemHrid) {
                     upgradedFromItemName = initData_itemDetailMap[upgradedFromItemHrid].name;
+                    upgradedFromItemZhName = ZHitemNames[upgradedFromItemHrid];
                     upgradedFromItemAsk += marketJson?.market[upgradedFromItemName]?.ask;
                     upgradedFromItemBid += marketJson?.market[upgradedFromItemName]?.bid;
                     totalResourcesAskPrice += upgradedFromItemAsk;
@@ -3127,22 +3130,22 @@
                 }
 
                 appendHTMLStr += `<div style="color: ${SCRIPT_COLOR_TOOLTIP}; font-size: 10px;">${
-                    isZH ? "原料（不包含buff效果）: " : "Source materials(Not including buff effects): "
+                    isZH ? "原料市场价: " : "Source materials market price: "
                 }${numberFormatter(totalResourcesAskPrice)}  / ${numberFormatter(totalResourcesBidPrice)}</div>`;
 
                 for (const item of inputItems) {
                     appendHTMLStr += `
-                    <div style="color: ${SCRIPT_COLOR_TOOLTIP}; font-size: 10px;"> ${item.name} x${item.count}: ${numberFormatter(
-                        item.perAskPrice
-                    )} / ${numberFormatter(item.perBidPrice)}</div>
+                    <div style="color: ${SCRIPT_COLOR_TOOLTIP}; font-size: 10px;"> ${isZH ? item.zhName : item.name} x${
+                        item.count
+                    }: ${numberFormatter(item.perAskPrice)} / ${numberFormatter(item.perBidPrice)}</div>
                     `;
                 }
 
                 if (upgradedFromItemHrid) {
                     appendHTMLStr += `
-                    <div style="color: ${SCRIPT_COLOR_TOOLTIP}; font-size: 10px;"> ${upgradedFromItemName}: ${numberFormatter(
-                        totalResourcesAskPrice
-                    )} / ${numberFormatter(upgradedFromItemBid)}</div>
+                    <div style="color: ${SCRIPT_COLOR_TOOLTIP}; font-size: 10px;"> ${
+                        isZH ? upgradedFromItemZhName : upgradedFromItemName
+                    }: ${numberFormatter(upgradedFromItemAsk)} / ${numberFormatter(upgradedFromItemBid)}</div>
                     `;
                 }
             }
@@ -3197,7 +3200,7 @@
 
             appendHTMLStr += `<div style="color: ${SCRIPT_COLOR_TOOLTIP}; font-size: 10px;">${
                 isZH
-                    ? "生产利润(卖单价进、买单价出；不包括Processing Tea、社区buff、稀有掉落；刷新网页更新人物数据)："
+                    ? "生产利润(卖单价进、买单价出；不包括加工茶、社区增益、稀有掉落；刷新网页更新人物数据)："
                     : "Production profit(Sell price in, bid price out; Not including processing tea, comm buffs, rare drops; Refresh page to update player data): "
             }</div>`;
 
