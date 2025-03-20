@@ -28,6 +28,7 @@
     MilkyWayIdle Steam game client players should also install this script:
     https://raw.githubusercontent.com/YangLeda/Userscripts-For-MilkyWayIdle/refs/heads/main/MWITools%20addon%20for%20Steam%20version.js
 */
+
 /*
     【遇到MWITools插件有问题时的解决方法】
 
