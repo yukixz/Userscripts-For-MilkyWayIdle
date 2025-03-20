@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      20.8
+// @version      20.9
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @license      CC-BY-NC-SA-4.0
@@ -3067,7 +3067,7 @@
                 const mpPerMiniute = (60 / (cd / 1000000000)) * mp;
                 const pricePer100Mp = ask ? ask / (mp / 100) : null;
                 const usePerday = (24 * 60 * 60) / (cd / 1000000000);
-                appendHTMLStr += `<div style="color: ${SCRIPT_COLOR_TOOLTIP}">${
+                appendHTMLStr += `<div style="color: ${SCRIPT_COLOR_TOOLTIP}; font-size: 10px;">${
                     pricePer100Mp ? pricePer100Mp.toFixed(0) + (isZH ? "金/100蓝, " : "coins/100hp, ") : ""
                 }${mpPerMiniute.toFixed(0) + (isZH ? "蓝/分" : "hp/min")}, ${usePerday.toFixed(0)}${isZH ? "个/天" : "/day"}</div>`;
             } else if (cd) {
@@ -3150,6 +3150,20 @@
                 }
             }
 
+            // 消耗饮料
+            let drinksConsumedPerHourAskPrice = 0;
+            let drinksConsumedPerHourBidPrice = 0;
+
+            const drinksList = initData_actionTypeDrinkSlotsMap[initData_actionDetailMap[actionHrid].type];
+            for (const drink of drinksList) {
+                if (!drink || !drink.itemHrid) {
+                    continue;
+                }
+                const drinkName = initData_itemDetailMap[drink.itemHrid].name;
+                drinksConsumedPerHourAskPrice += (marketJson?.market[drinkName]?.ask ?? 0) * 12;
+                drinksConsumedPerHourBidPrice += (marketJson?.market[drinkName]?.bid ?? 0) * 12;
+            }
+
             // 每小时动作数（包含工具缩减动作时间）
             const baseTimePerActionSec = initData_actionDetailMap[actionHrid].baseTimeCost / 1000000000;
             const toolPercent = getToolsSpeedBuffByActionHrid(actionHrid);
@@ -3193,15 +3207,13 @@
             const bidAfterTax = bid * 0.98;
 
             // 每小时利润
-            const profitPerHour = itemPerHour * (bidAfterTax - totalResourcesAskPrice) + extraFreeItemPerHour * bidAfterTax;
-            // console.log(itemPerHour);
-            // console.log(itemPerHour * (bidAfterTax - totalResourcesAskPrice));
-            // console.log(extraFreeItemPerHour * bidAfterTax);
+            const profitPerHour =
+                itemPerHour * (bidAfterTax - totalResourcesAskPrice) + extraFreeItemPerHour * bidAfterTax - drinksConsumedPerHourAskPrice;
 
             appendHTMLStr += `<div style="color: ${SCRIPT_COLOR_TOOLTIP}; font-size: 10px;">${
                 isZH
-                    ? "生产利润(卖单价进、买单价出；不包括加工茶、社区增益、稀有掉落；刷新网页更新人物数据)："
-                    : "Production profit(Sell price in, bid price out; Not including processing tea, comm buffs, rare drops; Refresh page to update player data): "
+                    ? "生产利润(卖单价进、买单价出；不包括加工茶、社区增益、稀有掉落、袋子饮食增益；刷新网页更新人物数据)："
+                    : "Production profit(Sell price in, bid price out; Not including processing tea, comm buffs, rare drops, pouch consumables buffs; Refresh page to update player data): "
             }</div>`;
 
             appendHTMLStr += `<div style="color: ${SCRIPT_COLOR_TOOLTIP}; font-size: 10px;">x${droprate} ${
@@ -3211,6 +3223,10 @@
             } +${teaBuffs.efficiency}%${isZH ? "茶效率" : " tea eff,"} +${itemEffiBuff}%${isZH ? "装备效率" : " equipment eff,"} +${
                 teaBuffs.quantity
             }%${isZH ? "茶额外数量" : " tea extra outcome,"} +${teaBuffs.lessResource}%${isZH ? "茶减少消耗" : " tea lower resource"}</div>`;
+
+            appendHTMLStr += `<div style="color: ${SCRIPT_COLOR_TOOLTIP}; font-size: 10px;">${
+                isZH ? "每小时饮料消耗: " : "Drinks consumed per hour: "
+            }${numberFormatter(drinksConsumedPerHourAskPrice)}  / ${numberFormatter(drinksConsumedPerHourBidPrice)}</div>`;
 
             appendHTMLStr += `<div style="color: ${SCRIPT_COLOR_TOOLTIP}; font-size: 10px;">${isZH ? "每小时生产" : "Production per hour"} ${Number(
                 itemPerHour + extraFreeItemPerHour
@@ -5931,6 +5947,8 @@
     }
 
     function handleResultForAmvoidguy(expNodes, parentDiv) {
+        const isZHIn3rdPartyWebsites = localStorage.getItem("i18nextLng")?.toLowerCase()?.startsWith("zh");
+
         let perHourGainExp = {
             stamina: 0,
             intelligence: 0,
@@ -5942,19 +5960,25 @@
         };
 
         expNodes.forEach((expNode) => {
-            if (getOriTextFromElement(expNode.children[0]).includes("Stamina")) {
+            if (getOriTextFromElement(expNode.children[0]).includes("Stamina") || getOriTextFromElement(expNode.children[0]).includes("耐力")) {
                 perHourGainExp.stamina = Number(expNode.children[1].textContent);
-            } else if (getOriTextFromElement(expNode.children[0]).includes("Intelligence")) {
+            } else if (
+                getOriTextFromElement(expNode.children[0]).includes("Intelligence") ||
+                getOriTextFromElement(expNode.children[0]).includes("智力")
+            ) {
                 perHourGainExp.intelligence = Number(expNode.children[1].textContent);
-            } else if (getOriTextFromElement(expNode.children[0]).includes("Attack")) {
+            } else if (getOriTextFromElement(expNode.children[0]).includes("Attack") || getOriTextFromElement(expNode.children[0]).includes("攻击")) {
                 perHourGainExp.attack = Number(expNode.children[1].textContent);
-            } else if (getOriTextFromElement(expNode.children[0]).includes("Power")) {
+            } else if (getOriTextFromElement(expNode.children[0]).includes("Power") || getOriTextFromElement(expNode.children[0]).includes("力量")) {
                 perHourGainExp.power = Number(expNode.children[1].textContent);
-            } else if (getOriTextFromElement(expNode.children[0]).includes("Defense")) {
+            } else if (
+                getOriTextFromElement(expNode.children[0]).includes("Defense") ||
+                getOriTextFromElement(expNode.children[0]).includes("防御")
+            ) {
                 perHourGainExp.defense = Number(expNode.children[1].textContent);
-            } else if (getOriTextFromElement(expNode.children[0]).includes("Ranged")) {
+            } else if (getOriTextFromElement(expNode.children[0]).includes("Ranged") || getOriTextFromElement(expNode.children[0]).includes("远程")) {
                 perHourGainExp.ranged = Number(expNode.children[1].textContent);
-            } else if (getOriTextFromElement(expNode.children[0]).includes("Magic")) {
+            } else if (getOriTextFromElement(expNode.children[0]).includes("Magic") || getOriTextFromElement(expNode.children[0]).includes("魔法")) {
                 perHourGainExp.magic = Number(expNode.children[1].textContent);
             }
         });
@@ -5971,36 +5995,43 @@
             if (skill.skillHrid.includes("stamina")) {
                 skillLevels.stamina = {};
                 skillLevels.stamina.skillName = "Stamina";
+                skillLevels.stamina.skillZhName = "耐力";
                 skillLevels.stamina.currentLevel = skill.level;
                 skillLevels.stamina.currentExp = skill.experience;
             } else if (skill.skillHrid.includes("intelligence")) {
                 skillLevels.intelligence = {};
                 skillLevels.intelligence.skillName = "Intelligence";
+                skillLevels.intelligence.skillZhName = "智力";
                 skillLevels.intelligence.currentLevel = skill.level;
                 skillLevels.intelligence.currentExp = skill.experience;
             } else if (skill.skillHrid.includes("attack")) {
                 skillLevels.attack = {};
                 skillLevels.attack.skillName = "Attack";
+                skillLevels.attack.skillZhName = "攻击";
                 skillLevels.attack.currentLevel = skill.level;
                 skillLevels.attack.currentExp = skill.experience;
             } else if (skill.skillHrid.includes("power")) {
                 skillLevels.power = {};
                 skillLevels.power.skillName = "Power";
+                skillLevels.power.skillZhName = "力量";
                 skillLevels.power.currentLevel = skill.level;
                 skillLevels.power.currentExp = skill.experience;
             } else if (skill.skillHrid.includes("defense")) {
                 skillLevels.defense = {};
                 skillLevels.defense.skillName = "Defense";
+                skillLevels.defense.skillZhName = "防御";
                 skillLevels.defense.currentLevel = skill.level;
                 skillLevels.defense.currentExp = skill.experience;
             } else if (skill.skillHrid.includes("ranged")) {
                 skillLevels.ranged = {};
                 skillLevels.ranged.skillName = "Ranged";
+                skillLevels.ranged.skillZhName = "远程";
                 skillLevels.ranged.currentLevel = skill.level;
                 skillLevels.ranged.currentExp = skill.experience;
             } else if (skill.skillHrid.includes("magic")) {
                 skillLevels.magic = {};
                 skillLevels.magic.skillName = "Magic";
+                skillLevels.magic.skillZhName = "魔法";
                 skillLevels.magic.currentLevel = skill.level;
                 skillLevels.magic.currentExp = skill.experience;
             }
@@ -6009,15 +6040,15 @@
         const skillNamesInOrder = ["stamina", "intelligence", "attack", "power", "defense", "ranged", "magic"];
         let hTMLStr = "";
         for (const skill of skillNamesInOrder) {
-            hTMLStr += `<div id="${"inputDiv_" + skill}" style="display: flex; justify-content: flex-end">${skillLevels[skill].skillName}${
-                isZH ? "到" : " to level "
-            }<input id="${"input_" + skill}" type="number" value="${skillLevels[skill].currentLevel + 1}" min="${
+            hTMLStr += `<div id="${"inputDiv_" + skill}" style="display: flex; justify-content: flex-end">${
+                isZHIn3rdPartyWebsites ? skillLevels[skill].skillZhName : skillLevels[skill].skillName
+            }${isZHIn3rdPartyWebsites ? "到" : " to level "}<input id="${"input_" + skill}" type="number" value="${
                 skillLevels[skill].currentLevel + 1
-            }" max="200">${isZH ? "级" : ""}</div>`;
+            }" min="${skillLevels[skill].currentLevel + 1}" max="200">${isZHIn3rdPartyWebsites ? "级" : ""}</div>`;
         }
 
         hTMLStr += `<div id="script_afterDays" style="display: flex; justify-content: flex-end"><input id="script_afterDays_input" type="number" value="1" min="0" max="200">${
-            isZH ? "天后" : "days after"
+            isZHIn3rdPartyWebsites ? "天后" : "days after"
         }</div>`;
 
         hTMLStr += `<div id="needDiv"></div>`;
@@ -6028,26 +6059,26 @@
             const skillDiv = parentDiv.querySelector(`div#${"inputDiv_" + skill}`);
             const skillInput = parentDiv.querySelector(`input#${"input_" + skill}`);
             skillInput.onchange = () => {
-                calculateTill(skill, skillInput, skillLevels, parentDiv, perHourGainExp);
+                calculateTill(skill, skillInput, skillLevels, parentDiv, perHourGainExp, isZHIn3rdPartyWebsites);
             };
             skillInput.addEventListener("keyup", function (evt) {
-                calculateTill(skill, skillInput, skillLevels, parentDiv, perHourGainExp);
+                calculateTill(skill, skillInput, skillLevels, parentDiv, perHourGainExp, isZHIn3rdPartyWebsites);
             });
             skillDiv.onclick = () => {
-                calculateTill(skill, skillInput, skillLevels, parentDiv, perHourGainExp);
+                calculateTill(skill, skillInput, skillLevels, parentDiv, perHourGainExp, isZHIn3rdPartyWebsites);
             };
         }
 
         const daysAfterDiv = parentDiv.querySelector(`div#script_afterDays`);
         const daysAfterInput = parentDiv.querySelector(`input#script_afterDays_input`);
         daysAfterInput.onchange = () => {
-            calculateAfterDays(daysAfterInput, skillLevels, parentDiv, perHourGainExp, skillNamesInOrder);
+            calculateAfterDays(daysAfterInput, skillLevels, parentDiv, perHourGainExp, skillNamesInOrder, isZHIn3rdPartyWebsites);
         };
         daysAfterInput.addEventListener("keyup", function (evt) {
-            calculateAfterDays(daysAfterInput, skillLevels, parentDiv, perHourGainExp, skillNamesInOrder);
+            calculateAfterDays(daysAfterInput, skillLevels, parentDiv, perHourGainExp, skillNamesInOrder, isZHIn3rdPartyWebsites);
         });
         daysAfterDiv.onclick = () => {
-            calculateAfterDays(daysAfterInput, skillLevels, parentDiv, perHourGainExp, skillNamesInOrder);
+            calculateAfterDays(daysAfterInput, skillLevels, parentDiv, perHourGainExp, skillNamesInOrder, isZHIn3rdPartyWebsites);
         };
 
         // 提取成本和收益
@@ -6067,10 +6098,12 @@
         }
     }
 
-    function calculateAfterDays(daysAfterInput, skillLevels, parentDiv, perHourGainExp, skillNamesInOrder) {
+    function calculateAfterDays(daysAfterInput, skillLevels, parentDiv, perHourGainExp, skillNamesInOrder, isZHIn3rdPartyWebsites) {
         const initData_levelExperienceTable = JSON.parse(GM_getValue("init_client_data", null)).levelExperienceTable;
         const days = Number(daysAfterInput.value);
-        parentDiv.querySelector(`div#needDiv`).textContent = `${isZH ? "" : "After"} ${days} ${isZH ? "天后：" : "days: "}`;
+        parentDiv.querySelector(`div#needDiv`).textContent = `${isZHIn3rdPartyWebsites ? "" : "After"} ${days} ${
+            isZHIn3rdPartyWebsites ? "天后：" : "days: "
+        }`;
         const listDiv = parentDiv.querySelector(`div#needListDiv`);
 
         let html = "";
@@ -6089,7 +6122,9 @@
                     const expSpanInLevel = maxExpAtLevel - minExpAtLevel;
                     const levelPercentage = Number(((exp - minExpAtLevel) / expSpanInLevel) * 100).toFixed(1);
                     resultLevels[skillName.toLowerCase()] = level;
-                    html += `<div>${skill.skillName} ${isZH ? "" : "level"} ${level} ${isZH ? "级" : ""} ${levelPercentage}%</div>`;
+                    html += `<div>${isZHIn3rdPartyWebsites ? skill.skillZhName : skill.skillName} ${isZHIn3rdPartyWebsites ? "" : "level"} ${level} ${
+                        isZHIn3rdPartyWebsites ? "级" : ""
+                    } ${levelPercentage}%</div>`;
                     break;
                 }
             }
@@ -6097,23 +6132,23 @@
         const combatLevel =
             0.2 * (resultLevels.stamina + resultLevels.intelligence + resultLevels.defense) +
             0.4 * Math.max(0.5 * (resultLevels.attack + resultLevels.power), resultLevels.ranged, resultLevels.magic);
-        html += `<div>${isZH ? "战斗等级：" : "Combat level: "} ${combatLevel.toFixed(1)}</div>`;
+        html += `<div>${isZHIn3rdPartyWebsites ? "战斗等级：" : "Combat level: "} ${combatLevel.toFixed(1)}</div>`;
         listDiv.innerHTML = html;
     }
 
-    function calculateTill(skillName, skillInputElem, skillLevels, parentDiv, perHourGainExp) {
+    function calculateTill(skillName, skillInputElem, skillLevels, parentDiv, perHourGainExp, isZHIn3rdPartyWebsites) {
         const initData_levelExperienceTable = JSON.parse(GM_getValue("init_client_data", null)).levelExperienceTable;
         const targetLevel = Number(skillInputElem.value);
-        parentDiv.querySelector(`div#needDiv`).textContent = `${skillLevels[skillName].skillName} ${isZH ? "到" : "to level"} ${targetLevel} ${
-            isZH ? "级 还需：" : " takes: "
-        }`;
+        parentDiv.querySelector(`div#needDiv`).textContent = `${
+            isZHIn3rdPartyWebsites ? skillLevels[skillName].skillZhName : skillLevels[skillName].skillName
+        } ${isZHIn3rdPartyWebsites ? "到" : "to level"} ${targetLevel} ${isZHIn3rdPartyWebsites ? "级 还需：" : " takes: "}`;
         const listDiv = parentDiv.querySelector(`div#needListDiv`);
 
         const currentLevel = Number(skillLevels[skillName].currentLevel);
         const currentExp = Number(skillLevels[skillName].currentExp);
         if (targetLevel > currentLevel && targetLevel <= 200) {
             if (perHourGainExp[skillName] === 0) {
-                listDiv.innerHTML = isZH ? "永远" : "Forever";
+                listDiv.innerHTML = isZHIn3rdPartyWebsites ? "永远" : "Forever";
             } else {
                 let needExp = initData_levelExperienceTable[targetLevel] - currentExp;
                 let needHours = needExp / perHourGainExp[skillName];
@@ -6130,7 +6165,7 @@
                 listDiv.innerHTML = html;
             }
         } else {
-            listDiv.innerHTML = isZH ? "输入错误" : "Input error";
+            listDiv.innerHTML = isZHIn3rdPartyWebsites ? "输入错误" : "Input error";
         }
     }
 
