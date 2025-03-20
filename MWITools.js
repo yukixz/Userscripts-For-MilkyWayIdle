@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      21.0
+// @version      21.1
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @license      CC-BY-NC-SA-4.0
@@ -9,7 +9,8 @@
 // @match        https://test.milkywayidle.com/*
 // @match        https://amvoidguy.github.io/MWICombatSimulatorTest/*
 // @match        https://shykai.github.io/mwisim.github.io/*
-// @match        https://shykai.github.io/MWICombatSimulatorTest/dist/
+// @match        https://shykai.github.io/MWICombatSimulatorTest/dist/*
+// @match        https://mooneycalc.netlify.app/*
 // @grant        GM_addStyle
 // @grant        GM.xmlHttpRequest
 // @grant        GM_xmlhttpRequest
@@ -259,6 +260,9 @@
     } else if (document.URL.includes("shykai.github.io/mwisim")) {
         addImportButtonFor9Battles();
         observeResultsForAmvoidguy();
+        return;
+    } else if (document.URL.includes("mooneycalc.netlify.app")) {
+        addImportButtonForMooneycalc();
         return;
     }
 
@@ -6174,6 +6178,80 @@
         } else {
             listDiv.innerHTML = isZHIn3rdPartyWebsites ? "输入错误" : "Input error";
         }
+    }
+
+    function addImportButtonForMooneycalc() {
+        const checkElem = () => {
+            const selectedElement = document.querySelector(`div[role="tablist"]`);
+            if (selectedElement) {
+                clearInterval(timer);
+                const button = document.createElement("button");
+                selectedElement.parentNode.insertBefore(button, selectedElement.nextSibling);
+                button.textContent = isZH
+                    ? "导入人物数据 (刷新游戏网页更新人物数据)"
+                    : "Import character settings (Refresh game page to update character settings)";
+                button.style.backgroundColor = SCRIPT_COLOR_MAIN;
+                button.style.color = "black";
+                button.style.padding = "5px";
+                button.onclick = function () {
+                    console.log("Mooneycalc-Importer: Button onclick");
+                    importDataForMooneycalc(button);
+                    return false;
+                };
+            }
+        };
+        let timer = setInterval(checkElem, 200);
+    }
+
+    async function importDataForMooneycalc(button) {
+        const characterData = JSON.parse(GM_getValue("init_character_data", ""));
+        console.log(characterData);
+        if (!characterData || !characterData.characterSkills || !characterData.currentTimestamp) {
+            button.textContent = isZH ? "错误：没有人物数据" : "Error: no character settings found";
+            return;
+        }
+
+        const ls = constructMooneycalcLocalStorage(characterData);
+        localStorage.setItem("settings", ls);
+
+        button.textContent = isZH ? "已导入" : "Imported";
+        await new Promise((r) => setTimeout(r, 500));
+        location.reload();
+    }
+
+    function constructMooneycalcLocalStorage(characterData) {
+        const ls = localStorage.getItem("settings");
+        let lsObj = JSON.parse(ls);
+
+        // 人物技能等级
+        lsObj.state.settings.levels = {};
+        for (const skill of characterData.characterSkills) {
+            lsObj.state.settings.levels[skill.skillHrid] = skill.level;
+        }
+
+        // 社区全局buff
+        lsObj.state.settings.communityBuffs = {};
+        for (const buff of characterData.communityBuffs) {
+            lsObj.state.settings.communityBuffs[buff.hrid] = buff.level;
+        }
+
+        // 装备 & 装备强化等级
+        lsObj.state.settings.equipment = {};
+        lsObj.state.settings.equipmentLevels = {};
+        for (const item of characterData.characterItems) {
+            if (item.itemLocationHrid !== "/item_locations/inventory") {
+                lsObj.state.settings.equipment[item.itemLocationHrid.replace("item_locations", "equipment_types")] = item.itemHrid;
+                lsObj.state.settings.equipmentLevels[item.itemLocationHrid.replace("item_locations", "equipment_types")] = item.enhancementLevel;
+            }
+        }
+
+        // 房子
+        lsObj.state.settings.houseRooms = {};
+        for (const house of Object.values(characterData.characterHouseRoomMap)) {
+            lsObj.state.settings.houseRooms[house.houseRoomHrid] = house.level;
+        }
+
+        return JSON.stringify(lsObj);
     }
 
     function hoursToReadableString(hours) {
