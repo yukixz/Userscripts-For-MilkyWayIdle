@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      21.1
+// @version      21.2
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @license      CC-BY-NC-SA-4.0
@@ -3106,8 +3106,8 @@
 
             // 原料信息
             let inputItems = [];
-            let totalResourcesAskPrice = 0;
-            let totalResourcesBidPrice = 0;
+            let totalResourcesAskPricePerAction = 0;
+            let totalResourcesBidPricePerAction = 0;
 
             if (isProduction) {
                 inputItems = JSON.parse(JSON.stringify(initData_actionDetailMap[actionHrid].inputItems));
@@ -3116,14 +3116,14 @@
                     item.zhName = ZHitemNames[item.itemHrid];
                     item.perAskPrice = marketJson?.market[item.name]?.ask;
                     item.perBidPrice = marketJson?.market[item.name]?.bid;
-                    totalResourcesAskPrice += item.perAskPrice * item.count;
-                    totalResourcesBidPrice += item.perBidPrice * item.count;
+                    totalResourcesAskPricePerAction += item.perAskPrice * item.count;
+                    totalResourcesBidPricePerAction += item.perBidPrice * item.count;
                 }
 
                 // 茶减少原料消耗（对于升级物品，不影响上一级物品消耗）
                 const lessResourceBuff = teaBuffs.lessResource;
-                totalResourcesAskPrice *= 1 - lessResourceBuff / 100;
-                totalResourcesBidPrice *= 1 - lessResourceBuff / 100;
+                totalResourcesAskPricePerAction *= 1 - lessResourceBuff / 100;
+                totalResourcesBidPricePerAction *= 1 - lessResourceBuff / 100;
 
                 // 上级物品作为原料
                 const upgradedFromItemHrid = initData_actionDetailMap[actionHrid]?.upgradeItemHrid;
@@ -3136,13 +3136,13 @@
                     upgradedFromItemZhName = ZHitemNames[upgradedFromItemHrid];
                     upgradedFromItemAsk += marketJson?.market[upgradedFromItemName]?.ask;
                     upgradedFromItemBid += marketJson?.market[upgradedFromItemName]?.bid;
-                    totalResourcesAskPrice += upgradedFromItemAsk;
-                    totalResourcesBidPrice += upgradedFromItemBid;
+                    totalResourcesAskPricePerAction += upgradedFromItemAsk;
+                    totalResourcesBidPricePerAction += upgradedFromItemBid;
                 }
 
                 appendHTMLStr += `<div style="color: ${SCRIPT_COLOR_TOOLTIP}; font-size: 10px;">${
                     isZH ? "原料市场价: " : "Source materials market price: "
-                }${numberFormatter(totalResourcesAskPrice)}  / ${numberFormatter(totalResourcesBidPrice)}</div>`;
+                }${numberFormatter(totalResourcesAskPricePerAction)}  / ${numberFormatter(totalResourcesBidPricePerAction)}</div>`;
 
                 for (const item of inputItems) {
                     appendHTMLStr += `
@@ -3179,7 +3179,7 @@
             const baseTimePerActionSec = initData_actionDetailMap[actionHrid].baseTimeCost / 1000000000;
             const toolPercent = getToolsSpeedBuffByActionHrid(actionHrid);
             const actualTimePerActionSec = baseTimePerActionSec / (1 + toolPercent / 100);
-            const actionPerHour = 3600 / actualTimePerActionSec;
+            let actionPerHour = 3600 / actualTimePerActionSec;
 
             // 每小时产品数
             let droprate = null;
@@ -3208,7 +3208,8 @@
             // 特殊装备效率
             const itemEffiBuff = Number(getItemEffiBuffByActionHrid(actionHrid));
 
-            // 总效率影响生产物品数
+            // 总效率影响动作数/生产物品数
+            actionPerHour *= 1 + (levelEffBuff + houseEffBuff + teaBuffs.efficiency + itemEffiBuff) / 100;
             itemPerHour *= 1 + (levelEffBuff + houseEffBuff + teaBuffs.efficiency + itemEffiBuff) / 100;
 
             // 茶额外产品数量（不消耗原料）
@@ -3219,7 +3220,9 @@
 
             // 每小时利润
             const profitPerHour =
-                itemPerHour * (bidAfterTax - totalResourcesAskPrice) + extraFreeItemPerHour * bidAfterTax - drinksConsumedPerHourAskPrice;
+                itemPerHour * (bidAfterTax - totalResourcesAskPricePerAction / droprate) +
+                extraFreeItemPerHour * bidAfterTax -
+                drinksConsumedPerHourAskPrice;
 
             appendHTMLStr += `<div style="color: ${SCRIPT_COLOR_TOOLTIP}; font-size: 10px;">${
                 isZH
@@ -3239,13 +3242,17 @@
                 isZH ? "每小时饮料消耗: " : "Drinks consumed per hour: "
             }${numberFormatter(drinksConsumedPerHourAskPrice)}  / ${numberFormatter(drinksConsumedPerHourBidPrice)}</div>`;
 
-            appendHTMLStr += `<div style="color: ${SCRIPT_COLOR_TOOLTIP}; font-size: 10px;">${isZH ? "每小时生产" : "Production per hour"} ${Number(
+            appendHTMLStr += `<div style="color: ${SCRIPT_COLOR_TOOLTIP}; font-size: 10px;">${isZH ? "每小时动作" : "Actions per hour"} ${Number(
+                actionPerHour
+            ).toFixed(1)}${isZH ? " 次" : " times"}, ${isZH ? "每小时生产" : "Production per hour"} ${Number(
                 itemPerHour + extraFreeItemPerHour
             ).toFixed(1)}${isZH ? " 个" : " items"}</div>`;
 
-            appendHTMLStr += `<div style="color: ${SCRIPT_COLOR_TOOLTIP};">${isZH ? "利润: " : "Profit: "}${numberFormatter(profitPerHour)}${
-                isZH ? "/小时" : "/hour"
-            }, ${numberFormatter(24 * profitPerHour)}${isZH ? "/天" : "/day"}</div>`;
+            appendHTMLStr += `<div style="color: ${SCRIPT_COLOR_TOOLTIP};">${isZH ? "利润: " : "Profit: "}${numberFormatter(
+                profitPerHour / actionPerHour
+            )}${isZH ? "/动作" : "/action"}, ${numberFormatter(profitPerHour)}${isZH ? "/小时" : "/hour"}, ${numberFormatter(24 * profitPerHour)}${
+                isZH ? "/天" : "/day"
+            }</div>`;
         }
 
         insertAfterElem.insertAdjacentHTML("afterend", appendHTMLStr);
