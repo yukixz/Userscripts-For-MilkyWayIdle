@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      21.2
+// @version      21.3
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @license      CC-BY-NC-SA-4.0
@@ -48,10 +48,9 @@
 
 (() => {
     "use strict";
-    const sampleNumber = 1111.1;
-    const sampleLocaleNumber = new Intl.NumberFormat().format(sampleNumber);
-    const THOUSAND_SEPERATOR = sampleLocaleNumber.replaceAll("1", "").at(0);
-    const DECIMAL_SEPERATOR = sampleLocaleNumber.replaceAll("1", "").at(1);
+
+    const THOUSAND_SEPERATOR = new Intl.NumberFormat().format(1111).replaceAll("1", "").at(0) || "";
+    const DECIMAL_SEPERATOR = new Intl.NumberFormat().format(1.1).replaceAll("1", "").at(0);
 
     const isZHInGameSetting = localStorage.getItem("i18nextLng")?.toLowerCase()?.startsWith("zh"); // 获取游戏内设置语言
     let isZH = isZHInGameSetting; // MWITools 本身显示的语言默认由游戏内设置语言决定
