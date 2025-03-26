@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      21.3
+// @version      21.4
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @license      CC-BY-NC-SA-4.0
@@ -3613,22 +3613,44 @@
 
         // 显示Foraging最后一个图综合收益
         if (panel.querySelector("div.SkillActionDetail_dropTable__3ViVp").children.length > 1 && settingsMap.actionPanel_foragingTotal.isTrue) {
-            const jsonObj = await fetchMarketJSON();
+            const marketJson = await fetchMarketJSON();
             const actionHrid = "/actions/foraging/" + actionName.toLowerCase().replaceAll(" ", "_");
-            // 基础每小时生产数量
+
+            // 茶效率
+            const teaBuffs = getTeaBuffsByActionHrid(actionHrid);
+
+            // 消耗饮料
+            let drinksConsumedPerHourAskPrice = 0;
+            let drinksConsumedPerHourBidPrice = 0;
+
+            const drinksList = initData_actionTypeDrinkSlotsMap[initData_actionDetailMap[actionHrid].type];
+            for (const drink of drinksList) {
+                if (!drink || !drink.itemHrid) {
+                    continue;
+                }
+                const drinkName = initData_itemDetailMap[drink.itemHrid].name;
+                drinksConsumedPerHourAskPrice += (marketJson?.market[drinkName]?.ask ?? 0) * 12;
+                drinksConsumedPerHourBidPrice += (marketJson?.market[drinkName]?.bid ?? 0) * 12;
+            }
+
+            // 每小时动作数（包含工具缩减动作时间）
             const baseTimePerActionSec = initData_actionDetailMap[actionHrid].baseTimeCost / 1000000000;
             const toolPercent = getToolsSpeedBuffByActionHrid(actionHrid);
             const actualTimePerActionSec = baseTimePerActionSec / (1 + toolPercent / 100);
-            let numOfActionsPerHour = 3600 / actualTimePerActionSec;
-            let dropTable = initData_actionDetailMap[actionHrid].dropTable;
+            let actionPerHour = 3600 / actualTimePerActionSec;
+
+            // 将掉落表看作每次动作掉落一件虚拟物品
+            const dropTable = initData_actionDetailMap[actionHrid].dropTable;
             let virtualItemBid = 0;
             for (const drop of dropTable) {
-                const bid = jsonObj?.market[initData_itemDetailMap[drop.itemHrid].name]?.bid;
+                const bid = marketJson?.market[initData_itemDetailMap[drop.itemHrid].name]?.bid;
                 const amount = drop.dropRate * ((drop.minCount + drop.maxCount) / 2);
                 virtualItemBid += bid * amount;
             }
+            let droprate = 1;
+            let itemPerHour = actionPerHour * droprate;
 
-            // 等级碾压效率
+            // 等级碾压提高效率（人物等级不及最低要求等级时，按最低要求等级计算）
             const requiredLevel = initData_actionDetailMap[actionHrid].levelRequirement.level;
             let currentLevel = requiredLevel;
             for (const skill of initData_characterSkills) {
@@ -3637,21 +3659,30 @@
                     break;
                 }
             }
-            const levelEffBuff = currentLevel - requiredLevel;
+            const levelEffBuff = currentLevel - requiredLevel > 0 ? currentLevel - requiredLevel : 0;
+
             // 房子效率
             const houseEffBuff = getHousesEffBuffByActionHrid(actionHrid);
-            // 茶
-            const teaBuffs = getTeaBuffsByActionHrid(actionHrid);
-            // 总效率
-            numOfActionsPerHour *= 1 + (levelEffBuff + houseEffBuff + teaBuffs.efficiency) / 100;
-            // 茶额外数量
-            let extraQuantityPerHour = (numOfActionsPerHour * teaBuffs.quantity) / 100;
+
+            // 特殊装备效率
+            const itemEffiBuff = Number(getItemEffiBuffByActionHrid(actionHrid));
+
+            // 总效率影响动作数/生产物品数
+            actionPerHour *= 1 + (levelEffBuff + houseEffBuff + teaBuffs.efficiency + itemEffiBuff) / 100;
+            itemPerHour *= 1 + (levelEffBuff + houseEffBuff + teaBuffs.efficiency + itemEffiBuff) / 100;
+
+            // 茶额外产品数量（不消耗原料）
+            const extraFreeItemPerHour = (itemPerHour * teaBuffs.quantity) / 100;
+
+            // 出售市场税
+            const bidAfterTax = virtualItemBid * 0.98;
+
+            // 每小时利润
+            const profitPerHour = itemPerHour * bidAfterTax + extraFreeItemPerHour * bidAfterTax - drinksConsumedPerHourAskPrice;
 
             let htmlStr = `<div id="totalProfit"  style="color: ${SCRIPT_COLOR_MAIN}; text-align: left;">${
                 isZH ? "综合利润: " : "Overall profit: "
-            }${numberFormatter(numOfActionsPerHour * virtualItemBid + extraQuantityPerHour * virtualItemBid)}${
-                isZH ? "/小时" : "/hour"
-            }, ${numberFormatter(24 * numOfActionsPerHour * virtualItemBid + extraQuantityPerHour * virtualItemBid)}${isZH ? "/天" : "/day"}</div>`;
+            }${numberFormatter(profitPerHour)}${isZH ? "/小时" : "/hour"}, ${numberFormatter(24 * profitPerHour)}${isZH ? "/天" : "/day"}</div>`;
             panel.querySelector("div#expPerHour").insertAdjacentHTML("afterend", htmlStr);
         }
     }
