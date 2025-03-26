@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      21.4
+// @version      21.5
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @license      CC-BY-NC-SA-4.0
@@ -241,6 +241,11 @@
             desc: isZH
                 ? "战斗时，悬浮窗显示：伤害统计图表 [依赖上一项]"
                 : "Floating window during combat: DPS chart. [Depends on the previous selection]",
+            isTrue: true,
+        },
+        damageGraphTransparentBackground: {
+            id: "damageGraphTransparentBackground",
+            desc: isZH ? "伤害统计图表背景透明 [依赖上一项]" : "DPS chart transparent and blur background. [Depends on the previous selection]",
             isTrue: true,
         },
         forceMWIToolsDisplayZH: {
@@ -5089,40 +5094,61 @@
             panel.style.position = "fixed";
             panel.style.top = "50px";
             panel.style.left = "50px";
-            panel.style.background = "#f0f0f0";
-            panel.style.border = "1px solid #ccc";
             panel.style.zIndex = "9999";
-            panel.style.cursor = "move";
-            panel.style.fontSize = "12px";
-            panel.style.padding = "2px";
-            panel.style.resize = "both"; // Enable resizing
-            panel.style.overflow = "auto"; // Ensure content is scrollable when resized
+            panel.style.fontSize = "14px";
+            panel.style.padding = "10px";
+            panel.style.borderRadius = "16px";
+            panel.style.boxShadow = "0 4px 12px rgba(0, 0, 0, 0.3)";
+            panel.style.resize = "both";
+            panel.style.overflow = "auto";
             panel.style.width = "400px";
+            panel.style.backdropFilter = "blur(8px)";
+            if (settingsMap.damageGraphTransparentBackground.isTrue) {
+                panel.style.background = "rgba(0, 0, 0, 0.5)";
+                panel.style.border = "1px solid rgba(255, 255, 255, 0.2)";
+                panel.style.boxShadow = "0 4px 12px rgba(0, 0, 0, 0.3)";
+                panel.style.backdropFilter = "blur(8px)";
+            } else {
+                panel.style.background = "rgba(0, 0, 0)";
+                panel.style.border = "1px solid rgba(255, 255, 255)";
+                panel.style.boxShadow = "0 4px 12px rgba(0, 0, 0)";
+            }
 
             panel.innerHTML = `
-                <div id="panelHeader" style="display: flex; justify-content: space-between; align-items: center;">
-                    <span style="color: ${SCRIPT_COLOR_MAIN};">DPS</span>
-                    <button id="script_toggleButton">${lang.toggleButtonHide}</button>
-                </div>
-                <div id="script_panelContent">
-                    <canvas id="script_dpsChart" width="300" height="200"></canvas>
-                    <div id="script_dpsText"></div>
-                    <div id="script_hitChanceTable" style="margin-top: 10px;"></div>
-                </div>`;
+            <div id="panelHeader" style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 10px; cursor: move;">
+                <span style="font-weight: bold; font-size: 16px; color: #0078d4;">DPS</span>
+                <button id="script_toggleButton" style="background-color: #0078d4; color: white; border: none; padding: 5px 10px; border-radius: 8px; cursor: pointer;">${lang.toggleButtonHide}</button>
+            </div>
+            <div id="script_panelContent">
+                <canvas id="script_dpsChart" width="300" height="200"></canvas>
+                <div id="script_dpsText"></div>
+                <div id="script_hitChanceTable" style="margin-top: 10px;"></div>
+            </div>`;
             panel.className = "script_dps_panel";
             let offsetX, offsetY;
+            let dragging = false;
 
-            panel.addEventListener("mousedown", function (e) {
+            const panelHeader = panel.querySelector("#panelHeader");
+
+            // 鼠标拖动面板
+            panelHeader.addEventListener("mousedown", function (e) {
                 const rect = panel.getBoundingClientRect();
                 const isResizing = e.clientX > rect.right - 10 || e.clientY > rect.bottom - 10;
                 if (isResizing || e.target.id === "script_toggleButton") return;
                 dragging = true;
                 offsetX = e.clientX - panel.offsetLeft;
                 offsetY = e.clientY - panel.offsetTop;
+                e.preventDefault(); // 阻止默认行为，防止选择文本
             });
+
+            let dragStartTime = 0;
 
             document.addEventListener("mousemove", function (e) {
                 if (dragging) {
+                    const now = Date.now();
+                    if (now - dragStartTime < 16) return; // 限制每16毫秒更新一次
+                    dragStartTime = now;
+
                     var newX = e.clientX - offsetX;
                     var newY = e.clientY - offsetY;
                     panel.style.left = newX + "px";
@@ -5142,10 +5168,15 @@
                 let touch = e.touches[0];
                 offsetX = touch.clientX - panel.offsetLeft;
                 offsetY = touch.clientY - panel.offsetTop;
+                e.preventDefault();
             });
 
             document.addEventListener("touchmove", function (e) {
                 if (dragging) {
+                    const now = Date.now();
+                    if (now - dragStartTime < 16) return; // 限制每16毫秒更新一次
+                    dragStartTime = now;
+
                     let touch = e.touches[0];
                     var newX = touch.clientX - offsetX;
                     var newY = touch.clientY - offsetY;
@@ -5163,7 +5194,7 @@
             // Toggle button functionality
             document.getElementById("script_toggleButton").addEventListener("click", function () {
                 panelExpanded = !panelExpanded;
-                this.textContent = lang.toggleButtonShow;
+                this.textContent = lang.toggleButtonHide;
                 const panelContent = document.getElementById("script_panelContent");
                 if (panelExpanded) {
                     panelContent.style.display = "block";
@@ -5179,11 +5210,11 @@
             });
 
             // Create chart
-            // Chart.defaults.color = "black";
             const ctx = document.getElementById("script_dpsChart").getContext("2d");
             const numPlayers = players.length;
             const chartHeight = numPlayers * 35; // 设置每个条目的高度
             ctx.canvas.height = chartHeight;
+
             chart = new Chart(ctx, {
                 type: "bar",
                 data: {
@@ -5192,20 +5223,20 @@
                         {
                             data: [],
                             backgroundColor: [
-                                "rgba(75, 192, 192, 0.2)",
-                                "rgba(54, 162, 235, 0.2)",
-                                "rgba(255, 206, 86, 0.2)",
-                                "rgba(75, 192, 192, 0.2)",
-                                "rgba(153, 102, 255, 0.2)",
-                                "rgba(255, 159, 64, 0.2)",
+                                "rgba(255, 99, 132, 0.6)", // 浅粉色
+                                "rgba(54, 162, 235, 0.6)", // 浅蓝色
+                                "rgba(255, 206, 86, 0.6)", // 浅黄色
+                                "rgba(75, 192, 192, 0.6)", // 浅绿色
+                                "rgba(153, 102, 255, 0.6)", // 浅紫色
+                                "rgba(255, 159, 64, 0.6)", // 浅橙色
                             ],
                             borderColor: [
-                                "rgba(75, 192, 192, 1)",
-                                "rgba(54, 162, 235, 1)",
-                                "rgba(255, 206, 86, 1)",
-                                "rgba(75, 192, 192, 1)",
-                                "rgba(153, 102, 255, 1)",
-                                "rgba(255, 159, 64, 1)",
+                                "rgba(255, 99, 132, 1)", // 浅粉色边框
+                                "rgba(54, 162, 235, 1)", // 浅蓝色边框
+                                "rgba(255, 206, 86, 1)", // 浅黄色边框
+                                "rgba(75, 192, 192, 1)", // 浅绿色边框
+                                "rgba(153, 102, 255, 1)", // 浅紫色边框
+                                "rgba(255, 159, 64, 1)", // 浅橙色边框
                             ],
                             borderWidth: 1,
                             barPercentage: 0.9,
@@ -5229,6 +5260,13 @@
                             grid: {
                                 display: false,
                             },
+                            ticks: {
+                                font: {
+                                    size: 12, // 字体大小
+                                    weight: "bold", // 加粗字体
+                                },
+                                color: "rgba(255, 255, 255, 0.7)", // 浅色字体（你可以根据背景调整颜色）
+                            },
                         },
                     },
                     layout: {
@@ -5251,10 +5289,11 @@
                             align: "right",
                             color: function (context) {
                                 const value = context.dataset.data[context.dataIndex];
-                                return value > 0 ? "black" : "transparent";
+                                return value > 0 ? "white" : "transparent";
                             },
                             font: {
                                 weight: "bold",
+                                size: 12,
                             },
                             formatter: function (value) {
                                 return `${value.toLocaleString()}`;
@@ -5264,6 +5303,7 @@
                         },
                     },
                 },
+
                 plugins: [ChartDataLabels],
             });
         }
@@ -5340,48 +5380,58 @@
                         }
                     }
 
+                    // Capitalize the first letter of each word in aura skill
+                    auraskill = auraskill
+                        .split(" ")
+                        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+                        .join(" ");
+
+                    // Highlight the player with the highest DPS
+                    const isHighestDPS = dps[index] === Math.max(...dps);
+                    const dpsPrefix = isHighestDPS ? "🔥" : "";
+
                     return `
-                    <tr>
-                        <td>${player.name}</td>
-                        <td>${auraskill}</td>
-                        <td>${dpsFormatted}</td>
-                        <td>${totalDamageFormatted}</td>
-                        <td>${damagePercentage}%</td>
-                    </tr>`;
+            <tr style="color: white;">
+                <td style="font-weight: bold;">${dpsPrefix} ${player.name}</td>
+                <td>${auraskill}</td>
+                <td>${dpsFormatted}</td>
+                <td>${totalDamageFormatted}</td>
+                <td>${damagePercentage}%</td>
+            </tr>`;
                 })
                 .join("");
 
             // Display monster counts
             const monsterRows = Object.entries(monsterCounts)
                 .map(([name, count]) => {
-                    return `<tr><td>${name} (${count})</td></tr>`;
+                    return `<tr><td style="color: white;">${name} (${count})</td></tr>`;
                 })
                 .join("");
 
             dpsText.innerHTML = `
-        <table style="width: 100%; border-collapse: collapse;">
-            <thead>
-                <tr style="text-align: left;">
-                    <th>${lang.players}</th>
-                    <th>${lang.aura}</th>
-                    <th>${lang.dpsTextDPS}</th>
-                    <th>${lang.dpsTextTotalDamage}</th>
-                    <th>${lang.damagePercentage}</th>
-                </tr>
-            </thead>
-            <tbody>
-                ${playerRows}
-            </tbody>
-            <tbody>
-                <tr style="border-top: 2px solid black; font-weight: bold; text-align: left;">
-                    <td>${formattedTime}</td>
-                    <td></td>
-                    <td>${totalTeamDPS.toLocaleString()}</td>
-                    <td>${totalTeamDamage.toLocaleString()}</td>
-                    <td>100%</td>
-                </tr>
-            </tbody>
-        </table>`;
+    <table style="width: 100%; border-collapse: collapse; font-size: smaller;">
+        <thead>
+            <tr style="text-align: left; color: white;">
+                <th style="font-weight: bold;">${lang.players}</th>
+                <th style="font-weight: bold;">${lang.aura}</th>
+                <th style="font-weight: bold;">${lang.dpsTextDPS}</th>
+                <th style="font-weight: bold;">${lang.dpsTextTotalDamage}</th>
+                <th style="font-weight: bold;">${lang.damagePercentage}</th>
+            </tr>
+        </thead>
+        <tbody>
+            ${playerRows}
+        </tbody>
+        <tbody>
+            <tr style="border-top: 2px solid white; font-weight: bold; text-align: left; color: white;">
+                <td>${formattedTime}</td>
+                <td></td>
+                <td>${totalTeamDPS.toLocaleString()}</td>
+                <td>${totalTeamDamage.toLocaleString()}</td>
+                <td>100%</td>
+            </tr>
+        </tbody>
+    </table>`;
 
             // Update hit chance table
             const hitChanceTable = document.getElementById("script_hitChanceTable");
@@ -5394,30 +5444,30 @@
                             const evasionRating = monsterEvasion[monsterName][`${player.name}-${combatStyle}`];
                             const accuracy = player.combatDetails[`${combatStyle}AccuracyRating`];
                             const hitChance = calculateHitChance(accuracy, evasionRating);
-                            return `<td>${hitChance.toFixed(0)}%</td>`;
+                            return `<td style="color: white;">${hitChance.toFixed(0)}%</td>`;
                         })
                         .join("");
-                    return `<tr><td>${playerName}</td>${playerHitChances}</tr>`;
+                    return `<tr><td style="color: white;">${playerName}</td>${playerHitChances}</tr>`;
                 })
                 .join("");
 
             hitChanceTable.innerHTML = `
-        <table style="width: 100%; border-collapse: collapse;">
-            <thead>
-                <tr>
-                    <th style="font-size: smaller; white-space: normal; text-align: left;">${lang.hitChance}</th>
-                    ${Object.entries(monsterCounts)
-                        .map(
-                            ([monsterName, count]) =>
-                                `<th style="font-size: smaller; white-space: normal; text-align: left;">${monsterName} (${count})</th>`
-                        )
-                        .join("")}
-                </tr>
-            </thead>
-            <tbody>
-                ${hitChanceRows}
-            </tbody>
-        </table>`;
+    <table style="width: 100%; border-collapse: collapse; font-size: smaller;">
+        <thead>
+            <tr>
+                <th style="font-size: smaller; white-space: normal; text-align: left; color: white;">${lang.hitChance}</th>
+                ${Object.entries(monsterCounts)
+                    .map(
+                        ([monsterName, count]) =>
+                            `<th style="font-size: smaller; white-space: normal; text-align: left; color: white;">${monsterName} (${count})</th>`
+                    )
+                    .join("")}
+            </tr>
+        </thead>
+        <tbody>
+            ${hitChanceRows}
+        </tbody>
+    </table>`;
         }
     };
 
