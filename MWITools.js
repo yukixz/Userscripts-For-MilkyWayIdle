@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      21.5
+// @version      21.6
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @license      CC-BY-NC-SA-4.0
@@ -1952,6 +1952,7 @@
                     totalDamage = new Array(players.length).fill(0);
                     monsterCounts = {};
                     monsterEvasion = {};
+                    monsterHrids = {};
                 }
             }
         } else if (obj && obj.type === "action_completed") {
@@ -2008,6 +2009,7 @@
                 // Accumulate monster counts and store evasion ratings by combat style
                 obj.monsters.forEach((monster) => {
                     const name = monster.name;
+                    monsterHrids[name] = monster.hrid;
                     monsterCounts[name] = (monsterCounts[name] || 0) + 1;
                     if (!monsterEvasion[name]) {
                         monsterEvasion[name] = {};
@@ -5079,10 +5081,10 @@
     let players = [];
     let monsters = [];
     let dragging = false;
-    let panelExpanded = true;
     let chart = null;
     let monsterCounts = {}; // Object to store monster counts
     let monsterEvasion = {}; // Object to store monster evasion ratings by combat style
+    let monsterHrids = {};
     const calculateHitChance = (accuracy, evasion) => {
         const hitChance = (Math.pow(accuracy, 1.4) / (Math.pow(accuracy, 1.4) + Math.pow(evasion, 1.4))) * 100;
         return hitChance;
@@ -5125,6 +5127,7 @@
                 <div id="script_hitChanceTable" style="margin-top: 10px;"></div>
             </div>`;
             panel.className = "script_dps_panel";
+
             let offsetX, offsetY;
             let dragging = false;
 
@@ -5192,14 +5195,26 @@
             document.body.appendChild(panel);
 
             // Toggle button functionality
+            if (!localStorage.getItem("script_dpsPanel_isExpanded")) {
+                localStorage.setItem("script_dpsPanel_isExpanded", true);
+            }
+            if (localStorage.getItem("script_dpsPanel_isExpanded") !== "true") {
+                document.getElementById("script_panelContent").style.display = "none";
+                document.getElementById("script_toggleButton").textContent = lang.toggleButtonShow;
+                panel.style.width = "auto";
+                panel.style.height = "auto";
+            }
+
             document.getElementById("script_toggleButton").addEventListener("click", function () {
-                panelExpanded = !panelExpanded;
-                this.textContent = lang.toggleButtonHide;
+                let isExpanded = localStorage.getItem("script_dpsPanel_isExpanded") === "true";
+                isExpanded = !isExpanded;
+                localStorage.setItem("script_dpsPanel_isExpanded", isExpanded ? true : false);
+                this.textContent = isExpanded ? lang.toggleButtonHide : lang.toggleButtonShow;
                 const panelContent = document.getElementById("script_panelContent");
-                if (panelExpanded) {
+                if (isExpanded) {
                     panelContent.style.display = "block";
                     this.textContent = lang.toggleButtonHide;
-                    panel.style.width = "auto";
+                    panel.style.width = "400px";
                     panel.style.height = "auto";
                 } else {
                     panelContent.style.display = "none";
@@ -5359,9 +5374,11 @@
 
                     // Get auraskill for the current player
                     let auraskill = "N/A";
+                    let auraskillHrid = null;
                     if (player.combatAbilities && Array.isArray(player.combatAbilities)) {
                         const firstAbility = player.combatAbilities[0];
                         if (firstAbility && firstAbility.abilityHrid) {
+                            auraskillHrid = firstAbility.abilityHrid;
                             auraskill = firstAbility.abilityHrid.split("/").pop().replace(/_/g, " ");
                             const validSkills = [
                                 "revive",
@@ -5393,18 +5410,11 @@
                     return `
             <tr style="color: white;">
                 <td style="font-weight: bold;">${dpsPrefix} ${player.name}</td>
-                <td>${auraskill}</td>
+                <td>${isZH ? (auraskillHrid ? ZHOthersDic[auraskillHrid] : "无") : auraskill}</td>
                 <td>${dpsFormatted}</td>
                 <td>${totalDamageFormatted}</td>
                 <td>${damagePercentage}%</td>
             </tr>`;
-                })
-                .join("");
-
-            // Display monster counts
-            const monsterRows = Object.entries(monsterCounts)
-                .map(([name, count]) => {
-                    return `<tr><td style="color: white;">${name} (${count})</td></tr>`;
                 })
                 .join("");
 
@@ -5459,7 +5469,9 @@
                 ${Object.entries(monsterCounts)
                     .map(
                         ([monsterName, count]) =>
-                            `<th style="font-size: smaller; white-space: normal; text-align: left; color: white;">${monsterName} (${count})</th>`
+                            `<th style="font-size: smaller; white-space: normal; text-align: left; color: white;">${
+                                isZH ? ZHOthersDic[monsterHrids[monsterName]] : monsterName
+                            } (${count})</th>`
                     )
                     .join("")}
             </tr>
