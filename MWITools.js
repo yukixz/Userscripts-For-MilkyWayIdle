@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      21.6
+// @version      21.7
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @license      CC-BY-NC-SA-4.0
@@ -5091,6 +5091,9 @@
     };
 
     const getStatisticsDom = () => {
+        const numPlayers = players.length;
+        const chartHeight = numPlayers * 35 + 20;
+
         if (!document.querySelector(".script_dps_panel")) {
             let panel = document.createElement("div");
             panel.style.position = "fixed";
@@ -5101,9 +5104,9 @@
             panel.style.padding = "10px";
             panel.style.borderRadius = "16px";
             panel.style.boxShadow = "0 4px 12px rgba(0, 0, 0, 0.3)";
-            panel.style.resize = "both";
             panel.style.overflow = "auto";
-            panel.style.width = "400px";
+            panel.style.width = "auto";
+            panel.style.height = "auto";
             panel.style.backdropFilter = "blur(8px)";
             if (settingsMap.damageGraphTransparentBackground.isTrue) {
                 panel.style.background = "rgba(0, 0, 0, 0.5)";
@@ -5117,12 +5120,13 @@
             }
 
             panel.innerHTML = `
-            <div id="panelHeader" style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 10px; cursor: move;">
+            <div id="panelHeader" style="display: flex; justify-content: space-between; align-items: center; cursor: move; width: auto; height: auto;">
                 <span style="font-weight: bold; font-size: 16px; color: #0078d4;">DPS</span>
-                <button id="script_toggleButton" style="background-color: #0078d4; color: white; border: none; padding: 5px 10px; border-radius: 8px; cursor: pointer;">${lang.toggleButtonHide}</button>
+                <button id="script_toggleButton" style="background-color: #0078d4; color: white; border: none; padding: 5px 10px; margin-left: 10px; border-radius: 8px; cursor: pointer;">${lang.toggleButtonHide}</button>
             </div>
             <div id="script_panelContent">
-                <canvas id="script_dpsChart" width="300" height="200"></canvas>
+                <div id="script_dpsChart_div" style="width: 400px; height: ${chartHeight}px;">
+                    <canvas id="script_dpsChart"></canvas></div>
                 <div id="script_dpsText"></div>
                 <div id="script_hitChanceTable" style="margin-top: 10px;"></div>
             </div>`;
@@ -5201,8 +5205,6 @@
             if (localStorage.getItem("script_dpsPanel_isExpanded") !== "true") {
                 document.getElementById("script_panelContent").style.display = "none";
                 document.getElementById("script_toggleButton").textContent = lang.toggleButtonShow;
-                panel.style.width = "auto";
-                panel.style.height = "auto";
             }
 
             document.getElementById("script_toggleButton").addEventListener("click", function () {
@@ -5214,22 +5216,14 @@
                 if (isExpanded) {
                     panelContent.style.display = "block";
                     this.textContent = lang.toggleButtonHide;
-                    panel.style.width = "400px";
-                    panel.style.height = "auto";
                 } else {
                     panelContent.style.display = "none";
                     this.textContent = lang.toggleButtonShow;
-                    panel.style.width = "auto";
-                    panel.style.height = "auto";
                 }
             });
 
             // Create chart
             const ctx = document.getElementById("script_dpsChart").getContext("2d");
-            const numPlayers = players.length;
-            const chartHeight = numPlayers * 35; // 设置每个条目的高度
-            ctx.canvas.height = chartHeight;
-
             chart = new Chart(ctx, {
                 type: "bar",
                 data: {
@@ -5261,6 +5255,7 @@
                 },
                 options: {
                     responsive: true,
+                    maintainAspectRatio: false,
                     indexAxis: "y",
                     scales: {
                         x: {
@@ -5321,6 +5316,8 @@
 
                 plugins: [ChartDataLabels],
             });
+        } else if (document.getElementById("script_dpsChart_div")) {
+            document.getElementById("script_dpsChart_div").style.height = `${chartHeight}px`;
         }
         return document.querySelector(".script_dps_panel");
     };
