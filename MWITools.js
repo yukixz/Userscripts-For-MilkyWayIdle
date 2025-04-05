@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      21.8
+// @version      21.9
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @license      CC-BY-NC-SA-4.0
@@ -3146,17 +3146,33 @@
                     totalResourcesBidPricePerAction += upgradedFromItemBid;
                 }
 
-                appendHTMLStr += `<div style="color: ${SCRIPT_COLOR_TOOLTIP}; font-size: 10px;">${
-                    isZH ? "原料市场价: " : "Source materials market price: "
-                }${numberFormatter(totalResourcesAskPricePerAction)}  / ${numberFormatter(totalResourcesBidPricePerAction)}</div>`;
+                // 使用表格显示原料信息
+                appendHTMLStr += `
+                                <div style="color: ${SCRIPT_COLOR_TOOLTIP}; font-size: 10px;">
+                                    <table style="width:100%; border-collapse: collapse;">
+                                        <tr style="border-bottom: 1px solid ${SCRIPT_COLOR_TOOLTIP};">
+                                            <th style="text-align: left;">${isZH ? "原料" : "Material"}</th>
+                                            <th style="text-align: center;">${isZH ? "数量" : "Count"}</th>
+                                            <th style="text-align: right;">${isZH ? "出售价" : "Ask"}</th>
+                                            <th style="text-align: right;">${isZH ? "收购价" : "Bid"}</th>
+                                        </tr>
+                                        <tr style="border-bottom: 1px solid ${SCRIPT_COLOR_TOOLTIP};">
+                                            <td style="text-align: left;"><b>${isZH ? "合计" : "Total"}</b></td>
+                                            <td style="text-align: center;"><b>${inputItems.reduce((sum, item) => sum + item.count, 0)}</b></td>
+                                            <td style="text-align: right;"><b>${numberFormatter(totalResourcesAskPricePerAction)}</b></td>
+                                            <td style="text-align: right;"><b>${numberFormatter(totalResourcesBidPricePerAction)}</b></td>
+                                        </tr>`;
 
                 for (const item of inputItems) {
                     appendHTMLStr += `
-                    <div style="color: ${SCRIPT_COLOR_TOOLTIP}; font-size: 10px;"> ${isZH ? item.zhName : item.name} x${
-                        item.count
-                    }: ${numberFormatter(item.perAskPrice)} / ${numberFormatter(item.perBidPrice)}</div>
-                    `;
+                                        <tr>
+                                            <td style="text-align: left;">${isZH ? item.zhName : item.name}</td>
+                                            <td style="text-align: center;">${item.count}</td>
+                                            <td style="text-align: right;">${numberFormatter(item.perAskPrice)}</td>
+                                            <td style="text-align: right;">${numberFormatter(item.perBidPrice)}</td>
+                                        </tr>`;
                 }
+                appendHTMLStr += `</table></div>`;
 
                 if (upgradedFromItemHrid) {
                     appendHTMLStr += `
