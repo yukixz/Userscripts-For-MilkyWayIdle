@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWITools
 // @namespace    http://tampermonkey.net/
-// @version      22.1
+// @version      22.2
 // @description  Tools for MilkyWayIdle. Shows total action time. Shows market prices. Shows action number quick inputs. Shows how many actions are needed to reach certain skill level. Shows skill exp percentages. Shows total networth. Shows combat summary. Shows combat maps index. Shows item level on item icons. Shows how many ability books are needed to reach certain level. Shows market equipment filters.
 // @author       bot7420
 // @license      CC-BY-NC-SA-4.0
@@ -3320,6 +3320,22 @@
         }
 
         insertAfterElem.insertAdjacentHTML("afterend", appendHTMLStr);
+
+        // Make sure the tooltip is fully visible in the viewport
+        const tootip = insertAfterElem.closest(".MuiTooltip-popper");
+        const fixOverflow = (tootip) => {
+            if (!tootip.isConnected) {
+                return;
+            }
+            const bBox = tootip.getBoundingClientRect();
+            if (bBox.top < 0 || bBox.bottom > window.innerHeight) {
+                const transformString = tootip.style.transform.split(/\w+\(|\);?/);
+                const transformValues = transformString[1].split(/,\s?/g).map((numStr) => parseInt(numStr));
+                tootip.style.transform = `translate3d(${transformValues[0]}px, 0px, ${transformValues[2]}px)`;
+                console.log(tootip.style.transform);
+            }
+        };
+        setTimeout(fixOverflow, 100, tootip); // A delay is added because the game seems to reset the style if applied immediately.
     }
 
     async function fetchMarketJSON(forceFetch = false) {
