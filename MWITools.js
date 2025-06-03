@@ -11,12 +11,12 @@
 // @match        https://shykai.github.io/mwisim.github.io/*
 // @match        https://shykai.github.io/MWICombatSimulatorTest/dist/*
 // @match        https://mooneycalc.netlify.app/*
-// @grant        GM_addStyle
+// @grant        GM.addStyle
+// @grant        GM.getValue
+// @grant        GM.setValue
+// @grant        GM.notification
 // @grant        GM.xmlHttpRequest
 // @grant        GM_xmlhttpRequest
-// @grant        GM_notification
-// @grant        GM_getValue
-// @grant        GM_setValue
 // @connect      raw.githubusercontent.com
 // @connect      ghproxy.net
 // @require      https://cdnjs.cloudflare.com/ajax/libs/mathjs/12.4.2/math.js
@@ -47,7 +47,7 @@
     报错日志是定位问题的快速甚至唯一方法，请打开浏览器开发者工具查看终端，刷新游戏网页，复现遇到的问题，截图发给作者。
 */
 
-(() => {
+(async () => {
     "use strict";
 
     const THOUSAND_SEPERATOR = new Intl.NumberFormat().format(1111).replaceAll("1", "").at(0) || "";
@@ -1883,7 +1883,7 @@
     if (localStorage.getItem("initClientData")) {
         const obj = JSON.parse(localStorage.getItem("initClientData"));
         console.log(obj);
-        GM_setValue("init_client_data", localStorage.getItem("initClientData"));
+        await GM.setValue("init_client_data", localStorage.getItem("initClientData"));
 
         initData_actionDetailMap = obj.actionDetailMap;
         initData_levelExperienceTable = obj.levelExperienceTable;
@@ -1915,15 +1915,16 @@
             const message = oriGet.call(this);
             Object.defineProperty(this, "data", { value: message }); // Anti-loop
 
-            return handleMessage(message);
+            handleMessage(message);
+            return message;
         }
     }
 
-    function handleMessage(message) {
+    async function handleMessage(message) {
         let obj = JSON.parse(message);
         if (obj && obj.type === "init_character_data") {
             console.log(obj);
-            GM_setValue("init_character_data", message);
+            await GM.setValue(" ", message);
 
             initData_characterSkills = obj.characterSkills;
             initData_characterItems = obj.characterItems;
@@ -1955,14 +1956,14 @@
                 checkEquipment();
             }
             if (settingsMap.notifiEmptyAction.isTrue) {
-                notificate();
+                notify();
             }
             if (settingsMap.fillMarketOrderPrice.isTrue) {
                 waitForMarketOrders();
             }
         } else if (obj && obj.type === "init_client_data") {
             console.log(obj);
-            GM_setValue("init_client_data", message);
+            await GM.setValue("init_client_data", message);
 
             initData_actionDetailMap = obj.actionDetailMap;
             initData_levelExperienceTable = obj.levelExperienceTable;
@@ -1983,7 +1984,7 @@
                 checkEquipment();
             }
             if (settingsMap.notifiEmptyAction.isTrue) {
-                setTimeout(notificate, 1000);
+                setTimeout(notify, 1000);
             }
             if (settingsMap.showDamage.isTrue) {
                 if (currentActionsHridList.length === 0 || !currentActionsHridList[0].actionHrid.startsWith("/actions/combat/")) {
@@ -2028,7 +2029,7 @@
                 checkEquipment();
             }
         } else if (obj && obj.type === "new_battle") {
-            GM_setValue("new_battle", message); // This is the only place to get other party members' equipted consumables.
+            await GM.setValue("new_battle", message); // This is the only place to get other party members' equipted consumables.
 
             if (settingsMap.showDamage.isTrue) {
                 if (startTime && endTime) {
@@ -2073,25 +2074,25 @@
                 });
             }
         } else if (obj && obj.type === "profile_shared") {
-            let profileExportListString = GM_getValue("profile_export_list", null);
+            let profileExportListString = await GM.getValue("profile_export_list", null);
             let profileExportList = null;
             // Remove invalid
-            // GM_setValue("profile_export_list", JSON.stringify(new Array())); // Remove stored profiles. Only for testing.
+            // await GM.setValue("profile_export_list", JSON.stringify(new Array())); // Remove stored profiles. Only for testing.
             if (profileExportListString) {
                 profileExportList = JSON.parse(profileExportListString);
                 if (!profileExportList || !profileExportList.filter) {
                     console.error("Found invalid profileExportList in store. profileExportList cleared.");
-                    GM_setValue("profile_export_list", JSON.stringify(new Array()));
+                    await GM.setValue("profile_export_list", JSON.stringify(new Array()));
                 }
             } else {
-                GM_setValue("profile_export_list", JSON.stringify(new Array()));
+                await GM.setValue("profile_export_list", JSON.stringify(new Array()));
             }
 
             obj.characterID = obj.profile.characterSkills[0].characterID;
             obj.characterName = obj.profile.sharableCharacter.name;
             obj.timestamp = Date.now();
 
-            profileExportListString = GM_getValue("profile_export_list", null) || JSON.stringify(new Array());
+            profileExportListString = await GM.getValue("profile_export_list", null) || JSON.stringify(new Array());
             profileExportList = JSON.parse(profileExportListString);
             profileExportList = profileExportList.filter((item) => item.characterID !== obj.characterID);
             profileExportList.unshift(obj);
@@ -2099,7 +2100,7 @@
                 profileExportList.pop();
             }
             // console.log(profileExportList);
-            GM_setValue("profile_export_list", JSON.stringify(profileExportList));
+            await GM.setValue("profile_export_list", JSON.stringify(profileExportList));
 
             addExportButton(obj);
 
@@ -2170,7 +2171,6 @@
                 updateStatisticsPanel();
             }
         }
-        return message;
     }
 
     /* 计算Networth */
@@ -2553,7 +2553,7 @@
         if (!marketAPIJson) {
             return 0;
         }
-        const clientObj = JSON.parse(GM_getValue("init_client_data", ""));
+        const clientObj = JSON.parse(await GM.getValue("init_client_data", ""));
 
         const upgradeCostsMap = clientObj.houseRoomDetailMap[house.houseRoomHrid].upgradeCostsMap;
         const level = house.level;
@@ -2836,13 +2836,13 @@
         return str;
     }
 
-    GM_addStyle(`div.Header_actionName__31-L2 {
+    await GM.addStyle(`div.Header_actionName__31-L2 {
         overflow: visible !important;
         white-space: normal !important;
         height: auto !important;
       }`);
 
-    GM_addStyle(`span.NavigationBar_label__1uH-y {
+    await GM.addStyle(`span.NavigationBar_label__1uH-y {
         width: 10px !important;
       }`);
 
@@ -5050,16 +5050,16 @@
     }
 
     /* 空闲时弹窗通知 */
-    function notificate() {
-        if (typeof GM_notification === "undefined" || !GM_notification) {
-            console.error("notificate null GM_notification");
+    async function notify() {
+        if (GM == null || GM.notification == null) {
+            console.error("notify no GM.notification");
             return;
         }
         if (currentActionsHridList.length > 0) {
             return;
         }
-        console.log("notificate empty action");
-        GM_notification({
+        console.log("notify empty action");
+        await GM.notification({
             text: isZH ? "动作队列为空" : "Action queue is empty.",
             title: "MWITools",
         });
@@ -5571,7 +5571,7 @@
     }
 
     async function importDataForAmvoidguy(button) {
-        const [exportObj, playerIDs, importedPlayerPositions, zone, isZoneDungeon, isParty] = constructGroupExportObj();
+        const [exportObj, playerIDs, importedPlayerPositions, zone, isZoneDungeon, isParty] = await constructGroupExportObj();
         console.log(exportObj);
         console.log(playerIDs);
 
@@ -5664,8 +5664,8 @@
     }
 
     async function importDataFor9Battles(button) {
-        const characterObj = JSON.parse(GM_getValue("init_character_data", ""));
-        const clientObj = JSON.parse(GM_getValue("init_client_data", ""));
+        const characterObj = JSON.parse(await GM.getValue("init_character_data", ""));
+        const clientObj = JSON.parse(await GM.getValue("init_client_data", ""));
         console.log(characterObj);
         console.log(clientObj);
 
@@ -5682,15 +5682,15 @@
         // }, 500);
     }
 
-    function constructGroupExportObj() {
-        const characterObj = JSON.parse(GM_getValue("init_character_data", ""));
-        const clientObj = JSON.parse(GM_getValue("init_client_data", ""));
+    async function constructGroupExportObj() {
+        const characterObj = JSON.parse(await GM.getValue("init_character_data", ""));
+        const clientObj = JSON.parse(await GM.getValue("init_client_data", ""));
         let battleObj = null;
-        if (GM_getValue("new_battle", "")) {
-            battleObj = JSON.parse(GM_getValue("new_battle", ""));
+        if (await GM.getValue("new_battle", "")) {
+            battleObj = JSON.parse(await GM.getValue("new_battle", ""));
         }
         // console.log(battleObj);
-        const storedProfileList = JSON.parse(GM_getValue("profile_export_list", "[]"));
+        const storedProfileList = JSON.parse(await GM.getValue("profile_export_list", "[]"));
         // console.log(storedProfileList);
 
         const BLANK_PLAYER_JSON = `{\"player\":{\"attackLevel\":1,\"magicLevel\":1,\"powerLevel\":1,\"rangedLevel\":1,\"defenseLevel\":1,\"staminaLevel\":1,\"intelligenceLevel\":1,\"equipment\":[]},\"food\":{\"/action_types/combat\":[{\"itemHrid\":\"\"},{\"itemHrid\":\"\"},{\"itemHrid\":\"\"}]},\"drinks\":{\"/action_types/combat\":[{\"itemHrid\":\"\"},{\"itemHrid\":\"\"},{\"itemHrid\":\"\"}]},\"abilities\":[{\"abilityHrid\":\"\",\"level\":\"1\"},{\"abilityHrid\":\"\",\"level\":\"1\"},{\"abilityHrid\":\"\",\"level\":\"1\"},{\"abilityHrid\":\"\",\"level\":\"1\"},{\"abilityHrid\":\"\",\"level\":\"1\"}],\"triggerMap\":{},\"zone\":\"/actions/combat/fly\",\"simulationTime\":\"100\",\"houseRooms\":{\"/house_rooms/dairy_barn\":0,\"/house_rooms/garden\":0,\"/house_rooms/log_shed\":0,\"/house_rooms/forge\":0,\"/house_rooms/workshop\":0,\"/house_rooms/sewing_parlor\":0,\"/house_rooms/kitchen\":0,\"/house_rooms/brewery\":0,\"/house_rooms/laboratory\":0,\"/house_rooms/observatory\":0,\"/house_rooms/dining_room\":0,\"/house_rooms/library\":0,\"/house_rooms/dojo\":0,\"/house_rooms/gym\":0,\"/house_rooms/armory\":0,\"/house_rooms/archery_range\":0,\"/house_rooms/mystical_study\":0}}`;
@@ -6106,15 +6106,15 @@
         resultDiv.append(div);
 
         new MutationObserver((mutationsList) => {
-            mutationsList.forEach((mutation) => {
+            mutationsList.forEach(async (mutation) => {
                 if (mutation.addedNodes.length >= 3) {
-                    handleResultForAmvoidguy(mutation.addedNodes, div);
+                    await handleResultForAmvoidguy(mutation.addedNodes, div);
                 }
             });
         }).observe(expDiv, { childList: true, subtree: true });
     }
 
-    function handleResultForAmvoidguy(expNodes, parentDiv) {
+    async function handleResultForAmvoidguy(expNodes, parentDiv) {
         const isZHIn3rdPartyWebsites = localStorage.getItem("i18nextLng")?.toLowerCase()?.startsWith("zh");
 
         let perHourGainExp = {
@@ -6151,7 +6151,7 @@
             }
         });
 
-        let data = GM_getValue("init_character_data", null);
+        let data = await GM.getValue("init_character_data", null);
         let obj = JSON.parse(data);
         if (!obj || !obj.characterSkills || !obj.currentTimestamp) {
             console.error("handleResult no character localstorage");
@@ -6226,27 +6226,27 @@
         for (const skill of skillNamesInOrder) {
             const skillDiv = parentDiv.querySelector(`div#${"inputDiv_" + skill}`);
             const skillInput = parentDiv.querySelector(`input#${"input_" + skill}`);
-            skillInput.onchange = () => {
-                calculateTill(skill, skillInput, skillLevels, parentDiv, perHourGainExp, isZHIn3rdPartyWebsites);
+            skillInput.onchange = async () => {
+                await calculateTill(skill, skillInput, skillLevels, parentDiv, perHourGainExp, isZHIn3rdPartyWebsites);
             };
-            skillInput.addEventListener("keyup", function (evt) {
-                calculateTill(skill, skillInput, skillLevels, parentDiv, perHourGainExp, isZHIn3rdPartyWebsites);
+            skillInput.addEventListener("keyup", async (evt) => {
+                await calculateTill(skill, skillInput, skillLevels, parentDiv, perHourGainExp, isZHIn3rdPartyWebsites);
             });
-            skillDiv.onclick = () => {
-                calculateTill(skill, skillInput, skillLevels, parentDiv, perHourGainExp, isZHIn3rdPartyWebsites);
+            skillDiv.onclick = async () => {
+                await calculateTill(skill, skillInput, skillLevels, parentDiv, perHourGainExp, isZHIn3rdPartyWebsites);
             };
         }
 
         const daysAfterDiv = parentDiv.querySelector(`div#script_afterDays`);
         const daysAfterInput = parentDiv.querySelector(`input#script_afterDays_input`);
-        daysAfterInput.onchange = () => {
-            calculateAfterDays(daysAfterInput, skillLevels, parentDiv, perHourGainExp, skillNamesInOrder, isZHIn3rdPartyWebsites);
+        daysAfterInput.onchange = async () => {
+            await calculateAfterDays(daysAfterInput, skillLevels, parentDiv, perHourGainExp, skillNamesInOrder, isZHIn3rdPartyWebsites);
         };
-        daysAfterInput.addEventListener("keyup", function (evt) {
-            calculateAfterDays(daysAfterInput, skillLevels, parentDiv, perHourGainExp, skillNamesInOrder, isZHIn3rdPartyWebsites);
+        daysAfterInput.addEventListener("keyup", async (evt) => {
+            await calculateAfterDays(daysAfterInput, skillLevels, parentDiv, perHourGainExp, skillNamesInOrder, isZHIn3rdPartyWebsites);
         });
-        daysAfterDiv.onclick = () => {
-            calculateAfterDays(daysAfterInput, skillLevels, parentDiv, perHourGainExp, skillNamesInOrder, isZHIn3rdPartyWebsites);
+        daysAfterDiv.onclick = async () => {
+            await calculateAfterDays(daysAfterInput, skillLevels, parentDiv, perHourGainExp, skillNamesInOrder, isZHIn3rdPartyWebsites);
         };
 
         // 提取成本和收益
@@ -6266,8 +6266,8 @@
         }
     }
 
-    function calculateAfterDays(daysAfterInput, skillLevels, parentDiv, perHourGainExp, skillNamesInOrder, isZHIn3rdPartyWebsites) {
-        const initData_levelExperienceTable = JSON.parse(GM_getValue("init_client_data", null)).levelExperienceTable;
+    async function calculateAfterDays(daysAfterInput, skillLevels, parentDiv, perHourGainExp, skillNamesInOrder, isZHIn3rdPartyWebsites) {
+        const initData_levelExperienceTable = JSON.parse(await GM.getValue("init_client_data", null)).levelExperienceTable;
         const days = Number(daysAfterInput.value);
         parentDiv.querySelector(`div#needDiv`).textContent = `${isZHIn3rdPartyWebsites ? "" : "After"} ${days} ${
             isZHIn3rdPartyWebsites ? "天后：" : "days: "
@@ -6304,8 +6304,8 @@
         listDiv.innerHTML = html;
     }
 
-    function calculateTill(skillName, skillInputElem, skillLevels, parentDiv, perHourGainExp, isZHIn3rdPartyWebsites) {
-        const initData_levelExperienceTable = JSON.parse(GM_getValue("init_client_data", null)).levelExperienceTable;
+    async function calculateTill(skillName, skillInputElem, skillLevels, parentDiv, perHourGainExp, isZHIn3rdPartyWebsites) {
+        const initData_levelExperienceTable = JSON.parse(await GM.getValue("init_client_data", null)).levelExperienceTable;
         const targetLevel = Number(skillInputElem.value);
         parentDiv.querySelector(`div#needDiv`).textContent = `${
             isZHIn3rdPartyWebsites ? skillLevels[skillName].skillZhName : skillLevels[skillName].skillName
@@ -6361,7 +6361,7 @@
     }
 
     async function importDataForMooneycalc(button) {
-        const characterData = JSON.parse(GM_getValue("init_character_data", ""));
+        const characterData = JSON.parse(await GM.getValue("init_character_data", ""));
         console.log(characterData);
         if (!characterData || !characterData.characterSkills || !characterData.currentTimestamp) {
             button.textContent = isZH ? "错误：没有人物数据" : "Error: no character settings found";
@@ -6439,16 +6439,16 @@
                 button.style.color = "black";
                 button.style.boxShadow = "none";
                 button.style.border = "0px";
-                button.onclick = function () {
+                button.onclick = async () => {
                     let exportString = "";
                     const playerID = obj.profile.characterSkills[0].characterID;
-                    const clientObj = JSON.parse(GM_getValue("init_client_data", ""));
-                    const characterObj = JSON.parse(GM_getValue("init_character_data", ""));
+                    const clientObj = JSON.parse(await GM.getValue("init_client_data", ""));
+                    const characterObj = JSON.parse(await GM.getValue("init_character_data", ""));
 
                     if (playerID === characterObj.character.id) {
                         exportString = JSON.stringify(constructSelfPlayerExportObjFromInitCharacterData(characterObj, clientObj));
                     } else {
-                        const storedProfileList = JSON.parse(GM_getValue("profile_export_list", "[]"));
+                        const storedProfileList = JSON.parse(await GM.getValue("profile_export_list", "[]"));
                         const profileList = storedProfileList.filter((item) => item.characterID === playerID);
                         let profile = null;
                         if (profileList.length !== 1) {
@@ -6458,8 +6458,8 @@
                         profile = profileList[0];
 
                         let battlePlayer = null;
-                        if (GM_getValue("new_battle", "")) {
-                            const battleObj = JSON.parse(GM_getValue("new_battle", ""));
+                        if (await GM.getValue("new_battle", "")) {
+                            const battleObj = JSON.parse(await GM.getValue("new_battle", ""));
                             const battlePlayerList = battleObj.players.filter((item) => item.character.id === playerID);
                             if (battlePlayerList.length === 1) {
                                 battlePlayer = battlePlayerList[0];
